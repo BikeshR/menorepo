@@ -1,10 +1,10 @@
 name: CD
 
 on:
-  push:
-    branches: [ main ]
-    tags:
-      - 'v*'
+  # push:
+  #   branches: [ main ]
+  #   tags:
+  #     - 'v*'
 
 jobs:
   build:
@@ -15,8 +15,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
       - name: Install dependencies
         run: |
           cd projects/ecommerce

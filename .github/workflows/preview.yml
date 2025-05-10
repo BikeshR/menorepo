@@ -1,10 +1,10 @@
 name: Preview Environment
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'projects/**'
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  #   paths:
+  #     - 'projects/**'
 
 jobs:
   deploy-preview:
@@ -15,8 +15,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
       - name: Install dependencies
         run: |
           cd projects/ecommerce
@@ -39,14 +39,14 @@ jobs:
         with:
           message: |
             🚀 Preview environment deployed!
-            
+
             📝 URL: https://pr-${{ github.event.number }}.example.vercel.app
-            
+
             ⚡ Performance test results:
             - First Contentful Paint: 0.8s
             - Time to Interactive: 1.2s
             - Lighthouse Score: 95/100
-            
+
             Please test thoroughly before merging.
           comment_tag: preview_environment
 
