@@ -16,9 +16,9 @@ A tool for analyzing stocks using SimplyWall.st API data and generating investme
 stock-analyser/
 ├── data/
 │   ├── watchlist.txt               # Stock watchlist
-│   ├── historical_json/            # Historical API data
-│   ├── current_memos/              # Latest investment memos
-│   └── historical_memos/           # Historical investment memos
+│   ├── historical_json/            # Historical API data (refreshed every 5 days)
+│   ├── initial_memos/              # Historical initial investment memos (refreshed daily)
+│   └── final_memos/                # Historical final investment memos
 ├── prompts/
 │   ├── investment-memo-template.md # Template for initial memo
 │   └── update-investment-memo.md   # Template for final memo
@@ -88,36 +88,24 @@ cp .env.example .env
 python src/main.py
 
 # Or with custom settings
-python src/main.py --watchlist data/watchlist.txt --days-threshold 7 --claude-command "claude" --verbose
+python src/main.py --json-days-threshold 7 --initial-memo-days-threshold 2 --claude-command "claude" --verbose
 ```
-
-## Troubleshooting
-
-### Claude CLI Issues
-
-If you see errors related to the Claude CLI:
-
-1. Ensure Claude CLI is installed: `pip install claude-cli`
-2. Make sure you're logged in: `claude login`
-3. Test with a simple query: `claude --prompt "Hello"`
-4. If Claude responds with an error about models, you can run in verbose mode to see details: `python src/main.py --verbose`
-
-### Environment Errors
-
-If you see "externally-managed-environment" errors:
-1. Make sure you're using a virtual environment
-2. Activate it with `source venv/bin/activate`
-3. Then install packages with pip
 
 ## Workflow
 
 For each stock in the watchlist:
 
-1. Check if new data is needed (>5 days since last update)
-2. If yes, fetch data from SimplyWall.st API and save as JSON
-3. Generate initial investment memo using Claude
-4. Update the memo with a final version
-5. Save outputs to appropriate folders
+1. Check if JSON data needs to be refreshed (>5 days since last update)
+   - If yes, fetch new data from SimplyWall.st API and save as timestamped JSON
+   
+2. Check if initial memo needs to be refreshed (>1 day since last update or JSON was updated)
+   - If yes, generate new initial memo using the template
+   
+3. If either JSON or initial memo was updated:
+   - Generate a new final memo using stock data and the initial memo
+   - Save as timestamped markdown file
+
+All files are stored with timestamps in their respective folders, maintaining a historical record.
 
 ## Command-line Arguments
 
@@ -125,7 +113,8 @@ For each stock in the watchlist:
 |----------|-------------|---------|
 | `--api-token` | SimplyWall.st API token | From .env file |
 | `--watchlist` | Path to watchlist file | data/watchlist.txt |
-| `--days-threshold` | Days before refreshing data | 5 |
+| `--json-days-threshold` | Days before refreshing JSON data | 5 |
+| `--initial-memo-days-threshold` | Days before refreshing initial memo | 1 |
 | `--claude-command` | Command to invoke Claude | claude |
 | `--verbose` | Enable verbose logging | False |
 | `--env-file` | Path to .env file | .env |
@@ -142,6 +131,24 @@ NasdaqGS:GOOG
 NYSE:JPM
 NYSE:BAC
 ```
+
+## Troubleshooting
+
+### Claude CLI Issues
+
+If you see errors related to the Claude CLI:
+
+1. Ensure Claude CLI is installed: `pip install claude-cli`
+2. Make sure you're logged in: `claude login`
+3. Test with a simple query: `claude -p "Hello" > output.txt`
+4. If Claude responds with an error, try running in verbose mode to see details: `python src/main.py --verbose`
+
+### Environment Errors
+
+If you see "externally-managed-environment" errors:
+1. Make sure you're using a virtual environment
+2. Activate it with `source venv/bin/activate`
+3. Then install packages with pip
 
 ## Requirements
 

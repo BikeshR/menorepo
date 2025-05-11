@@ -1,7 +1,7 @@
 # Investment Memo Creation Prompt
 
 ## Overview
-Please create a comprehensive investment research memorandum for [TICKER/COMPANY NAME] following the structured format below. This memo should provide a thorough analysis of the investment opportunity, including a clear recommendation (BUY/HOLD/SELL) supported by data-driven insights. The memo should be objective, balanced, and include both bull and bear perspectives.
+Please create a comprehensive investment research memorandum for {{TICKER}} ({{COMPANY}}) following the structured format below. This memo should provide a thorough analysis of the investment opportunity, including a clear recommendation (BUY/HOLD/SELL) supported by data-driven insights. The memo should be objective, balanced, and include both bull and bear perspectives.
 
 ## Critical Requirements
 1. **Current Data**: Use web search to obtain the latest information on stock price, recent earnings, news events, and analyst opinions.
@@ -13,10 +13,10 @@ Please create a comprehensive investment research memorandum for [TICKER/COMPANY
 ## Required Structure
 
 ### Header Information
-- **Ticker:** [Symbol]
-- **Company:** [Full legal name]
-- **Date:** [Current date]
-- **Analyst:** [Your name]
+- **Ticker:** {{TICKER}}
+- **Company:** {{COMPANY}}
+- **Date:** {{DATE}}
+- **Analyst:** Investment Research Team
 - **Current Price:** $[Latest trading price]
 - **Target Price:** $[Your calculated fair value]
 - **Recommendation:** [BUY/HOLD/SELL]

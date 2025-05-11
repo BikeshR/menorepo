@@ -1,13 +1,17 @@
 # API and environment files
 .env
 *.env
-.env
+.env.*
 
 # Data directories
 data/historical_json/*
+data/initial_memos/*
+data/final_memos/*
 data/current_memos/*
 data/historical_memos/*
 !data/historical_json/.gitkeep
+!data/initial_memos/.gitkeep
+!data/final_memos/.gitkeep
 !data/current_memos/.gitkeep
 !data/historical_memos/.gitkeep
 

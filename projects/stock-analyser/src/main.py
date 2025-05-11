@@ -48,10 +48,17 @@ def parse_args():
     )
     
     parser.add_argument(
-        "--days-threshold",
+        "--json-days-threshold",
         help="Days before refreshing stock data (default: 5)",
         type=int,
         default=5
+    )
+    
+    parser.add_argument(
+        "--initial-memo-days-threshold",
+        help="Days before refreshing initial memo (default: 1)",
+        type=int,
+        default=1
     )
     
     parser.add_argument(
@@ -116,7 +123,8 @@ def process_stock(
     api_client: SimplywallStAPI,
     file_manager: FileManager,
     claude: ClaudeIntegration,
-    days_threshold: int
+    json_days_threshold: int,
+    initial_memo_days_threshold: int
 ) -> bool:
     """Process a single stock
     
@@ -125,7 +133,8 @@ def process_stock(
         api_client: SimplyWall.st API client
         file_manager: File manager
         claude: Claude integration
-        days_threshold: Days threshold for refreshing data
+        json_days_threshold: Days threshold for refreshing JSON data
+        initial_memo_days_threshold: Days threshold for refreshing initial memo
         
     Returns:
         True if processing was successful, False otherwise
@@ -133,37 +142,57 @@ def process_stock(
     try:
         logger.info(f"Processing stock: {ticker}")
         
-        # Check if we need to fetch new data
-        if file_manager.needs_update(ticker, days_threshold):
+        # Track if any updates were made
+        update_json = False
+        update_initial_memo = False
+        
+        # Check if we need to fetch new JSON data
+        needs_json_update, json_file_path = file_manager.needs_json_update(ticker, json_days_threshold)
+        
+        if needs_json_update:
             logger.info(f"Fetching new data for {ticker}")
             
             # Get data from API
             stock_data = api_client.get_company_data(ticker)
             
             # Save data to file
-            data_file = file_manager.save_stock_data(ticker, stock_data)
-            logger.info(f"Saved stock data to {data_file}")
+            json_file_path = file_manager.save_stock_data(ticker, stock_data)
+            logger.info(f"Saved stock data to {json_file_path}")
+            update_json = True
         else:
             # Use existing data
-            data_file = file_manager.get_latest_data_file(ticker)
-            logger.info(f"Using existing data from {data_file}")
-            stock_data = file_manager.load_json_data(data_file)
+            logger.info(f"Using existing data from {json_file_path}")
+            stock_data = file_manager.load_json_data(json_file_path)
         
-        # Generate initial memo
-        logger.info(f"Generating initial investment memo for {ticker}")
-        initial_memo = claude.generate_initial_memo(stock_data)
+        # Check if we need to generate a new initial memo
+        needs_initial_memo_update, initial_memo_path = file_manager.needs_initial_memo_update(
+            ticker, 
+            initial_memo_days_threshold
+        )
         
-        # Save initial memo
-        initial_memo_file = file_manager.save_current_memo(ticker, initial_memo)
-        logger.info(f"Saved initial memo to {initial_memo_file}")
+        if needs_initial_memo_update or update_json:
+            logger.info(f"Generating initial investment memo for {ticker}")
+            initial_memo = claude.generate_initial_memo(stock_data)
+            
+            # Save initial memo
+            initial_memo_path = file_manager.save_initial_memo(ticker, initial_memo)
+            logger.info(f"Saved initial memo to {initial_memo_path}")
+            update_initial_memo = True
+        else:
+            # Use existing initial memo
+            logger.info(f"Using existing initial memo from {initial_memo_path}")
+            initial_memo = file_manager.load_memo_content(initial_memo_path)
         
-        # Generate final memo
-        logger.info(f"Generating final investment memo for {ticker}")
-        final_memo = claude.generate_final_memo(stock_data, initial_memo)
-        
-        # Save final memo
-        final_memo_file = file_manager.save_historical_memo(ticker, final_memo)
-        logger.info(f"Saved final memo to {final_memo_file}")
+        # Generate final memo if any component was updated
+        if update_json or update_initial_memo:
+            logger.info(f"Generating final investment memo for {ticker}")
+            final_memo = claude.generate_final_memo(stock_data, initial_memo)
+            
+            # Save final memo
+            final_memo_file = file_manager.save_final_memo(ticker, final_memo)
+            logger.info(f"Saved final memo to {final_memo_file}")
+        else:
+            logger.info(f"Skipping final memo generation for {ticker} - no updates needed")
         
         return True
     
@@ -191,15 +220,15 @@ def main():
         # Resolve paths
         watchlist_path = os.path.join(project_root, args.watchlist)
         historical_json_dir = os.path.join(project_root, "data", "historical_json")
-        current_memos_dir = os.path.join(project_root, "data", "current_memos")
-        historical_memos_dir = os.path.join(project_root, "data", "historical_memos")
+        initial_memos_dir = os.path.join(project_root, "data", "initial_memos")
+        final_memos_dir = os.path.join(project_root, "data", "final_memos")
         prompt_dir = os.path.join(project_root, "prompts")
         
         logger.debug(f"Project root: {project_root}")
         logger.debug(f"Watchlist path: {watchlist_path}")
         logger.debug(f"Historical JSON dir: {historical_json_dir}")
-        logger.debug(f"Current memos dir: {current_memos_dir}")
-        logger.debug(f"Historical memos dir: {historical_memos_dir}")
+        logger.debug(f"Initial memos dir: {initial_memos_dir}")
+        logger.debug(f"Final memos dir: {final_memos_dir}")
         logger.debug(f"Prompt directory: {prompt_dir}")
         
         # Initialize components
@@ -207,8 +236,8 @@ def main():
         api_client = SimplywallStAPI(api_token)
         file_manager = FileManager(
             historical_json_dir,
-            current_memos_dir,
-            historical_memos_dir
+            initial_memos_dir,
+            final_memos_dir
         )
         claude = ClaudeIntegration(prompt_dir, args.claude_command)
         
@@ -219,7 +248,14 @@ def main():
         # Process each stock
         successful = 0
         for ticker in tickers:
-            if process_stock(ticker, api_client, file_manager, claude, args.days_threshold):
+            if process_stock(
+                ticker, 
+                api_client, 
+                file_manager, 
+                claude, 
+                args.json_days_threshold,
+                args.initial_memo_days_threshold
+            ):
                 successful += 1
         
         # Print summary

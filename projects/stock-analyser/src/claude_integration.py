@@ -10,7 +10,8 @@ import json
 import subprocess
 import tempfile
 import logging
-from typing import Dict, Any, Optional
+import datetime
+from typing import Dict, List, Any, Optional, Tuple
 
 logger = logging.getLogger('stock_analyzer')
 
@@ -40,6 +41,30 @@ class ClaudeIntegration:
         
         if not os.path.exists(self.update_prompt_path):
             raise FileNotFoundError(f"Update prompt template not found: {self.update_prompt_path}")
+    
+    def _extract_company_info(self, stock_data: Dict[str, Any]) -> Tuple[str, str]:
+        """Extract ticker symbol and company name from stock data
+        
+        Args:
+            stock_data: Stock data from API
+            
+        Returns:
+            Tuple of (ticker_symbol, company_name)
+        """
+        ticker_symbol = ""
+        company_name = ""
+        
+        try:
+            exchange = stock_data.get("exchangeSymbol", "")
+            symbol = stock_data.get("tickerSymbol", "")
+            if exchange and symbol:
+                ticker_symbol = f"{symbol}"  # Just the symbol without exchange prefix
+                
+            company_name = stock_data.get("name", "")
+        except Exception as e:
+            logger.warning(f"Error extracting company info: {str(e)}")
+            
+        return ticker_symbol, company_name
     
     def _prepare_prompt(self, template_path: str, replacements: Dict[str, str] = None) -> str:
         """Prepare prompt by replacing placeholders
@@ -144,10 +169,10 @@ class ClaudeIntegration:
                 logger.warning(f"Failed to clean up temporary files: {str(e)}")
     
     def generate_initial_memo(self, stock_data: Dict[str, Any]) -> str:
-        """Generate initial investment memo using just the prompt template
+        """Generate initial investment memo using template with company info
         
         Args:
-            stock_data: Stock data from API (not used for template, just for ticker info)
+            stock_data: Stock data from API (used for ticker and company name)
             
         Returns:
             Generated memo content
@@ -155,20 +180,30 @@ class ClaudeIntegration:
         Raises:
             RuntimeError: If Claude command fails
         """
-        # Get ticker information for logging only
-        ticker = ""
+        # Extract ticker symbol and company name from stock data
+        ticker, company_name = self._extract_company_info(stock_data)
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        
+        # Get full ticker with exchange for logging
+        full_ticker = ""
         try:
             exchange = stock_data.get("exchangeSymbol", "")
-            symbol = stock_data.get("tickerSymbol", "")
-            if exchange and symbol:
-                ticker = f"{exchange}:{symbol}"
+            if exchange and ticker:
+                full_ticker = f"{exchange}:{ticker}"
         except:
             pass
         
-        logger.info(f"Generating initial memo for {ticker} without stock data")
+        logger.info(f"Generating initial memo for {full_ticker} ({company_name})")
         
-        # Simply read the template without any replacements
-        prompt = self._prepare_prompt(self.initial_prompt_path)
+        # Prepare replacements for the template
+        replacements = {
+            "TICKER": ticker,
+            "COMPANY": company_name,
+            "DATE": current_date
+        }
+        
+        # Prepare prompt with replacements
+        prompt = self._prepare_prompt(self.initial_prompt_path, replacements)
         
         # Run Claude and return response
         return self._run_claude(prompt)
@@ -186,17 +221,19 @@ class ClaudeIntegration:
         Raises:
             RuntimeError: If Claude command fails
         """
-        # Get ticker information for logging
-        ticker = ""
+        # Extract ticker and company name for logging
+        ticker, company_name = self._extract_company_info(stock_data)
+        
+        # Get full ticker with exchange for logging
+        full_ticker = ""
         try:
             exchange = stock_data.get("exchangeSymbol", "")
-            symbol = stock_data.get("tickerSymbol", "")
-            if exchange and symbol:
-                ticker = f"{exchange}:{symbol}"
+            if exchange and ticker:
+                full_ticker = f"{exchange}:{ticker}"
         except:
             pass
             
-        logger.info(f"Generating final memo for {ticker} with stock data")
+        logger.info(f"Generating final memo for {full_ticker} ({company_name}) with stock data")
         
         # Convert stock data to JSON string
         stock_json = json.dumps(stock_data, indent=2)
