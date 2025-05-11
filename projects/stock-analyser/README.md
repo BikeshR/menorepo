@@ -72,7 +72,10 @@ cp .env.example .env
 # Edit .env with your API token
 ```
 
-5. Install the Claude CLI (https://github.com/anthropics/claude-cli)
+5. Install the Claude CLI:
+   - Follow the instructions at https://github.com/anthropics/claude-cli
+   - Make sure the `claude` command is available in your path
+   - Log in with `claude login`
 
 ## Usage
 
@@ -85,8 +88,26 @@ cp .env.example .env
 python src/main.py
 
 # Or with custom settings
-python src/main.py --watchlist data/watchlist.txt --days-threshold 7 --claude-command custom-claude-command --verbose
+python src/main.py --watchlist data/watchlist.txt --days-threshold 7 --claude-command "claude" --verbose
 ```
+
+## Troubleshooting
+
+### Claude CLI Issues
+
+If you see errors related to the Claude CLI:
+
+1. Ensure Claude CLI is installed: `pip install claude-cli`
+2. Make sure you're logged in: `claude login`
+3. Test with a simple query: `claude --prompt "Hello"`
+4. If Claude responds with an error about models, you can run in verbose mode to see details: `python src/main.py --verbose`
+
+### Environment Errors
+
+If you see "externally-managed-environment" errors:
+1. Make sure you're using a virtual environment
+2. Activate it with `source venv/bin/activate`
+3. Then install packages with pip
 
 ## Workflow
 

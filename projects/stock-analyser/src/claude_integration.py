@@ -9,8 +9,10 @@ import os
 import json
 import subprocess
 import tempfile
+import logging
 from typing import Dict, Any, Optional
 
+logger = logging.getLogger('stock_analyzer')
 
 class ClaudeIntegration:
     """Interface for generating investment memos using Claude"""
@@ -39,7 +41,7 @@ class ClaudeIntegration:
         if not os.path.exists(self.update_prompt_path):
             raise FileNotFoundError(f"Update prompt template not found: {self.update_prompt_path}")
     
-    def _prepare_prompt(self, template_path: str, replacements: Dict[str, str]) -> str:
+    def _prepare_prompt(self, template_path: str, replacements: Dict[str, str] = None) -> str:
         """Prepare prompt by replacing placeholders
         
         Args:
@@ -52,9 +54,10 @@ class ClaudeIntegration:
         with open(template_path, 'r') as f:
             template = f.read()
         
-        # Apply replacements
-        for placeholder, value in replacements.items():
-            template = template.replace(f"{{{{{placeholder}}}}}", value)
+        # Apply replacements if provided
+        if replacements:
+            for placeholder, value in replacements.items():
+                template = template.replace(f"{{{{{placeholder}}}}}", value)
         
         return template
     
@@ -68,7 +71,7 @@ class ClaudeIntegration:
             Claude's response
             
         Raises:
-            subprocess.CalledProcessError: If Claude command fails
+            RuntimeError: If Claude command fails
         """
         # Create temporary files for prompt and output
         with tempfile.NamedTemporaryFile('w', suffix='.md', delete=False) as prompt_file:
@@ -79,15 +82,38 @@ class ClaudeIntegration:
             output_file_path = output_file.name
         
         try:
-            # Run Claude command with input and output files
-            command = [
-                self.claude_command,
+            # Parse the claude command to handle both simple and complex forms
+            command_parts = self.claude_command.split()
+            
+            # Build the command with input and output files
+            command = command_parts + [
                 "--input", prompt_file_path,
-                "--output", output_file_path,
-                "--model", "claude-3-opus-20240229"  # Use the best model available
+                "--output", output_file_path
             ]
             
-            subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Log the full command that will be executed
+            logger.info(f"Executing Claude command: {' '.join(command)}")
+            logger.debug(f"Prompt file: {prompt_file_path}")
+            logger.debug(f"Output file: {output_file_path}")
+            
+            # Run the command and capture output
+            result = subprocess.run(
+                command, 
+                check=False,  # Don't raise exception on non-zero exit
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            
+            # Check for errors
+            if result.returncode != 0:
+                error_msg = f"Claude command failed with exit code {result.returncode}.\n"
+                error_msg += f"STDOUT: {result.stdout}\n"
+                error_msg += f"STDERR: {result.stderr}"
+                logger.error(error_msg)
+                
+                # Raise an exception
+                raise RuntimeError(f"Claude command failed: {error_msg}")
             
             # Read output
             with open(output_file_path, 'r') as f:
@@ -97,32 +123,44 @@ class ClaudeIntegration:
         
         finally:
             # Clean up temporary files
-            os.unlink(prompt_file_path)
-            os.unlink(output_file_path)
+            try:
+                os.unlink(prompt_file_path)
+                os.unlink(output_file_path)
+            except Exception as e:
+                logger.warning(f"Failed to clean up temporary files: {str(e)}")
     
     def generate_initial_memo(self, stock_data: Dict[str, Any]) -> str:
-        """Generate initial investment memo
+        """Generate initial investment memo using just the prompt template
         
         Args:
-            stock_data: Stock data from SimplyWall.st API
+            stock_data: Stock data from API (not used for template, just for ticker info)
             
         Returns:
             Generated memo content
+            
+        Raises:
+            RuntimeError: If Claude command fails
         """
-        # Convert stock data to JSON string
-        stock_json = json.dumps(stock_data, indent=2)
+        # Get ticker information for logging only
+        ticker = ""
+        try:
+            exchange = stock_data.get("exchangeSymbol", "")
+            symbol = stock_data.get("tickerSymbol", "")
+            if exchange and symbol:
+                ticker = f"{exchange}:{symbol}"
+        except:
+            pass
         
-        # Prepare prompt with stock data
-        prompt = self._prepare_prompt(
-            self.initial_prompt_path,
-            {"STOCK_JSON_DATA": stock_json}
-        )
+        logger.info(f"Generating initial memo for {ticker} without stock data")
+        
+        # Simply read the template without any replacements
+        prompt = self._prepare_prompt(self.initial_prompt_path)
         
         # Run Claude and return response
         return self._run_claude(prompt)
     
     def generate_final_memo(self, stock_data: Dict[str, Any], draft_memo: str) -> str:
-        """Generate final investment memo
+        """Generate final investment memo using stock data and draft memo
         
         Args:
             stock_data: Stock data from SimplyWall.st API
@@ -130,7 +168,22 @@ class ClaudeIntegration:
             
         Returns:
             Generated final memo content
+            
+        Raises:
+            RuntimeError: If Claude command fails
         """
+        # Get ticker information for logging
+        ticker = ""
+        try:
+            exchange = stock_data.get("exchangeSymbol", "")
+            symbol = stock_data.get("tickerSymbol", "")
+            if exchange and symbol:
+                ticker = f"{exchange}:{symbol}"
+        except:
+            pass
+            
+        logger.info(f"Generating final memo for {ticker} with stock data")
+        
         # Convert stock data to JSON string
         stock_json = json.dumps(stock_data, indent=2)
         
