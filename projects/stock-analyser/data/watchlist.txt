@@ -1,0 +1,22 @@
+# Stock Ticker Watchlist
+# Format: EXCHANGE:TICKER or TICKER
+# Examples:
+# NasdaqGS:AAPL
+# NYSE:MSFT
+# ASX:BHP
+
+# Tech stocks
+NasdaqGS:AAPL
+# NasdaqGS:MSFT
+# NasdaqGS:GOOG
+# NasdaqGS:AMZN
+# NasdaqGS:META
+
+# Finance
+# NYSE:JPM
+# NYSE:BAC
+# NYSE:GS
+
+# Other
+# NYSE:KO
+# NYSE:DIS

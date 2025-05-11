@@ -1,3 +1,35 @@
+# API and environment files
+.env
+*.env
 .env
 
-watchlist.txt
+# Data directories
+data/historical_json/*
+data/current_memos/*
+data/historical_memos/*
+!data/historical_json/.gitkeep
+!data/current_memos/.gitkeep
+!data/historical_memos/.gitkeep
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db

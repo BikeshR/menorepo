@@ -1,112 +1,129 @@
-# Stock Analyser
+# Stock Analyzer
 
-Automated tool for generating comprehensive stock analyses using SimplyWall.st API data and Claude AI.
+A tool for analyzing stocks using SimplyWall.st API data and generating investment memos with Claude.
 
 ## Features
 
-- Fetches detailed stock data from SimplyWall.st API
-- Combines private financial data with public information
-- Generates in-depth stock analyses using Claude AI
-- Manages API rate limits and Claude session tracking
-- Processes stocks in batches with caching for efficiency
+- Fetches detailed stock information from SimplyWall.st API
+- Manages historical stock data 
+- Generates investment memos using Claude
+- Tracks a watchlist of stocks
+- Maintains history of analyses for tracking performance
 
-## Requirements
+## Project Structure
 
-- Python 3.7+
-- SimplyWall.st API token
-- Claude CLI access
+```
+stock-analyser/
+├── data/
+│   ├── watchlist.txt               # Stock watchlist
+│   ├── historical_json/            # Historical API data
+│   ├── current_memos/              # Latest investment memos
+│   └── historical_memos/           # Historical investment memos
+├── prompts/
+│   ├── investment-memo-template.md # Template for initial memo
+│   └── update-investment-memo.md   # Template for final memo
+├── src/
+│   ├── simplywall_api.py           # API client
+│   ├── file_manager.py             # File/folder operations
+│   ├── watchlist_parser.py         # Parse watchlist
+│   ├── claude_integration.py       # Claude API integration
+│   └── main.py                     # Main workflow script
+├── .env.example                    # Example environment variables
+├── setup.sh                        # Setup script 
+└── requirements.txt                # Dependencies
+```
 
-## Installation
+## Quick Setup
 
-1. Clone this repository
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Set environment variables:
-   ```
-   export SIMPLYWALL_API_TOKEN="your_api_token_here"
-   ```
+Run the setup script to create a virtual environment and install dependencies:
+
+```bash
+./setup.sh
+```
+
+## Manual Installation
+
+1. Clone the repository
+
+2. Create and activate a virtual environment:
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up SimplyWall.st API access:
+   - Register for SimplyWall.st Pro API access
+   - Create an API token
+   - Copy `.env.example` to `.env` and add your token:
+
+```bash
+cp .env.example .env
+# Edit .env with your API token
+```
+
+5. Install the Claude CLI (https://github.com/anthropics/claude-cli)
 
 ## Usage
 
-### Basic Usage
+1. Ensure your virtual environment is activated
+2. Add stocks to your watchlist in `data/watchlist.txt`
+3. Run the main script:
 
 ```bash
-python main.py --watchlist watchlist.txt
+# Run with default settings
+python src/main.py
+
+# Or with custom settings
+python src/main.py --watchlist data/watchlist.txt --days-threshold 7 --claude-command custom-claude-command --verbose
 ```
 
-### Command-line Arguments
+## Workflow
 
-```
-python main.py --help
-```
+For each stock in the watchlist:
+
+1. Check if new data is needed (>5 days since last update)
+2. If yes, fetch data from SimplyWall.st API and save as JSON
+3. Generate initial investment memo using Claude
+4. Update the memo with a final version
+5. Save outputs to appropriate folders
+
+## Command-line Arguments
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `--watchlist` | File containing stock tickers | watchlist.txt |
-| `--csv-dir` | Directory for stock data | ./stock_data |
-| `--output-dir` | Directory for analyses | ./analyses |
-| `--template` | Template file for analysis | ./template.md |
-| `--batch-size` | Process stocks in batches (0 = auto) | 0 |
-| `--skip-data-fetch` | Skip API data fetching | False |
-| `--refresh-cache` | Force refresh cached data | False |
-| `--test-api` | Test API connection and exit | False |
-| `--dry-run` | Estimate resource usage without processing | False |
-| `--session-limit` | Max Claude messages per session | 200 |
+| `--api-token` | SimplyWall.st API token | From .env file |
+| `--watchlist` | Path to watchlist file | data/watchlist.txt |
+| `--days-threshold` | Days before refreshing data | 5 |
+| `--claude-command` | Command to invoke Claude | claude |
+| `--verbose` | Enable verbose logging | False |
+| `--env-file` | Path to .env file | .env |
 
-### Example Watchlist File
+## Example Watchlist File
 
 ```
-AAPL
-MSFT
-GOOG
-AMZN
-META
+# Tech stocks
+NasdaqGS:AAPL
+NasdaqGS:MSFT
+NasdaqGS:GOOG
+
+# Finance
+NYSE:JPM
+NYSE:BAC
 ```
 
-### Template File
+## Requirements
 
-Create a `template.md` file to structure your stock analyses:
-
-```markdown
-# {TICKER} Stock Analysis
-
-## Company Overview
-
-[Basic company information]
-
-## Financial Analysis
-
-[Key financial metrics]
-
-## Growth Prospects
-
-[Growth analysis and projections]
-
-## Risks and Concerns
-
-[Risk factors]
-
-## Valuation
-
-[Valuation analysis]
-
-## Recommendation
-
-[Investment recommendation]
-```
-
-## Output
-
-For each ticker, the tool generates a markdown file in the output directory with a comprehensive stock analysis.
-
-## Resource Management
-
-- SimplyWall.st API: Respects rate limits (default: 60 requests/minute)
-- Claude: Tracks session usage and limits (default: 200 messages/session)
-
-## Limitations
-
-- API token required for SimplyWall.st data
-- Subject to Claude usage limits (typically 50 sessions/month)
+- Python 3.8+
+- SimplyWall.st Pro API access
+- Claude CLI installed and configured
