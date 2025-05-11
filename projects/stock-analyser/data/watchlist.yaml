@@ -3,37 +3,37 @@
 
 stocks:
   # Tech
-  # - GOOGL (Alphabet (Class A))
-  # - AMZN (Amazon)
-  # - MSFT (Microsoft)
-  # - UBER (Uber Technologies)
-  # - NVDA (Nvidia)
-  # - QCOM (Qualcomm)
-  # - SHOP (Shopify)
-  # - AMAT (Applied Materials)
-  # - BIDU (Baidu)
-  # - ASML (ASML)
-  # - SNOW (Snowflake)
-  # - TEAM (Atlassian)
-  # - RDDT (Reddit)
+  - GOOGL (Alphabet (Class A))
+  - AMZN (Amazon)
+  - MSFT (Microsoft)
+  - UBER (Uber Technologies)
+  - NVDA (Nvidia)
+  - QCOM (Qualcomm)
+  - SHOP (Shopify)
+  - AMAT (Applied Materials)
+  - BIDU (Baidu)
+  - ASML (ASML)
+  - SNOW (Snowflake)
+  - TEAM (Atlassian)
+  - RDDT (Reddit)
 
-  # # Hardware
-  # - LRCX (Lam Research)
+  # Hardware
+  - LRCX (Lam Research)
 
-  # # Healthcare
-  # - UNH (UnitedHealth)
-  # - MRNA (Moderna)
-  # - LLY (Eli Lilly & Co)
-  # - NVO (Novo Nordisk)
+  # Healthcare
+  - UNH (UnitedHealth)
+  - MRNA (Moderna)
+  - LLY (Eli Lilly & Co)
+  - NVO (Novo Nordisk)
 
-  # # Financial
-  # - JPM (JPMorgan Chase & Co)
-  # - AXP (American Express)
-  # - EFX (Equifax)
+  # Financial
+  - JPM (JPMorgan Chase & Co)
+  - AXP (American Express)
+  - EFX (Equifax)
 
-  # # International
-  # - BABA (Alibaba)
-  # - TCEHY (Tencent)
+  # International
+  - BABA (Alibaba)
+  - TCEHY (Tencent)
 
   # ETFs
   - UGRW (WisdomTree UK Quality Dividend Growth)
