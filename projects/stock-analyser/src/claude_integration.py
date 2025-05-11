@@ -107,26 +107,21 @@ class ClaudeIntegration:
         Raises:
             RuntimeError: If Claude command fails
         """
-        # Create temporary files for prompt and output
+        # Create temporary file for prompt
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as prompt_file:
             prompt_file.write(prompt)
             prompt_file_path = prompt_file.name
-
-        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as output_file:
-            output_file_path = output_file.name
 
         try:
             # Parse the base claude command to handle both simple and complex forms
             command_parts = self.claude_command.split()
 
-            # Build the command using shell redirection
-            # We need to use shell=True for redirection to work
-            command = f"{' '.join(command_parts)} -p < {prompt_file_path} > {output_file_path}"
+            # Build the command with JSON output format
+            command = f"{' '.join(command_parts)} -p --output-format json < {prompt_file_path}"
 
             # Log the full command that will be executed
             logger.info(f"Executing Claude command: {command}")
             logger.debug(f"Prompt file: {prompt_file_path}")
-            logger.debug(f"Output file: {output_file_path}")
 
             # Run the command with shell=True to enable redirection
             result = subprocess.run(
@@ -148,34 +143,43 @@ class ClaudeIntegration:
                 # Raise an exception
                 raise RuntimeError(f"Claude command failed: {error_msg}")
 
-            # Verify output file exists and has content
-            if not os.path.exists(output_file_path) or os.path.getsize(output_file_path) == 0:
-                error_msg = "Claude command produced no output file or empty file"
+            # Parse JSON from stdout
+            if not result.stdout:
+                error_msg = "Claude command produced no output"
                 logger.error(error_msg)
-
-                # Use stdout as potential output if available
-                if result.stdout:
-                    logger.info("Using stdout as Claude response")
-                    return result.stdout
-
-                # Raise an exception
                 raise RuntimeError(error_msg)
 
-            # Read output
-            with open(output_file_path, "r") as f:
-                result = f.read()
+            try:
+                # Parse JSON response
+                json_response = json.loads(result.stdout)
 
-            return result
+                # Extract content from the "result" field
+                if "result" not in json_response:
+                    error_msg = "Claude JSON output missing 'result' field"
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
+
+                # Log some stats if available
+                if "cost_usd" in json_response:
+                    logger.info(f"Claude request cost: ${json_response['cost_usd']:.6f}")
+                if "duration_ms" in json_response:
+                    logger.info(f"Claude request duration: {json_response['duration_ms']/1000:.2f} seconds")
+
+                return json_response["result"]
+
+            except json.JSONDecodeError as e:
+                error_msg = f"Failed to parse JSON response from Claude: {str(e)}"
+                logger.error(error_msg)
+                logger.debug(f"Raw response: {result.stdout}")
+                raise RuntimeError(error_msg)
 
         finally:
-            # Clean up temporary files
+            # Clean up temporary file
             try:
                 if os.path.exists(prompt_file_path):
                     os.unlink(prompt_file_path)
-                if os.path.exists(output_file_path):
-                    os.unlink(output_file_path)
             except Exception as e:
-                logger.warning(f"Failed to clean up temporary files: {str(e)}")
+                logger.warning(f"Failed to clean up temporary file: {str(e)}")
 
     def generate_initial_memo(self, stock_data: Dict[str, Any], company_name: str = "") -> str:
         """Generate initial investment memo using template with company info

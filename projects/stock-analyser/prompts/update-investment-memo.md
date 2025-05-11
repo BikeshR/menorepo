@@ -24,4 +24,4 @@ The final memo should be comprehensive, insightful, and professionally formatted
 
 ## Output Format
 
-Your updated investment memo should be formatted as Markdown, maintaining the original structure while enhancing content where needed. The output should be between 1500-2000 words.
+Your updated investment memo should be formatted as Markdown, maintaining the original structure while enhancing content where needed.

@@ -54,9 +54,9 @@ def parse_args():
 
     parser.add_argument(
         "--initial-memo-days-threshold",
-        help="Days before refreshing initial memo (default: 1)",
+        help="Days before refreshing initial memo (default: 5)",
         type=int,
-        default=1,
+        default=5,
     )
 
     parser.add_argument(
@@ -188,8 +188,13 @@ def process_stock(
             logger.info(f"Using existing initial memo from {initial_memo_path}")
             initial_memo = file_manager.load_memo_content(initial_memo_path)
 
-        # Generate final memo if any component was updated
-        if update_json or update_initial_memo:
+        # Check if we need a new final memo (no recent one exists)
+        needs_final_memo_update, final_memo_path = file_manager.needs_final_memo_update(
+            ticker, 5  # 5 day threshold for final memo
+        )
+
+        # Generate final memo if any component was updated or if it's older than 5 days
+        if update_json or update_initial_memo or needs_final_memo_update:
             logger.info(f"Generating final investment memo for {ticker}")
             final_memo = claude.generate_final_memo(stock_data, initial_memo, company_name)
 

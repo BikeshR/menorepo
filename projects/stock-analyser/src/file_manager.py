@@ -95,7 +95,7 @@ class FileManager:
         return self._needs_update(ticker, pattern, days_threshold)
 
     def needs_initial_memo_update(
-        self, ticker: str, days_threshold: int = 1
+        self, ticker: str, days_threshold: int = 5
     ) -> Tuple[bool, Optional[str]]:
         """Check if new initial memo should be generated for a stock
 
@@ -107,6 +107,21 @@ class FileManager:
             Tuple of (needs_update, latest_file_path)
         """
         pattern = os.path.join(self.initial_memos_dir, "{stock_filename}_*.md")
+        return self._needs_update(ticker, pattern, days_threshold)
+
+    def needs_final_memo_update(
+        self, ticker: str, days_threshold: int = 5
+    ) -> Tuple[bool, Optional[str]]:
+        """Check if new final memo should be generated for a stock
+
+        Args:
+            ticker: Stock ticker
+            days_threshold: Number of days before refreshing memo
+
+        Returns:
+            Tuple of (needs_update, latest_file_path)
+        """
+        pattern = os.path.join(self.final_memos_dir, "{stock_filename}_*.md")
         return self._needs_update(ticker, pattern, days_threshold)
 
     def save_stock_data(self, ticker: str, data: Dict[str, Any]) -> str:
@@ -194,6 +209,18 @@ class FileManager:
             Path to the most recent file, or None if no files exist
         """
         _, file_path = self.needs_initial_memo_update(ticker, days_threshold=999999)
+        return file_path
+
+    def get_latest_final_memo(self, ticker: str) -> Optional[str]:
+        """Get path to the most recent final memo for a stock
+
+        Args:
+            ticker: Stock ticker
+
+        Returns:
+            Path to the most recent file, or None if no files exist
+        """
+        _, file_path = self.needs_final_memo_update(ticker, days_threshold=999999)
         return file_path
 
     def load_json_data(self, filepath: str) -> Dict[str, Any]:

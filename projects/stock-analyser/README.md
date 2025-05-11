@@ -97,12 +97,12 @@ For each stock in the watchlist:
 
 1. Check if SimplyWall.st data needs to be refreshed (>5 days since last update)
    - If yes, fetch new data from SimplyWall.st API and save as timestamped JSON
-   
-2. Check if initial memo needs to be refreshed (>1 day since last update or API data was updated)
+
+2. Check if initial memo needs to be refreshed (>5 days since last update or API data was updated)
    - If yes, generate new initial memo using the template
    
-3. If either API data or initial memo was updated:
-   - Generate a new final memo using stock data and the initial memo
+3. Check if final memo needs to be refreshed (>5 days since last update or if API data/initial memo was updated):
+   - If yes, generate a new final memo using stock data and the initial memo
    - Save as timestamped markdown file
 
 All files are stored with timestamps in their respective folders, maintaining a historical record.
@@ -114,7 +114,7 @@ All files are stored with timestamps in their respective folders, maintaining a 
 | `--api-token` | SimplyWall.st API token | From .env file |
 | `--watchlist` | Path to watchlist file | data/watchlist.yaml |
 | `--json-days-threshold` | Days before refreshing API data | 5 |
-| `--initial-memo-days-threshold` | Days before refreshing initial memo | 1 |
+| `--initial-memo-days-threshold` | Days before refreshing initial memo | 5 |
 | `--claude-command` | Command to invoke Claude | claude |
 | `--verbose` | Enable verbose logging | False |
 | `--env-file` | Path to .env file | .env |

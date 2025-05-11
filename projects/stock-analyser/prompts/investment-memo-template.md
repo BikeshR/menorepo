@@ -9,6 +9,7 @@ Please create a comprehensive investment research memorandum for {{TICKER}} ({{C
 3. **Balanced Analysis**: Present both positive and negative factors that could impact the investment.
 4. **Clear Thesis**: Articulate a coherent investment thesis with specific catalysts and timeline.
 5. **Actionable Recommendation**: Provide a definitive recommendation with price target and suggested position sizing.
+6. **Format Delivery**: IMPORTANT: Return the complete investment memo directly in our conversation. Do not attempt to create or save this as a separate file.
 
 ## Required Structure
 
