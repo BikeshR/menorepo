@@ -82,23 +82,22 @@ class ClaudeIntegration:
             output_file_path = output_file.name
         
         try:
-            # Parse the claude command to handle both simple and complex forms
+            # Parse the base claude command to handle both simple and complex forms
             command_parts = self.claude_command.split()
             
-            # Build the command with input and output files
-            command = command_parts + [
-                "--input", prompt_file_path,
-                "--output", output_file_path
-            ]
+            # Build the command using shell redirection
+            # We need to use shell=True for redirection to work
+            command = f"{' '.join(command_parts)} -p < {prompt_file_path} > {output_file_path}"
             
             # Log the full command that will be executed
-            logger.info(f"Executing Claude command: {' '.join(command)}")
+            logger.info(f"Executing Claude command: {command}")
             logger.debug(f"Prompt file: {prompt_file_path}")
             logger.debug(f"Output file: {output_file_path}")
             
-            # Run the command and capture output
+            # Run the command with shell=True to enable redirection
             result = subprocess.run(
                 command, 
+                shell=True,  # Required for redirection
                 check=False,  # Don't raise exception on non-zero exit
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.PIPE,
@@ -115,6 +114,19 @@ class ClaudeIntegration:
                 # Raise an exception
                 raise RuntimeError(f"Claude command failed: {error_msg}")
             
+            # Verify output file exists and has content
+            if not os.path.exists(output_file_path) or os.path.getsize(output_file_path) == 0:
+                error_msg = "Claude command produced no output file or empty file"
+                logger.error(error_msg)
+                
+                # Use stdout as potential output if available
+                if result.stdout:
+                    logger.info("Using stdout as Claude response")
+                    return result.stdout
+                
+                # Raise an exception
+                raise RuntimeError(error_msg)
+            
             # Read output
             with open(output_file_path, 'r') as f:
                 result = f.read()
@@ -124,8 +136,10 @@ class ClaudeIntegration:
         finally:
             # Clean up temporary files
             try:
-                os.unlink(prompt_file_path)
-                os.unlink(output_file_path)
+                if os.path.exists(prompt_file_path):
+                    os.unlink(prompt_file_path)
+                if os.path.exists(output_file_path):
+                    os.unlink(output_file_path)
             except Exception as e:
                 logger.warning(f"Failed to clean up temporary files: {str(e)}")
     
