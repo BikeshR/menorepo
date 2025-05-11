@@ -14,7 +14,6 @@ import os
 import sys
 import argparse
 import logging
-from typing import Dict, List, Optional, Any
 from dotenv import load_dotenv
 
 from simplywall_api import SimplywallStAPI
@@ -147,6 +146,20 @@ def process_stock(
 
             # Get data from API
             stock_data = api_client.get_company_data(ticker)
+
+            # Verify we have valid stock data before proceeding
+            if not stock_data:
+                logger.error(f"Received empty or invalid data for {ticker}")
+                return False
+
+            # Ensure required fields exist
+            if "tickerSymbol" not in stock_data or not stock_data["tickerSymbol"]:
+                logger.warning(f"Stock data for {ticker} is missing ticker symbol, using watchlist ticker")
+                stock_data["tickerSymbol"] = ticker
+
+            if "name" not in stock_data or not stock_data["name"]:
+                logger.warning(f"Stock data for {ticker} is missing company name, using watchlist name")
+                stock_data["name"] = company_name or ticker
 
             # Save data to file
             json_file_path = file_manager.save_stock_data(ticker, stock_data)

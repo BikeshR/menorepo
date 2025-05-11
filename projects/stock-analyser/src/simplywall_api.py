@@ -212,8 +212,24 @@ class SimplywallStAPI:
         if not company:
             raise ValueError(f"Could not find company matching '{ticker_info}'")
 
+        # Check if company has an ID
+        if "id" not in company or not company["id"]:
+            raise ValueError(f"Company found for '{ticker_info}' but has no valid ID")
+
         # Get detailed information using the company ID
-        return self.get_company_detailed(company["id"])
+        detailed_data = self.get_company_detailed(company["id"])
+
+        # Ensure we have valid data
+        if not detailed_data:
+            raise ValueError(f"Could not retrieve detailed data for '{ticker_info}'")
+
+        # Add basic company information to ensure it's available
+        # This helps when the detailed data might be missing some fields
+        for key in ["name", "exchangeSymbol", "tickerSymbol", "marketCapUSD"]:
+            if key in company and key not in detailed_data:
+                detailed_data[key] = company[key]
+
+        return detailed_data
 
     def get_exchanges(self) -> List[Dict[str, Any]]:
         """Get list of available exchanges

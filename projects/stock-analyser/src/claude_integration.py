@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 import logging
 import datetime
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple
 
 logger = logging.getLogger("stock_analyzer")
 
@@ -41,7 +41,9 @@ class ClaudeIntegration:
         if not os.path.exists(self.update_prompt_path):
             raise FileNotFoundError(f"Update prompt template not found: {self.update_prompt_path}")
 
-    def _extract_company_info(self, stock_data: Dict[str, Any], company_name: str = "") -> Tuple[str, str]:
+    def _extract_company_info(
+        self, stock_data: Dict[str, Any], company_name: str = ""
+    ) -> Tuple[str, str]:
         """Extract ticker symbol and company name from stock data
 
         Args:
@@ -55,11 +57,16 @@ class ClaudeIntegration:
         extracted_company_name = company_name or ""
 
         try:
+            # Ensure we have valid stock data
+            if not stock_data:
+                logger.warning("Stock data is empty or None")
+                return ticker_symbol, extracted_company_name
+
             # Get ticker symbol from API data
             symbol = stock_data.get("tickerSymbol", "")
             if symbol:
                 ticker_symbol = symbol
-            
+
             # If company name wasn't provided from watchlist, try to get from API
             if not extracted_company_name:
                 extracted_company_name = stock_data.get("name", "")
@@ -182,10 +189,24 @@ class ClaudeIntegration:
 
         Raises:
             RuntimeError: If Claude command fails
+            ValueError: If stock data is invalid
         """
+        # Ensure we have valid data
+        if not stock_data:
+            raise ValueError("Stock data is empty or None")
+
         # Extract ticker symbol and company name from stock data
         ticker, extracted_company_name = self._extract_company_info(stock_data, company_name)
         current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        # Ensure we have a valid ticker and company name
+        if not ticker:
+            logger.warning("No ticker found in stock data, using placeholder")
+            ticker = "UNKNOWN"
+
+        if not extracted_company_name:
+            logger.warning("No company name found, using placeholder")
+            extracted_company_name = "Unknown Company"
 
         # Get full ticker with exchange for logging
         full_ticker = ""
@@ -209,7 +230,9 @@ class ClaudeIntegration:
         # Run Claude and return response
         return self._run_claude(prompt)
 
-    def generate_final_memo(self, stock_data: Dict[str, Any], draft_memo: str, company_name: str = "") -> str:
+    def generate_final_memo(
+        self, stock_data: Dict[str, Any], draft_memo: str, company_name: str = ""
+    ) -> str:
         """Generate final investment memo using stock data and draft memo
 
         Args:
@@ -223,6 +246,13 @@ class ClaudeIntegration:
         Raises:
             RuntimeError: If Claude command fails
         """
+        # Ensure we have valid data
+        if not stock_data:
+            raise ValueError("Stock data is empty or None")
+
+        if not draft_memo:
+            raise ValueError("Draft memo is empty or None")
+
         # Extract ticker and company name for logging
         ticker, extracted_company_name = self._extract_company_info(stock_data, company_name)
 
@@ -237,7 +267,9 @@ class ClaudeIntegration:
         except:
             full_ticker = ticker
 
-        logger.info(f"Generating final memo for {full_ticker} ({extracted_company_name}) with stock data")
+        logger.info(
+            f"Generating final memo for {full_ticker} ({extracted_company_name}) with stock data"
+        )
 
         # Convert stock data to JSON string
         stock_json = json.dumps(stock_data, indent=2)
