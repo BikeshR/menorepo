@@ -1,0 +1,45 @@
+# Stock Watchlist
+# Format: Lists of stocks with ticker and company name
+
+stocks:
+  # Tech
+  # - GOOGL (Alphabet (Class A))
+  # - AMZN (Amazon)
+  # - MSFT (Microsoft)
+  # - UBER (Uber Technologies)
+  # - NVDA (Nvidia)
+  # - QCOM (Qualcomm)
+  # - SHOP (Shopify)
+  # - AMAT (Applied Materials)
+  # - BIDU (Baidu)
+  # - ASML (ASML)
+  # - SNOW (Snowflake)
+  # - TEAM (Atlassian)
+  # - RDDT (Reddit)
+
+  # # Hardware
+  # - LRCX (Lam Research)
+
+  # # Healthcare
+  # - UNH (UnitedHealth)
+  # - MRNA (Moderna)
+  # - LLY (Eli Lilly & Co)
+  # - NVO (Novo Nordisk)
+
+  # # Financial
+  # - JPM (JPMorgan Chase & Co)
+  # - AXP (American Express)
+  # - EFX (Equifax)
+
+  # # International
+  # - BABA (Alibaba)
+  # - TCEHY (Tencent)
+
+  # ETFs
+  - UGRW (WisdomTree UK Quality Dividend Growth)
+  - LUXG (Amundi S&P Global Luxury)
+  - INRG (iShares Global Clean Energy Transition (Dist))
+  - CYSE (WisdomTree Cybersecurity (Acc))
+
+  # Retail
+  - COST (Costco Wholesale)

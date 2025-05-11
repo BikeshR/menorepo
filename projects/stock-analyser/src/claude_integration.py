@@ -41,29 +41,32 @@ class ClaudeIntegration:
         if not os.path.exists(self.update_prompt_path):
             raise FileNotFoundError(f"Update prompt template not found: {self.update_prompt_path}")
 
-    def _extract_company_info(self, stock_data: Dict[str, Any]) -> Tuple[str, str]:
+    def _extract_company_info(self, stock_data: Dict[str, Any], company_name: str = "") -> Tuple[str, str]:
         """Extract ticker symbol and company name from stock data
 
         Args:
             stock_data: Stock data from API
+            company_name: Optional company name from watchlist
 
         Returns:
             Tuple of (ticker_symbol, company_name)
         """
         ticker_symbol = ""
-        company_name = ""
+        extracted_company_name = company_name or ""
 
         try:
-            exchange = stock_data.get("exchangeSymbol", "")
+            # Get ticker symbol from API data
             symbol = stock_data.get("tickerSymbol", "")
-            if exchange and symbol:
-                ticker_symbol = f"{symbol}"  # Just the symbol without exchange prefix
-
-            company_name = stock_data.get("name", "")
+            if symbol:
+                ticker_symbol = symbol
+            
+            # If company name wasn't provided from watchlist, try to get from API
+            if not extracted_company_name:
+                extracted_company_name = stock_data.get("name", "")
         except Exception as e:
             logger.warning(f"Error extracting company info: {str(e)}")
 
-        return ticker_symbol, company_name
+        return ticker_symbol, extracted_company_name
 
     def _prepare_prompt(self, template_path: str, replacements: Dict[str, str] = None) -> str:
         """Prepare prompt by replacing placeholders
@@ -167,11 +170,12 @@ class ClaudeIntegration:
             except Exception as e:
                 logger.warning(f"Failed to clean up temporary files: {str(e)}")
 
-    def generate_initial_memo(self, stock_data: Dict[str, Any]) -> str:
+    def generate_initial_memo(self, stock_data: Dict[str, Any], company_name: str = "") -> str:
         """Generate initial investment memo using template with company info
 
         Args:
             stock_data: Stock data from API (used for ticker and company name)
+            company_name: Optional company name from watchlist
 
         Returns:
             Generated memo content
@@ -180,7 +184,7 @@ class ClaudeIntegration:
             RuntimeError: If Claude command fails
         """
         # Extract ticker symbol and company name from stock data
-        ticker, company_name = self._extract_company_info(stock_data)
+        ticker, extracted_company_name = self._extract_company_info(stock_data, company_name)
         current_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
         # Get full ticker with exchange for logging
@@ -189,13 +193,15 @@ class ClaudeIntegration:
             exchange = stock_data.get("exchangeSymbol", "")
             if exchange and ticker:
                 full_ticker = f"{exchange}:{ticker}"
+            else:
+                full_ticker = ticker
         except:
-            pass
+            full_ticker = ticker
 
-        logger.info(f"Generating initial memo for {full_ticker} ({company_name})")
+        logger.info(f"Generating initial memo for {full_ticker} ({extracted_company_name})")
 
         # Prepare replacements for the template
-        replacements = {"TICKER": ticker, "COMPANY": company_name, "DATE": current_date}
+        replacements = {"TICKER": ticker, "COMPANY": extracted_company_name, "DATE": current_date}
 
         # Prepare prompt with replacements
         prompt = self._prepare_prompt(self.initial_prompt_path, replacements)
@@ -203,12 +209,13 @@ class ClaudeIntegration:
         # Run Claude and return response
         return self._run_claude(prompt)
 
-    def generate_final_memo(self, stock_data: Dict[str, Any], draft_memo: str) -> str:
+    def generate_final_memo(self, stock_data: Dict[str, Any], draft_memo: str, company_name: str = "") -> str:
         """Generate final investment memo using stock data and draft memo
 
         Args:
             stock_data: Stock data from SimplyWall.st API
             draft_memo: Draft memo from initial generation
+            company_name: Optional company name from watchlist
 
         Returns:
             Generated final memo content
@@ -217,7 +224,7 @@ class ClaudeIntegration:
             RuntimeError: If Claude command fails
         """
         # Extract ticker and company name for logging
-        ticker, company_name = self._extract_company_info(stock_data)
+        ticker, extracted_company_name = self._extract_company_info(stock_data, company_name)
 
         # Get full ticker with exchange for logging
         full_ticker = ""
@@ -225,10 +232,12 @@ class ClaudeIntegration:
             exchange = stock_data.get("exchangeSymbol", "")
             if exchange and ticker:
                 full_ticker = f"{exchange}:{ticker}"
+            else:
+                full_ticker = ticker
         except:
-            pass
+            full_ticker = ticker
 
-        logger.info(f"Generating final memo for {full_ticker} ({company_name}) with stock data")
+        logger.info(f"Generating final memo for {full_ticker} ({extracted_company_name}) with stock data")
 
         # Convert stock data to JSON string
         stock_json = json.dumps(stock_data, indent=2)

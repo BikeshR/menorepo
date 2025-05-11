@@ -42,8 +42,8 @@ def parse_args():
 
     parser.add_argument(
         "--watchlist",
-        help="Path to watchlist file (default: data/watchlist.txt)",
-        default="data/watchlist.txt",
+        help="Path to watchlist YAML file (default: data/watchlist.yaml)",
+        default="data/watchlist.yaml",
     )
 
     parser.add_argument(
@@ -109,6 +109,7 @@ def load_api_token(args):
 
 def process_stock(
     ticker: str,
+    company_name: str,
     api_client: SimplywallStAPI,
     file_manager: FileManager,
     claude: ClaudeIntegration,
@@ -119,6 +120,7 @@ def process_stock(
 
     Args:
         ticker: Stock ticker
+        company_name: Company name from watchlist
         api_client: SimplyWall.st API client
         file_manager: File manager
         claude: Claude integration
@@ -129,7 +131,7 @@ def process_stock(
         True if processing was successful, False otherwise
     """
     try:
-        logger.info(f"Processing stock: {ticker}")
+        logger.info(f"Processing stock: {ticker} ({company_name})")
 
         # Track if any updates were made
         update_json = False
@@ -162,7 +164,7 @@ def process_stock(
 
         if needs_initial_memo_update or update_json:
             logger.info(f"Generating initial investment memo for {ticker}")
-            initial_memo = claude.generate_initial_memo(stock_data)
+            initial_memo = claude.generate_initial_memo(stock_data, company_name)
 
             # Save initial memo
             initial_memo_path = file_manager.save_initial_memo(ticker, initial_memo)
@@ -176,7 +178,7 @@ def process_stock(
         # Generate final memo if any component was updated
         if update_json or update_initial_memo:
             logger.info(f"Generating final investment memo for {ticker}")
-            final_memo = claude.generate_final_memo(stock_data, initial_memo)
+            final_memo = claude.generate_final_memo(stock_data, initial_memo, company_name)
 
             # Save final memo
             final_memo_file = file_manager.save_final_memo(ticker, final_memo)
@@ -234,8 +236,12 @@ def main():
         # Process each stock
         successful = 0
         for ticker in tickers:
+            # Get company name if available
+            company_name = watchlist_parser.get_company_name(ticker)
+            
             if process_stock(
                 ticker,
+                company_name,
                 api_client,
                 file_manager,
                 claude,

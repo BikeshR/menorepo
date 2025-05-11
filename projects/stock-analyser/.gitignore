@@ -4,16 +4,13 @@
 .env.*
 
 # Data directories
-data/historical_json/*
 data/initial_memos/*
 data/final_memos/*
-data/current_memos/*
-data/historical_memos/*
-!data/historical_json/.gitkeep
+data/sws_data/*
 !data/initial_memos/.gitkeep
 !data/final_memos/.gitkeep
 !data/current_memos/.gitkeep
-!data/historical_memos/.gitkeep
+!data/sws_data/.gitkeep
 
 # Python cache files
 __pycache__/

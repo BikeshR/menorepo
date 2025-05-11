@@ -7,7 +7,7 @@ A tool for analyzing stocks using SimplyWall.st API data and generating investme
 - Fetches detailed stock information from SimplyWall.st API
 - Manages historical stock data 
 - Generates investment memos using Claude
-- Tracks a watchlist of stocks
+- Tracks a watchlist of stocks in YAML format
 - Maintains history of analyses for tracking performance
 
 ## Project Structure
@@ -15,7 +15,7 @@ A tool for analyzing stocks using SimplyWall.st API data and generating investme
 ```
 stock-analyser/
 ├── data/
-│   ├── watchlist.txt               # Stock watchlist
+│   ├── watchlist.yaml              # Stock watchlist in YAML format
 │   ├── sws_data/                   # SimplyWall.st API data (refreshed every 5 days)
 │   ├── initial_memos/              # Historical initial investment memos (refreshed daily)
 │   └── final_memos/                # Historical final investment memos
@@ -80,7 +80,7 @@ cp .env.example .env
 ## Usage
 
 1. Ensure your virtual environment is activated
-2. Add stocks to your watchlist in `data/watchlist.txt`
+2. Add stocks to your watchlist in `data/watchlist.yaml`
 3. Run the main script:
 
 ```bash
@@ -112,25 +112,37 @@ All files are stored with timestamps in their respective folders, maintaining a 
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `--api-token` | SimplyWall.st API token | From .env file |
-| `--watchlist` | Path to watchlist file | data/watchlist.txt |
+| `--watchlist` | Path to watchlist file | data/watchlist.yaml |
 | `--json-days-threshold` | Days before refreshing API data | 5 |
 | `--initial-memo-days-threshold` | Days before refreshing initial memo | 1 |
 | `--claude-command` | Command to invoke Claude | claude |
 | `--verbose` | Enable verbose logging | False |
 | `--env-file` | Path to .env file | .env |
 
-## Example Watchlist File
+## Example Watchlist YAML File
 
-```
-# Tech stocks
-NasdaqGS:AAPL
-NasdaqGS:MSFT
-NasdaqGS:GOOG
+```yaml
+# Stock Watchlist
+# Format: Lists of stocks with ticker and company name
 
-# Finance
-NYSE:JPM
-NYSE:BAC
+stocks:
+  # Tech
+  - AAPL (Apple Inc.)
+  - MSFT (Microsoft Corporation)
+  - GOOGL (Alphabet (Class A))
+
+  # Finance
+  - JPM (JPMorgan Chase & Co)
+  - BAC (Bank of America Corporation)
+  
+  # ETFs
+  - VOO (Vanguard S&P 500 ETF)
+  
+  # Healthcare
+  - JNJ (Johnson & Johnson)
 ```
+
+Note: The watchlist is in YAML format with a list of stocks using the format `TICKER (Company Name)`. This structure provides better organization and allows for categorization with comments and grouping.
 
 ## Troubleshooting
 
