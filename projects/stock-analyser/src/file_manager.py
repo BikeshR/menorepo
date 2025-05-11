@@ -14,222 +14,215 @@ from typing import Dict, List, Optional, Any, Union, Tuple
 
 class FileManager:
     """Manages file operations for stock data and memos"""
-    
-    def __init__(
-        self,
-        historical_json_dir: str,
-        initial_memos_dir: str,
-        final_memos_dir: str
-    ):
+
+    def __init__(self, sws_data_dir: str, initial_memos_dir: str, final_memos_dir: str):
         """Initialize with paths to data directories
-        
+
         Args:
-            historical_json_dir: Directory for storing historical JSON data
+            sws_data_dir: Directory for storing SimplyWall.st API data
             initial_memos_dir: Directory for historical initial investment memos
             final_memos_dir: Directory for historical final investment memos
         """
-        self.historical_json_dir = historical_json_dir
+        self.sws_data_dir = sws_data_dir
         self.initial_memos_dir = initial_memos_dir
         self.final_memos_dir = final_memos_dir
-        
+
         # Create directories if they don't exist
-        os.makedirs(historical_json_dir, exist_ok=True)
+        os.makedirs(sws_data_dir, exist_ok=True)
         os.makedirs(initial_memos_dir, exist_ok=True)
         os.makedirs(final_memos_dir, exist_ok=True)
-    
+
     def _get_stock_filename(self, ticker: str) -> str:
         """Convert ticker to a safe filename
-        
+
         Args:
             ticker: Ticker string like "EXCHANGE:SYMBOL" or "SYMBOL"
-            
+
         Returns:
             Safe filename string
         """
         # Replace : with _ and make uppercase
         return ticker.replace(":", "_").upper()
-    
-    def _needs_update(self, ticker: str, pattern: str, days_threshold: int) -> Tuple[bool, Optional[str]]:
+
+    def _needs_update(
+        self, ticker: str, pattern: str, days_threshold: int
+    ) -> Tuple[bool, Optional[str]]:
         """Check if new data should be fetched for a stock
-        
+
         Args:
             ticker: Stock ticker
             pattern: File pattern to search for
             days_threshold: Number of days before refreshing data
-            
+
         Returns:
             Tuple of (needs_update, latest_file_path)
             - needs_update: True if stock needs update, False otherwise
             - latest_file_path: Path to most recent file, or None if no files exist
         """
         stock_filename = self._get_stock_filename(ticker)
-        
+
         # Get all matching files for this stock
         files = glob.glob(pattern.format(stock_filename=stock_filename))
-        
+
         if not files:
             # No files exist, update needed
             return True, None
-        
+
         # Find the most recent file
         most_recent_file = max(files, key=os.path.getctime)
-        
+
         # Get file creation time
         file_time = datetime.datetime.fromtimestamp(os.path.getctime(most_recent_file))
         current_time = datetime.datetime.now()
-        
+
         # Calculate time difference in days
         days_diff = (current_time - file_time).days
-        
+
         # Return True if the most recent file is older than threshold
         return days_diff >= days_threshold, most_recent_file
-    
+
     def needs_json_update(self, ticker: str, days_threshold: int = 5) -> Tuple[bool, Optional[str]]:
-        """Check if new JSON data should be fetched for a stock
-        
+        """Check if new SimplyWall.st data should be fetched for a stock
+
         Args:
             ticker: Stock ticker
             days_threshold: Number of days before refreshing data
-            
+
         Returns:
             Tuple of (needs_update, latest_file_path)
         """
-        pattern = os.path.join(
-            self.historical_json_dir, 
-            "{stock_filename}_*.json"
-        )
+        pattern = os.path.join(self.sws_data_dir, "{stock_filename}_*.json")
         return self._needs_update(ticker, pattern, days_threshold)
-    
-    def needs_initial_memo_update(self, ticker: str, days_threshold: int = 1) -> Tuple[bool, Optional[str]]:
+
+    def needs_initial_memo_update(
+        self, ticker: str, days_threshold: int = 1
+    ) -> Tuple[bool, Optional[str]]:
         """Check if new initial memo should be generated for a stock
-        
+
         Args:
             ticker: Stock ticker
             days_threshold: Number of days before refreshing memo
-            
+
         Returns:
             Tuple of (needs_update, latest_file_path)
         """
-        pattern = os.path.join(
-            self.initial_memos_dir, 
-            "{stock_filename}_*.md"
-        )
+        pattern = os.path.join(self.initial_memos_dir, "{stock_filename}_*.md")
         return self._needs_update(ticker, pattern, days_threshold)
-    
+
     def save_stock_data(self, ticker: str, data: Dict[str, Any]) -> str:
         """Save stock data to a timestamped JSON file
-        
+
         Args:
             ticker: Stock ticker
             data: Stock data to save
-            
+
         Returns:
             Path to saved file
         """
         stock_filename = self._get_stock_filename(ticker)
         timestamp = datetime.datetime.now().strftime("%Y%m%d")
-        
+
         filename = f"{stock_filename}_{timestamp}.json"
-        filepath = os.path.join(self.historical_json_dir, filename)
-        
-        with open(filepath, 'w') as f:
+        filepath = os.path.join(self.sws_data_dir, filename)
+
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
-        
+
         return filepath
-    
+
     def save_initial_memo(self, ticker: str, memo_content: str) -> str:
         """Save an initial memo to the initial memos directory with timestamp
-        
+
         Args:
             ticker: Stock ticker
             memo_content: Content of the memo
-            
+
         Returns:
             Path to saved file
         """
         stock_filename = self._get_stock_filename(ticker)
         timestamp = datetime.datetime.now().strftime("%Y%m%d")
-        
+
         filename = f"{stock_filename}_{timestamp}.md"
         filepath = os.path.join(self.initial_memos_dir, filename)
-        
-        with open(filepath, 'w') as f:
+
+        with open(filepath, "w") as f:
             f.write(memo_content)
-        
+
         return filepath
-    
+
     def save_final_memo(self, ticker: str, memo_content: str) -> str:
         """Save a final memo to the final memos directory with timestamp
-        
+
         Args:
             ticker: Stock ticker
             memo_content: Content of the memo
-            
+
         Returns:
             Path to saved file
         """
         stock_filename = self._get_stock_filename(ticker)
         timestamp = datetime.datetime.now().strftime("%Y%m%d")
-        
+
         filename = f"{stock_filename}_{timestamp}.md"
         filepath = os.path.join(self.final_memos_dir, filename)
-        
-        with open(filepath, 'w') as f:
+
+        with open(filepath, "w") as f:
             f.write(memo_content)
-        
+
         return filepath
-    
+
     def get_latest_data_file(self, ticker: str) -> Optional[str]:
         """Get path to the most recent data file for a stock
-        
+
         Args:
             ticker: Stock ticker
-            
+
         Returns:
             Path to the most recent file, or None if no files exist
         """
         _, file_path = self.needs_json_update(ticker, days_threshold=999999)
         return file_path
-    
+
     def get_latest_initial_memo(self, ticker: str) -> Optional[str]:
         """Get path to the most recent initial memo for a stock
-        
+
         Args:
             ticker: Stock ticker
-            
+
         Returns:
             Path to the most recent file, or None if no files exist
         """
         _, file_path = self.needs_initial_memo_update(ticker, days_threshold=999999)
         return file_path
-    
+
     def load_json_data(self, filepath: str) -> Dict[str, Any]:
         """Load JSON data from file
-        
+
         Args:
             filepath: Path to JSON file
-            
+
         Returns:
             Parsed JSON data
-            
+
         Raises:
             FileNotFoundError: If file does not exist
             json.JSONDecodeError: If file contains invalid JSON
         """
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             return json.load(f)
-    
+
     def load_memo_content(self, filepath: str) -> str:
         """Load memo content from file
-        
+
         Args:
             filepath: Path to markdown memo file
-            
+
         Returns:
             Memo content as string
-            
+
         Raises:
             FileNotFoundError: If file does not exist
         """
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             return f.read()

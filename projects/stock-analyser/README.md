@@ -16,7 +16,7 @@ A tool for analyzing stocks using SimplyWall.st API data and generating investme
 stock-analyser/
 ├── data/
 │   ├── watchlist.txt               # Stock watchlist
-│   ├── historical_json/            # Historical API data (refreshed every 5 days)
+│   ├── sws_data/                   # SimplyWall.st API data (refreshed every 5 days)
 │   ├── initial_memos/              # Historical initial investment memos (refreshed daily)
 │   └── final_memos/                # Historical final investment memos
 ├── prompts/
@@ -95,13 +95,13 @@ python src/main.py --json-days-threshold 7 --initial-memo-days-threshold 2 --cla
 
 For each stock in the watchlist:
 
-1. Check if JSON data needs to be refreshed (>5 days since last update)
+1. Check if SimplyWall.st data needs to be refreshed (>5 days since last update)
    - If yes, fetch new data from SimplyWall.st API and save as timestamped JSON
    
-2. Check if initial memo needs to be refreshed (>1 day since last update or JSON was updated)
+2. Check if initial memo needs to be refreshed (>1 day since last update or API data was updated)
    - If yes, generate new initial memo using the template
    
-3. If either JSON or initial memo was updated:
+3. If either API data or initial memo was updated:
    - Generate a new final memo using stock data and the initial memo
    - Save as timestamped markdown file
 
@@ -113,7 +113,7 @@ All files are stored with timestamps in their respective folders, maintaining a 
 |----------|-------------|---------|
 | `--api-token` | SimplyWall.st API token | From .env file |
 | `--watchlist` | Path to watchlist file | data/watchlist.txt |
-| `--json-days-threshold` | Days before refreshing JSON data | 5 |
+| `--json-days-threshold` | Days before refreshing API data | 5 |
 | `--initial-memo-days-threshold` | Days before refreshing initial memo | 1 |
 | `--claude-command` | Command to invoke Claude | claude |
 | `--verbose` | Enable verbose logging | False |
