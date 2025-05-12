@@ -163,7 +163,12 @@ class ClaudeIntegration:
                 if "duration_ms" in json_response:
                     logger.info(f"Claude request duration: {json_response['duration_ms']/1000:.2f} seconds")
 
-                return json_response["result"]
+                # Extract only the content after the "# Investment Memorandum" heading
+                result = json_response["result"]
+                if "# Investment Memorandum" in result:
+                    result = "# Investment Memorandum" + result.split("# Investment Memorandum", 1)[1]
+
+                return result
 
             except json.JSONDecodeError as e:
                 error_msg = f"Failed to parse JSON response from Claude: {str(e)}"

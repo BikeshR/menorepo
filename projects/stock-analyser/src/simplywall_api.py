@@ -95,9 +95,6 @@ class SimplywallStAPI:
                 secondaryIndustry {
                     name
                 }
-                tertiaryIndustry {
-                    name
-                }
                 market {
                     name
                     iso2
@@ -106,32 +103,20 @@ class SimplywallStAPI:
                     name
                     title
                     area
-                    type
                     value
-                    outcome
                     description
-                    state
-                    severity
-                    outcomeName
                 }
                 owners {
                     name
                     type
-                    sharesHeld
                     percentOfSharesOutstanding
                     holdingDate
-                    periodStartDate
-                    periodEndDate
-                    rankSharesHeld
-                    rankSharesSold
                 }
                 insiderTransactions {
                     type
                     ownerName
                     ownerType
                     description
-                    tradeDateMin
-                    tradeDateMax
                     shares
                     priceMin
                     priceMax
@@ -142,13 +127,11 @@ class SimplywallStAPI:
                     filingDate
                 }
                 members {
-                    age
                     name
                     title
                     tenure
                     compensation
                 }
-                closingPrices
             }
         }
         """

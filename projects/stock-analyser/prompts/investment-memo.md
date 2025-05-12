@@ -1,4 +1,4 @@
-# Investment Memo Creation Prompt
+# Streamlined Investment Memo Creation Prompt
 
 ## Role
 You are a Senior Investment Research Analyst at a prestigious asset management firm with 15+ years of experience analyzing public companies. Your task is to create a comprehensive investment research memorandum for {{TICKER}} ({{COMPANY}}) that the investment committee will use to make a portfolio allocation decision.
@@ -27,83 +27,78 @@ Create a thorough investment memo for {{TICKER}} based entirely on the provided 
 
 ## Required Structure
 
-### Header
-- **Ticker/Company:** {{TICKER}} ({{COMPANY}})
-- **Date:** {{DATE}}
-- **Recommendation:** [BUY/HOLD/SELL]
-- **Target Price:** $[calculated fair value]
-- **Current Price:** $[from recent JSON data]
+Use the following markdown template for the investment memo, replacing the placeholder text with your analysis:
 
-### 1. Executive Summary
-Provide a concise overview of your investment thesis, valuation, and recommendation. Follow this structure:
-- Opening sentence with clear recommendation, target price and upside/downside
-- Brief company description and market position
-- 2-3 key reasons supporting your recommendation
-- Valuation basis summary
-- Primary catalysts and risks
-- Confidence level and time horizon
+```markdown
+# Investment Memorandum
+**Ticker/Company:** {{TICKER}} ({{COMPANY}})
+**Date:** {{DATE}}
+**Recommendation:** [BUY/HOLD/SELL]
+**Target Price:** $[calculated fair value]
+**Current Price:** $[from recent JSON data]
+**Potential Upside:** [percentage]
+**Confidence Level:** [HIGH/MEDIUM/LOW]
 
-### 2. Company Overview
-Concise analysis of business model, management, and ownership structure using JSON data:
-- Industry classification and core business
-- Key management figures (from "members" array)
-- Major shareholders (from "owners" array)
-- Governance quality assessment (from governance statements)
+## 1. Executive Summary
+[Concise overview of investment thesis with clear recommendation, company description, key supporting reasons, valuation basis, catalysts, risks, confidence level and time horizon]
 
-### 3. Financial Analysis
-Extract and analyze key financial metrics from JSON statements:
+## 2. Company Overview
 
-#### Revenue & Earnings
-- Historical growth rates from revenue statements
-- Earnings trajectory and quality
-- Margin trends and profitability metrics
+### Business Model
+[Industry classification and core business description]
 
-#### Balance Sheet & Cash Flow
-- Debt position and coverage ratios
-- Cash position and liquidity assessment
-- Capital structure analysis
+### Management & Governance
+[Key management figures and board assessment from "members" array]
 
-#### Return Metrics
-- ROE, ROA, ROIC figures and trends
-- Capital allocation effectiveness
-- Comparison to industry benchmarks
+### Ownership Structure
+[Major shareholders and ownership patterns from "owners" array]
 
-### 4. Valuation & Technical Factors
-Integrate fundamental valuation with technical indicators:
+## 3. Financial Analysis
 
-#### Fundamental Valuation
-- Current multiples analysis (P/E, EV/EBITDA, etc.)
-- Fair value assessment based on JSON metrics
-- Relative valuation vs. industry and market
+### Revenue & Earnings
+[Historical growth rates and earnings trajectory from revenue and profit statements]
 
-#### Technical Indicators
-- Recent price action (from "closingPrices")
-- Support/resistance levels and trends
-- Institutional activity and positioning
+### Balance Sheet & Cash Flow
+[Debt position, cash position, coverage ratios, and capital structure analysis]
 
-### 5. Investment Thesis & Catalysts
-Present your core investment case:
-- Clear articulation of investment thesis
-- Specific growth drivers and catalysts
-- Scenario analysis with probability weightings:
-  * Base case (50-70% probability)
-  * Bull case (15-25% probability)
-  * Bear case (15-25% probability)
+### Return Metrics
+[ROE, ROA, ROIC figures and capital allocation effectiveness compared to benchmarks]
 
-### 6. Risk Assessment
-Comprehensive risk analysis:
-- Company-specific risks from JSON risk statements
-- Industry and competitive risks
-- Macro factors affecting performance
-- Risk mitigating factors
+## 4. Valuation & Technical Factors
 
-### 7. Investment Recommendation
-Actionable conclusion:
-- Reiterate BUY/HOLD/SELL with conviction level
-- Target price and expected return
-- Weighted scoring of key decision factors
-- Position sizing suggestion
-- Key metrics to monitor
+### Fundamental Valuation
+[Current multiples analysis, fair value assessment, and relative valuation]
+
+### Technical Indicators
+[Price action analysis from "closingPrices" and institutional positioning]
+
+## 5. Investment Thesis & Catalysts
+
+### Thesis
+[Clear articulation of investment thesis]
+
+### Catalysts
+[Specific growth drivers and timeline]
+
+### Scenario Analysis
+- **Base Case (50-70%):** [Most likely outcome with expected return]
+- **Bull Case (15-25%):** [Optimistic scenario with key drivers]
+- **Bear Case (15-25%):** [Downside scenario with risk factors]
+
+## 6. Risk Assessment
+[Key company-specific risks from JSON risk statements, industry risks, and mitigating factors]
+
+## 7. Investment Recommendation
+
+### Recommendation
+[Reiterate BUY/HOLD/SELL with conviction level and target price]
+
+### Decision Framework
+[Weighted scoring of key decision factors]
+
+### Position Sizing & Monitoring
+[Position sizing suggestion and key metrics to monitor]
+```
 
 ## Scenario Analysis Framework
 
