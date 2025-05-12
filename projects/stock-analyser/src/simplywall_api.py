@@ -183,12 +183,13 @@ class SimplywallStAPI:
         )
         return response.get("data", {}).get("companyByExchangeAndTickerSymbol", {})
 
-    def get_company_data(self, ticker_info: str) -> Dict[str, Any]:
+    def get_company_data(self, ticker_info: str, company_name: str = "") -> Dict[str, Any]:
         """Get comprehensive company data from a ticker string
 
         Args:
             ticker_info: Ticker string in format "EXCHANGE:SYMBOL" or just "SYMBOL"
                          If only symbol is provided, will attempt to find the right exchange
+            company_name: Optional company name from watchlist to help find correct match
 
         Returns:
             Complete company data including financial metrics, statements, etc.
@@ -204,9 +205,40 @@ class SimplywallStAPI:
         else:
             # Try to find the company by name/symbol
             search_results = self.search_companies(ticker_info)
+
             if not search_results:
                 raise ValueError(f"Could not find company matching '{ticker_info}'")
-            company = search_results[0]  # Take the first result
+
+            # If company_name is provided, try to find best match
+            if company_name and len(search_results) > 1:
+                best_match = None
+                highest_score = 0
+
+                for result in search_results:
+                    # Extract core company name (remove Inc, Corp, etc.)
+                    result_name = result.get("name", "").lower()
+                    watch_name = company_name.lower()
+
+                    # Simple scoring: 1 point if watchlist name is in result name
+                    # 2 points if they are exactly the same
+                    score = 0
+                    if watch_name == result_name:
+                        score = 2
+                    elif watch_name in result_name or result_name in watch_name:
+                        score = 1
+
+                    # Update best match if this score is higher
+                    if score > highest_score:
+                        highest_score = score
+                        best_match = result
+
+                # If we found a match, use it; otherwise use first result
+                if best_match:
+                    company = best_match
+                else:
+                    company = search_results[0]
+            else:
+                company = search_results[0]  # Take the first result
 
         # If we didn't get a company, raise error
         if not company:
@@ -228,6 +260,13 @@ class SimplywallStAPI:
         for key in ["name", "exchangeSymbol", "tickerSymbol", "marketCapUSD"]:
             if key in company and key not in detailed_data:
                 detailed_data[key] = company[key]
+
+        # Override company name if provided from watchlist and significantly different
+        if company_name and detailed_data.get("name") and company_name.lower() != detailed_data["name"].lower():
+            # Still log the original name for reference
+            original_name = detailed_data["name"]
+            detailed_data["originalName"] = original_name
+            detailed_data["name"] = company_name
 
         return detailed_data
 

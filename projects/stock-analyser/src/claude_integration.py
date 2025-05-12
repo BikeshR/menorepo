@@ -29,17 +29,15 @@ class ClaudeIntegration:
         self.prompt_dir = prompt_dir
         self.claude_command = claude_command or "claude"
 
-        # Validate prompt files exist
-        self.initial_prompt_path = os.path.join(prompt_dir, "investment-memo-template.md")
-        self.update_prompt_path = os.path.join(prompt_dir, "update-investment-memo.md")
+        # Validate prompt file exists
+        self.memo_prompt_path = os.path.join(prompt_dir, "investment-memo.md")
 
-        if not os.path.exists(self.initial_prompt_path):
-            raise FileNotFoundError(
-                f"Initial prompt template not found: {self.initial_prompt_path}"
-            )
+        # Check if the new investment-memo.md exists, if not fall back to update-investment-memo.md
+        if not os.path.exists(self.memo_prompt_path):
+            self.memo_prompt_path = os.path.join(prompt_dir, "update-investment-memo.md")
 
-        if not os.path.exists(self.update_prompt_path):
-            raise FileNotFoundError(f"Update prompt template not found: {self.update_prompt_path}")
+        if not os.path.exists(self.memo_prompt_path):
+            raise FileNotFoundError(f"Investment memo template not found: {self.memo_prompt_path}")
 
     def _extract_company_info(
         self, stock_data: Dict[str, Any], company_name: str = ""
@@ -181,71 +179,19 @@ class ClaudeIntegration:
             except Exception as e:
                 logger.warning(f"Failed to clean up temporary file: {str(e)}")
 
-    def generate_initial_memo(self, stock_data: Dict[str, Any], company_name: str = "") -> str:
-        """Generate initial investment memo using template with company info
 
-        Args:
-            stock_data: Stock data from API (used for ticker and company name)
-            company_name: Optional company name from watchlist
-
-        Returns:
-            Generated memo content
-
-        Raises:
-            RuntimeError: If Claude command fails
-            ValueError: If stock data is invalid
-        """
-        # Ensure we have valid data
-        if not stock_data:
-            raise ValueError("Stock data is empty or None")
-
-        # Extract ticker symbol and company name from stock data
-        ticker, extracted_company_name = self._extract_company_info(stock_data, company_name)
-        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-
-        # Ensure we have a valid ticker and company name
-        if not ticker:
-            logger.warning("No ticker found in stock data, using placeholder")
-            ticker = "UNKNOWN"
-
-        if not extracted_company_name:
-            logger.warning("No company name found, using placeholder")
-            extracted_company_name = "Unknown Company"
-
-        # Get full ticker with exchange for logging
-        full_ticker = ""
-        try:
-            exchange = stock_data.get("exchangeSymbol", "")
-            if exchange and ticker:
-                full_ticker = f"{exchange}:{ticker}"
-            else:
-                full_ticker = ticker
-        except:
-            full_ticker = ticker
-
-        logger.info(f"Generating initial memo for {full_ticker} ({extracted_company_name})")
-
-        # Prepare replacements for the template
-        replacements = {"TICKER": ticker, "COMPANY": extracted_company_name, "DATE": current_date}
-
-        # Prepare prompt with replacements
-        prompt = self._prepare_prompt(self.initial_prompt_path, replacements)
-
-        # Run Claude and return response
-        return self._run_claude(prompt)
-
-    def generate_final_memo(
-        self, stock_data: Dict[str, Any], draft_memo: str, company_name: str = ""
+    def generate_investment_memo(
+        self, stock_data: Dict[str, Any], draft_memo: str = "", company_name: str = ""
     ) -> str:
-        """Generate final investment memo using stock data and draft memo
+        """Generate investment memo using stock data
 
         Args:
             stock_data: Stock data from SimplyWall.st API
-            draft_memo: Draft memo from initial generation
+            draft_memo: Optional draft memo (can be empty string)
             company_name: Optional company name from watchlist
 
         Returns:
-            Generated final memo content
+            Generated investment memo content
 
         Raises:
             RuntimeError: If Claude command fails
@@ -254,11 +200,9 @@ class ClaudeIntegration:
         if not stock_data:
             raise ValueError("Stock data is empty or None")
 
-        if not draft_memo:
-            raise ValueError("Draft memo is empty or None")
-
         # Extract ticker and company name for logging
         ticker, extracted_company_name = self._extract_company_info(stock_data, company_name)
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
         # Get full ticker with exchange for logging
         full_ticker = ""
@@ -272,15 +216,25 @@ class ClaudeIntegration:
             full_ticker = ticker
 
         logger.info(
-            f"Generating final memo for {full_ticker} ({extracted_company_name}) with stock data"
+            f"Generating investment memo for {full_ticker} ({extracted_company_name}) with stock data"
         )
 
         # Convert stock data to JSON string
         stock_json = json.dumps(stock_data, indent=2)
 
+        # If draft_memo is empty, create a minimal placeholder with basic info
+        if not draft_memo:
+            draft_memo = f"""# Investment Memo: {ticker} ({extracted_company_name})
+
+## Overview
+Investment memo for {ticker} ({extracted_company_name}) as of {current_date}.
+
+Please analyze the stock data provided and create a complete investment memo.
+"""
+
         # Prepare prompt with stock data and draft memo
         prompt = self._prepare_prompt(
-            self.update_prompt_path, {"STOCK_JSON_DATA": stock_json, "DRAFT_MEMO": draft_memo}
+            self.memo_prompt_path, {"STOCK_JSON_DATA": stock_json, "DRAFT_MEMO": draft_memo}
         )
 
         # Run Claude and return response

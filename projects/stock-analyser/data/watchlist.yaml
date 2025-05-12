@@ -2,23 +2,30 @@
 # Format: Lists of stocks with ticker and company name
 
 stocks:
-  # Tech
-  - GOOGL (Alphabet (Class A))
+  # Cloud
+  - GOOGL (Alphabet)
   - AMZN (Amazon)
   - MSFT (Microsoft)
-  - UBER (Uber Technologies)
+
+  # Semiconductor
   - NVDA (Nvidia)
-  - QCOM (Qualcomm)
-  - SHOP (Shopify)
-  - AMAT (Applied Materials)
-  - BIDU (Baidu)
   - ASML (ASML)
+  - AMAT (Applied Materials)
+  - LRCX (Lam Research)
+  - QCOM (Qualcomm)
+
+  # Software
+  - UBER (Uber Technologies)
+  - SHOP (Shopify)
   - SNOW (Snowflake)
   - TEAM (Atlassian)
   - RDDT (Reddit)
+  - NOW (ServiceNow)
 
-  # Hardware
-  - LRCX (Lam Research)
+  # China Tech
+  - BIDU (Baidu)
+  - BABA (Alibaba)
+  - TCEHY (Tencent)
 
   # Healthcare
   - UNH (UnitedHealth)
@@ -31,15 +38,46 @@ stocks:
   - AXP (American Express)
   - EFX (Equifax)
 
-  # International
-  - BABA (Alibaba)
-  - TCEHY (Tencent)
-
   # ETFs
   - UGRW (WisdomTree UK Quality Dividend Growth)
   - LUXG (Amundi S&P Global Luxury)
-  - INRG (iShares Global Clean Energy Transition (Dist))
-  - CYSE (WisdomTree Cybersecurity (Acc))
+  - CYSE (WisdomTree Cybersecurity)
 
-  # Retail
+  # Quantum
+  - IONQ (Ionq)
+  - RGTI (Rigetti Computing)
+  - QBTS (D-Wave Quantum)
+  - QUBT (Quantum Computing)
+  - IBM (IBM)
+
+  # Other
   - COST (Costco Wholesale)
+  - PLTR (Palantir Technologies)
+  - META (Meta Platforms)
+  - AMD (Advanced Micro Devices)
+  - CRWD (CrowdStrike)
+  - AVGO (Broadcom)
+  - FSLR (First Solar)
+  - NEE (NextEra Energy)
+  - BEPC (Brookfield Renewable)
+  - ENPH (Enphase Energy)
+  - TSLA (Tesla)
+  - PANW (Palo Alto Networks)
+  - ZS (Zscaler)
+  - NET (Cloudflare)
+  - RKLB (Rocket Lab)
+  - LHX (L3Harris Technology)
+  - ROK (Rockwell Automation)
+  - ABB (ABB Ltd)
+  - PATH (UiPath)
+  - ISRG (Intuitive Surgical)
+  - TER (Teradyne)
+  - SIEGY (Siemens)
+  - HON (Honeywell)
+  - SQ (Block)
+  - ADYEY (Adyen)
+  - V (VISA)
+  - PYPL (PayPal)
+  - MA (Mastercard)
+  - SOFI (SoFi Technologies)
+  - TOST (Toast)

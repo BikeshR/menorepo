@@ -137,6 +137,17 @@ class FileManager:
         stock_filename = self._get_stock_filename(ticker)
         timestamp = datetime.datetime.now().strftime("%Y%m%d")
 
+        # Limit insider transactions to the latest 5 if more than 5 exist
+        if "insiderTransactions" in data and isinstance(data["insiderTransactions"], list) and len(data["insiderTransactions"]) > 5:
+            # Sort by filingDate (if available) or tradeDateMax in descending order
+            if all("filingDate" in tx for tx in data["insiderTransactions"]):
+                data["insiderTransactions"].sort(key=lambda x: x["filingDate"], reverse=True)
+            elif all("tradeDateMax" in tx for tx in data["insiderTransactions"]):
+                data["insiderTransactions"].sort(key=lambda x: x["tradeDateMax"], reverse=True)
+
+            # Keep only the latest 5 transactions
+            data["insiderTransactions"] = data["insiderTransactions"][:5]
+
         filename = f"{stock_filename}_{timestamp}.json"
         filepath = os.path.join(self.sws_data_dir, filename)
 

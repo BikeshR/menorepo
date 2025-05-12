@@ -53,8 +53,8 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--initial-memo-days-threshold",
-        help="Days before refreshing initial memo (default: 5)",
+        "--memo-days-threshold",
+        help="Days before refreshing investment memo (default: 5)",
         type=int,
         default=5,
     )
@@ -113,7 +113,7 @@ def process_stock(
     file_manager: FileManager,
     claude: ClaudeIntegration,
     json_days_threshold: int,
-    initial_memo_days_threshold: int,
+    memo_days_threshold: int,
 ) -> bool:
     """Process a single stock
 
@@ -124,7 +124,7 @@ def process_stock(
         file_manager: File manager
         claude: Claude integration
         json_days_threshold: Days threshold for refreshing JSON data
-        initial_memo_days_threshold: Days threshold for refreshing initial memo
+        memo_days_threshold: Days threshold for refreshing investment memo
 
     Returns:
         True if processing was successful, False otherwise
@@ -134,7 +134,6 @@ def process_stock(
 
         # Track if any updates were made
         update_json = False
-        update_initial_memo = False
 
         # Check if we need to fetch new JSON data
         needs_json_update, json_file_path = file_manager.needs_json_update(
@@ -144,8 +143,8 @@ def process_stock(
         if needs_json_update:
             logger.info(f"Fetching new data for {ticker}")
 
-            # Get data from API
-            stock_data = api_client.get_company_data(ticker)
+            # Get data from API with company name for better matching
+            stock_data = api_client.get_company_data(ticker, company_name)
 
             # Verify we have valid stock data before proceeding
             if not stock_data:
@@ -161,6 +160,10 @@ def process_stock(
                 logger.warning(f"Stock data for {ticker} is missing company name, using watchlist name")
                 stock_data["name"] = company_name or ticker
 
+            # Check if the API returned a different company name that was overridden
+            if "originalName" in stock_data:
+                logger.info(f"Company name from API '{stock_data['originalName']}' was replaced with '{stock_data['name']}' from watchlist")
+
             # Save data to file
             json_file_path = file_manager.save_stock_data(ticker, stock_data)
             logger.info(f"Saved stock data to {json_file_path}")
@@ -170,39 +173,41 @@ def process_stock(
             logger.info(f"Using existing data from {json_file_path}")
             stock_data = file_manager.load_json_data(json_file_path)
 
-        # Check if we need to generate a new initial memo
-        needs_initial_memo_update, initial_memo_path = file_manager.needs_initial_memo_update(
-            ticker, initial_memo_days_threshold
-        )
+            # Validate company name in existing data
+            if company_name and stock_data.get("name"):
+                fetched_name = stock_data.get("name", "").lower()
+                watch_name = company_name.lower()
 
-        if needs_initial_memo_update or update_json:
-            logger.info(f"Generating initial investment memo for {ticker}")
-            initial_memo = claude.generate_initial_memo(stock_data, company_name)
+                # Check for significant mismatch
+                if watch_name != fetched_name and watch_name not in fetched_name and fetched_name not in watch_name:
+                    logger.warning(f"Company name mismatch in existing data: Watchlist has '{company_name}' but data has '{stock_data.get('name')}'")
+                    logger.warning(f"Overriding with watchlist name for {ticker}")
 
-            # Save initial memo
-            initial_memo_path = file_manager.save_initial_memo(ticker, initial_memo)
-            logger.info(f"Saved initial memo to {initial_memo_path}")
-            update_initial_memo = True
-        else:
-            # Use existing initial memo
-            logger.info(f"Using existing initial memo from {initial_memo_path}")
-            initial_memo = file_manager.load_memo_content(initial_memo_path)
+                    # Keep original name for reference
+                    stock_data["originalName"] = stock_data["name"]
+                    stock_data["name"] = company_name
+
+                    # Save updated data
+                    json_file_path = file_manager.save_stock_data(ticker, stock_data)
+                    logger.info(f"Saved updated stock data to {json_file_path}")
+                    update_json = True
 
         # Check if we need a new final memo (no recent one exists)
-        needs_final_memo_update, final_memo_path = file_manager.needs_final_memo_update(
-            ticker, 5  # 5 day threshold for final memo
+        needs_memo_update, memo_path = file_manager.needs_final_memo_update(
+            ticker, memo_days_threshold
         )
 
-        # Generate final memo if any component was updated or if it's older than 5 days
-        if update_json or update_initial_memo or needs_final_memo_update:
-            logger.info(f"Generating final investment memo for {ticker}")
-            final_memo = claude.generate_final_memo(stock_data, initial_memo, company_name)
+        # Generate investment memo if stock data was updated or if memo is older than threshold
+        if update_json or needs_memo_update:
+            logger.info(f"Generating investment memo for {ticker}")
+            # Generate investment memo
+            memo = claude.generate_investment_memo(stock_data, "", company_name)
 
-            # Save final memo
-            final_memo_file = file_manager.save_final_memo(ticker, final_memo)
-            logger.info(f"Saved final memo to {final_memo_file}")
+            # Save investment memo
+            memo_file = file_manager.save_final_memo(ticker, memo)
+            logger.info(f"Saved investment memo to {memo_file}")
         else:
-            logger.info(f"Skipping final memo generation for {ticker} - no updates needed")
+            logger.info(f"Skipping memo generation for {ticker} - no updates needed")
 
         return True
 
@@ -264,7 +269,7 @@ def main():
                 file_manager,
                 claude,
                 args.json_days_threshold,
-                args.initial_memo_days_threshold,
+                args.memo_days_threshold,
             ):
                 successful += 1
 
