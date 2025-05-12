@@ -55,10 +55,6 @@ class ClaudeIntegration:
         # Validate prompt file exists
         self.memo_prompt_path = os.path.join(prompt_dir, "investment-memo.md")
 
-        # Check if the new investment-memo.md exists, if not fall back to update-investment-memo.md
-        if not os.path.exists(self.memo_prompt_path):
-            self.memo_prompt_path = os.path.join(prompt_dir, "update-investment-memo.md")
-
         if not os.path.exists(self.memo_prompt_path):
             raise FileNotFoundError(f"Investment memo template not found: {self.memo_prompt_path}")
 
@@ -220,13 +216,12 @@ class ClaudeIntegration:
 
 
     def generate_investment_memo(
-        self, stock_data: Dict[str, Any], draft_memo: str = "", company_name: str = ""
+        self, stock_data: Dict[str, Any], company_name: str = ""
     ) -> str:
         """Generate investment memo using stock data
 
         Args:
             stock_data: Stock data from SimplyWall.st API
-            draft_memo: Optional draft memo (can be empty string)
             company_name: Optional company name from watchlist
 
         Returns:
@@ -261,15 +256,6 @@ class ClaudeIntegration:
         # Convert stock data to JSON string
         stock_json = json.dumps(stock_data, indent=2)
 
-        # If draft_memo is empty, create a minimal placeholder with basic info
-        if not draft_memo:
-            draft_memo = f"""# Investment Memo: {ticker} ({extracted_company_name})
-
-## Overview
-Investment memo for {ticker} ({extracted_company_name}) as of {current_date}.
-
-Please analyze the stock data provided and create a complete investment memo.
-"""
 
         # Prepare replacements dict with all required placeholders
         replacements = {

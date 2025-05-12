@@ -89,24 +89,29 @@ cp .env.example .env
 python src/main.py
 
 # Or with custom settings
-python src/main.py --json-days-threshold 7 --memo-days-threshold 2 --claude-command "claude" --verbose
+python src/main.py --claude-command "claude" --verbose
 ```
 
 ## Workflow
 
 For each stock in the watchlist:
 
-1. Check if SimplyWall.st data needs to be refreshed (>5 days since last update)
-   - If yes, fetch new data from SimplyWall.st API and save as timestamped JSON
-   - Data includes company information, financial statements, ownership, insider transactions, and management details
+1. Check if an investment memo already exists for the stock
+   - If a memo exists, skip processing this stock entirely
+   - If no memo exists, proceed with data collection and analysis
 
-2. Check if investment memo needs to be refreshed (>5 days since last update or if API data was updated)
-   - If yes, generate a new investment memo using Claude and the template
+2. Check if stock data from today already exists
+   - If today's data exists, use it without making API calls
+   - If no data from today exists, fetch from SimplyWall.st API
+   - Save as timestamped JSON file with today's date
+   - Delete any older data files for this stock to conserve space
+
+3. Generate investment memo using Claude and the template
    - The memo includes a comprehensive analysis with BUY/HOLD/SELL recommendation
    - Generated memo is processed to extract the investment memorandum section
    - Save as timestamped markdown file
 
-All files are stored with timestamps in their respective folders, maintaining a historical record for performance tracking and analysis.
+This approach minimizes API calls and storage requirements while ensuring that investment memos are generated only once for each stock. The system maintains only the most recent API data for each stock.
 
 ## Command-line Arguments
 
@@ -114,8 +119,6 @@ All files are stored with timestamps in their respective folders, maintaining a 
 |----------|-------------|---------|
 | `--api-token` | SimplyWall.st API token | From .env file |
 | `--watchlist` | Path to watchlist file | data/watchlist.yaml |
-| `--json-days-threshold` | Days before refreshing API data | 5 |
-| `--memo-days-threshold` | Days before refreshing investment memo | 5 |
 | `--claude-command` | Command to invoke Claude | claude |
 | `--verbose` | Enable verbose logging | False |
 | `--env-file` | Path to .env file | .env |

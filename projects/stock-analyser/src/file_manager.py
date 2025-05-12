@@ -67,70 +67,43 @@ class FileManager:
         # Replace : with _ and make uppercase
         return ticker.replace(":", "_").upper()
 
-    def _needs_update(
-        self, ticker: str, pattern: str, days_threshold: int
-    ) -> Tuple[bool, Optional[str]]:
-        """Check if new data should be fetched for a stock
+
+    def get_current_date_stock_data_file(self, ticker: str) -> Optional[str]:
+        """Check if a stock data file with today's date already exists
 
         Args:
             ticker: Stock ticker
-            pattern: File pattern to search for
-            days_threshold: Number of days before refreshing data
 
         Returns:
-            Tuple of (needs_update, latest_file_path)
-            - needs_update: True if stock needs update, False otherwise
-            - latest_file_path: Path to most recent file, or None if no files exist
+            Path to today's file if it exists, None otherwise
         """
         stock_filename = self._get_stock_filename(ticker)
+        today = datetime.datetime.now().strftime("%Y%m%d")
+        pattern = os.path.join(self.sws_data_dir, f"{stock_filename}_{today}.json")
 
-        # Get all matching files for this stock
-        files = glob.glob(pattern.format(stock_filename=stock_filename))
+        files = glob.glob(pattern)
+        if files:
+            return files[0]
+        return None
 
-        if not files:
-            # No files exist, update needed
-            return True, None
-
-        # Find the most recent file
-        most_recent_file = max(files, key=os.path.getctime)
-
-        # Get file creation time
-        file_time = datetime.datetime.fromtimestamp(os.path.getctime(most_recent_file))
-        current_time = datetime.datetime.now()
-
-        # Calculate time difference in days
-        days_diff = (current_time - file_time).days
-
-        # Return True if the most recent file is older than threshold
-        return days_diff >= days_threshold, most_recent_file
-
-    def needs_json_update(self, ticker: str, days_threshold: int = 5) -> Tuple[bool, Optional[str]]:
-        """Check if new SimplyWall.st data should be fetched for a stock
+    def delete_older_stock_data_files(self, ticker: str, keep_file: str) -> None:
+        """Delete older stock data files for a ticker, keeping the specified file
 
         Args:
             ticker: Stock ticker
-            days_threshold: Number of days before refreshing data
-
-        Returns:
-            Tuple of (needs_update, latest_file_path)
+            keep_file: Full path to the file that should be kept
         """
-        pattern = os.path.join(self.sws_data_dir, "{stock_filename}_*.json")
-        return self._needs_update(ticker, pattern, days_threshold)
+        stock_filename = self._get_stock_filename(ticker)
+        pattern = os.path.join(self.sws_data_dir, f"{stock_filename}_*.json")
 
-    def needs_final_memo_update(
-        self, ticker: str, days_threshold: int = 5
-    ) -> Tuple[bool, Optional[str]]:
-        """Check if new final memo should be generated for a stock
-
-        Args:
-            ticker: Stock ticker
-            days_threshold: Number of days before refreshing memo
-
-        Returns:
-            Tuple of (needs_update, latest_file_path)
-        """
-        pattern = os.path.join(self.final_memos_dir, "{stock_filename}_*.md")
-        return self._needs_update(ticker, pattern, days_threshold)
+        files = glob.glob(pattern)
+        for file in files:
+            if file != keep_file:
+                try:
+                    os.remove(file)
+                except Exception as e:
+                    # Log but continue if a file can't be deleted
+                    print(f"Failed to delete older file {file}: {str(e)}")
 
     def save_stock_data(self, ticker: str, data: Dict[str, Any]) -> str:
         """Save stock data to a timestamped JSON file
@@ -162,6 +135,9 @@ class FileManager:
         with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
+        # Delete older stock data files for this ticker
+        self.delete_older_stock_data_files(ticker, filepath)
+
         return filepath
 
     def save_final_memo(self, ticker: str, memo_content: str) -> str:
@@ -185,18 +161,6 @@ class FileManager:
 
         return filepath
 
-    def get_latest_data_file(self, ticker: str) -> Optional[str]:
-        """Get path to the most recent data file for a stock
-
-        Args:
-            ticker: Stock ticker
-
-        Returns:
-            Path to the most recent file, or None if no files exist
-        """
-        _, file_path = self.needs_json_update(ticker, days_threshold=999999)
-        return file_path
-
     def get_latest_final_memo(self, ticker: str) -> Optional[str]:
         """Get path to the most recent final memo for a stock
 
@@ -206,8 +170,15 @@ class FileManager:
         Returns:
             Path to the most recent file, or None if no files exist
         """
-        _, file_path = self.needs_final_memo_update(ticker, days_threshold=999999)
-        return file_path
+        stock_filename = self._get_stock_filename(ticker)
+        pattern = os.path.join(self.final_memos_dir, f"{stock_filename}_*.md")
+
+        files = glob.glob(pattern)
+        if not files:
+            return None
+
+        # Find the most recent file
+        return max(files, key=os.path.getctime)
 
     def load_json_data(self, filepath: str) -> Dict[str, Any]:
         """Load JSON data from file
