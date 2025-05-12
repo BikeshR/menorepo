@@ -235,21 +235,19 @@ def main():
         # Resolve paths
         watchlist_path = os.path.join(project_root, args.watchlist)
         sws_data_dir = os.path.join(project_root, "data", "sws_data")
-        initial_memos_dir = os.path.join(project_root, "data", "initial_memos")
         final_memos_dir = os.path.join(project_root, "data", "final_memos")
         prompt_dir = os.path.join(project_root, "prompts")
 
         logger.debug(f"Project root: {project_root}")
         logger.debug(f"Watchlist path: {watchlist_path}")
         logger.debug(f"SimplyWall.st data dir: {sws_data_dir}")
-        logger.debug(f"Initial memos dir: {initial_memos_dir}")
         logger.debug(f"Final memos dir: {final_memos_dir}")
         logger.debug(f"Prompt directory: {prompt_dir}")
 
         # Initialize components
         watchlist_parser = WatchlistParser(watchlist_path)
         api_client = SimplywallStAPI(api_token)
-        file_manager = FileManager(sws_data_dir, initial_memos_dir, final_memos_dir)
+        file_manager = FileManager(sws_data_dir, final_memos_dir)
         claude = ClaudeIntegration(prompt_dir, args.claude_command)
 
         # Parse watchlist

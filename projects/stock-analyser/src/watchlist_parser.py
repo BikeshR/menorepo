@@ -3,6 +3,26 @@ Watchlist Parser
 
 This module parses a watchlist file in YAML format containing stock tickers
 and provides functionality to retrieve ticker information.
+
+The watchlist YAML file should follow this format:
+```yaml
+# Stock Watchlist
+# Format: Lists of stocks with ticker and company name
+
+stocks:
+  # Category/Sector (optional comment)
+  - AAPL (Apple Inc.)
+  - MSFT (Microsoft Corporation)
+
+  # Another Category (optional comment)
+  - GOOGL (Alphabet)
+  - AMZN (Amazon)
+```
+
+Each stock entry should follow the format: `TICKER (Company Name)` where:
+- TICKER: Stock symbol (required)
+- Company Name: Full company name in parentheses (optional but recommended)
+- Comments and grouping using YAML comments (#) are supported for organization
 """
 
 from typing import List, Dict, Optional, Tuple

@@ -3,6 +3,17 @@ Claude Integration
 
 This module handles integration with Claude API for
 generating investment memos from stock data.
+
+It provides functionality to:
+1. Process prompt templates with dynamic placeholders
+2. Execute Claude CLI commands with proper input handling
+3. Parse and process Claude's output including JSON results
+4. Extract only the investment memo content from responses
+5. Handle errors and provide detailed error messages
+
+The module uses prompt templates that contain placeholders like {{TICKER}},
+{{COMPANY}}, {{DATE}}, and {{STOCK_JSON_DATA}} which are dynamically
+replaced with actual data before sending to Claude.
 """
 
 import os
@@ -17,7 +28,19 @@ logger = logging.getLogger("stock_analyzer")
 
 
 class ClaudeIntegration:
-    """Interface for generating investment memos using Claude"""
+    """Interface for generating investment memos using Claude
+
+    This class handles:
+    1. Preparing prompts from templates with dynamic content substitution
+    2. Executing Claude CLI commands with proper error handling
+    3. Parsing JSON responses and extracting relevant content
+    4. Processing investment memo content for consistency
+
+    The class uses prompt templates with placeholders (e.g., {{TICKER}}, {{COMPANY}})
+    that are replaced with actual values before sending to Claude. The returned
+    investment memos are processed to ensure they start with the "# Investment Memorandum"
+    heading for consistent formatting.
+    """
 
     def __init__(self, prompt_dir: str, claude_command: Optional[str] = None):
         """Initialize with paths to prompt files
@@ -74,14 +97,25 @@ class ClaudeIntegration:
         return ticker_symbol, extracted_company_name
 
     def _prepare_prompt(self, template_path: str, replacements: Dict[str, str] = None) -> str:
-        """Prepare prompt by replacing placeholders
+        """Prepare prompt by replacing placeholders in the template
+
+        This method loads a prompt template from file and replaces placeholder
+        values with actual data. The template uses double curly braces for
+        placeholders (e.g., {{TICKER}}, {{COMPANY}}, {{DATE}}, {{STOCK_JSON_DATA}}).
+
+        The prompt templates (investment-memo.md, investment-memo-with.md, etc.)
+        define the structure and instructions for Claude to generate investment
+        memos with specific sections including executive summary, company overview,
+        financial analysis, valuation, investment thesis, and final recommendation.
 
         Args:
-            template_path: Path to prompt template
-            replacements: Dictionary of replacements (key: placeholder, value: replacement)
+            template_path: Path to prompt template file (.md format)
+            replacements: Dictionary of replacements where:
+                - keys are placeholder names without braces (e.g., "TICKER")
+                - values are the actual data to insert (e.g., "AAPL")
 
         Returns:
-            Processed prompt text
+            Processed prompt text with all placeholders replaced
         """
         with open(template_path, "r") as f:
             template = f.read()
@@ -237,10 +271,16 @@ Investment memo for {ticker} ({extracted_company_name}) as of {current_date}.
 Please analyze the stock data provided and create a complete investment memo.
 """
 
-        # Prepare prompt with stock data and draft memo
-        prompt = self._prepare_prompt(
-            self.memo_prompt_path, {"STOCK_JSON_DATA": stock_json, "DRAFT_MEMO": draft_memo}
-        )
+        # Prepare replacements dict with all required placeholders
+        replacements = {
+            "TICKER": ticker,
+            "COMPANY": extracted_company_name,
+            "DATE": current_date,
+            "STOCK_JSON_DATA": stock_json
+        }
+
+        # Prepare prompt with all replacements
+        prompt = self._prepare_prompt(self.memo_prompt_path, replacements)
 
         # Run Claude and return response
         return self._run_claude(prompt)

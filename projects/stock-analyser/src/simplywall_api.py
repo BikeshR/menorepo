@@ -4,6 +4,23 @@ SimplyWall.st API Client
 This module provides a client for interacting with the SimplyWall.st GraphQL API.
 It handles authentication, query execution, and provides methods for
 retrieving company data.
+
+The API client supports:
+1. Searching for companies by name or ticker symbol
+2. Retrieving detailed company information by ID
+3. Finding companies by exchange and ticker symbol
+4. Managing company name matching for better data accuracy
+
+The data returned by the API includes:
+- Basic company information (name, ticker, exchange)
+- Financial statements and metrics
+- Ownership structure
+- Insider transactions
+- Management and board information
+- Industry classification
+
+API requests are rate-limited, so the client includes retry logic and
+error handling to manage potential issues with API connectivity.
 """
 
 import requests
@@ -12,7 +29,75 @@ from typing import Dict, List, Optional, Any, Union
 
 
 class SimplywallStAPI:
-    """Client for the SimplyWall.st GraphQL API"""
+    """Client for the SimplyWall.st GraphQL API
+
+    This class provides methods to access and parse data from the SimplyWall.st GraphQL API.
+    It handles authentication, request formatting, and response parsing.
+
+    Data returned by the API is structured as follows:
+
+    ```
+    {
+      "id": "unique-company-id",
+      "name": "Company Name",
+      "exchangeSymbol": "EXCHANGE",
+      "tickerSymbol": "TICKER",
+      "marketCapUSD": 1000000000,
+      "primaryIndustry": { "name": "Industry Name" },
+      "secondaryIndustry": { "name": "SubIndustry Name" },
+      "market": { "name": "Market Name", "iso2": "US" },
+      "statements": [
+        {
+          "name": "metric_name",
+          "title": "Human Readable Title",
+          "area": "financial_area",
+          "value": 123.45,
+          "description": "Description with additional context"
+        },
+        // More statements...
+      ],
+      "owners": [
+        {
+          "name": "Owner Name",
+          "type": "INSTITUTION",
+          "percentOfSharesOutstanding": 5.2,
+          "holdingDate": "2023-01-15"
+        },
+        // More owners...
+      ],
+      "insiderTransactions": [
+        {
+          "type": "BUY",
+          "ownerName": "Executive Name",
+          "ownerType": "OFFICER",
+          "description": "Transaction description",
+          "shares": 10000,
+          "priceMin": 150.0,
+          "priceMax": 150.0,
+          "transactionValue": 1500000.0,
+          "percentageSharesTraded": 0.001,
+          "percentageChangeTransShares": 5.0,
+          "isManagementInsider": true,
+          "filingDate": "2023-01-10"
+        },
+        // More transactions...
+      ],
+      "members": [
+        {
+          "name": "Executive Name",
+          "title": "CEO",
+          "tenure": 5,
+          "compensation": 5000000
+        },
+        // More management members...
+      ]
+    }
+    ```
+
+    Methods handle error conditions gracefully and implement name matching algorithms
+    to improve data accuracy when company names from the watchlist don't exactly match
+    API results.
+    """
 
     BASE_URL = "https://api.simplywall.st/graphql"
 
@@ -176,6 +261,23 @@ class SimplywallStAPI:
 
         Returns:
             Complete company data including financial metrics, statements, etc.
+            The returned dictionary contains these key components:
+            - id: SimplyWall.st company UUID
+            - name: Company name
+            - exchangeSymbol: Exchange identifier (e.g., "NasdaqGS")
+            - tickerSymbol: Stock ticker symbol
+            - marketCapUSD: Market capitalization in USD
+            - primaryIndustry/secondaryIndustry: Industry classification
+            - market: Exchange market information
+            - statements: Array of financial statements with these fields:
+                - name: Metric identifier
+                - title: Human-readable metric name
+                - area: Category (Income, Balance Sheet, etc.)
+                - value: Numerical value
+                - description: Detailed description often containing additional data
+            - owners: Major shareholders with ownership percentages
+            - insiderTransactions: Recent insider buying/selling
+            - members: Management team and board members
 
         Raises:
             ValueError: If company cannot be found

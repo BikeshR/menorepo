@@ -3,6 +3,15 @@ File Manager
 
 This module handles file operations for the stock analyzer,
 including checking for existing files and managing historical data.
+
+It provides a centralized interface for:
+1. Storing and retrieving SimplyWall.st API JSON data with timestamped filenames
+2. Managing investment memo files with consistent naming conventions
+3. Checking file freshness based on configurable day thresholds
+4. Intelligently determining when new data or memos need to be generated
+
+All files are stored with timestamps (YYYYMMDD) in their filenames to maintain
+a historical record of analyses and enable performance tracking over time.
 """
 
 import os
@@ -13,23 +22,37 @@ from typing import Dict, List, Optional, Any, Union, Tuple
 
 
 class FileManager:
-    """Manages file operations for stock data and memos"""
+    """Manages file operations for stock data and investment memos
 
-    def __init__(self, sws_data_dir: str, initial_memos_dir: str, final_memos_dir: str):
+    This class handles file system operations for the stock analyzer application
+    including checking for file updates, managing historical data storage, and
+    implementing file naming conventions. It supports:
+
+    File naming conventions:
+    - Stock data: TICKER_YYYYMMDD.json (e.g., AAPL_20230501.json)
+    - Investment memos: TICKER_YYYYMMDD.md (e.g., AAPL_20230501.md)
+
+    Key features:
+    - Timestamped file storage for SimplyWall.st API data in JSON format
+    - Managing final investment memos with consistent naming patterns
+    - Determining when files need to be refreshed based on time thresholds
+    - Processing and storing insider transaction data with limits
+    - Standardized naming convention for stock files across the application
+    """
+
+    def __init__(self, sws_data_dir: str, final_memos_dir: str):
         """Initialize with paths to data directories
 
         Args:
-            sws_data_dir: Directory for storing SimplyWall.st API data
-            initial_memos_dir: Directory for historical initial investment memos
-            final_memos_dir: Directory for historical final investment memos
+            sws_data_dir: Directory for storing SimplyWall.st API data in JSON format
+            final_memos_dir: Directory for storing final investment memos as markdown files
+                             with historical versioning by timestamp
         """
         self.sws_data_dir = sws_data_dir
-        self.initial_memos_dir = initial_memos_dir
         self.final_memos_dir = final_memos_dir
 
         # Create directories if they don't exist
         os.makedirs(sws_data_dir, exist_ok=True)
-        os.makedirs(initial_memos_dir, exist_ok=True)
         os.makedirs(final_memos_dir, exist_ok=True)
 
     def _get_stock_filename(self, ticker: str) -> str:
@@ -94,21 +117,6 @@ class FileManager:
         pattern = os.path.join(self.sws_data_dir, "{stock_filename}_*.json")
         return self._needs_update(ticker, pattern, days_threshold)
 
-    def needs_initial_memo_update(
-        self, ticker: str, days_threshold: int = 5
-    ) -> Tuple[bool, Optional[str]]:
-        """Check if new initial memo should be generated for a stock
-
-        Args:
-            ticker: Stock ticker
-            days_threshold: Number of days before refreshing memo
-
-        Returns:
-            Tuple of (needs_update, latest_file_path)
-        """
-        pattern = os.path.join(self.initial_memos_dir, "{stock_filename}_*.md")
-        return self._needs_update(ticker, pattern, days_threshold)
-
     def needs_final_memo_update(
         self, ticker: str, days_threshold: int = 5
     ) -> Tuple[bool, Optional[str]]:
@@ -156,27 +164,6 @@ class FileManager:
 
         return filepath
 
-    def save_initial_memo(self, ticker: str, memo_content: str) -> str:
-        """Save an initial memo to the initial memos directory with timestamp
-
-        Args:
-            ticker: Stock ticker
-            memo_content: Content of the memo
-
-        Returns:
-            Path to saved file
-        """
-        stock_filename = self._get_stock_filename(ticker)
-        timestamp = datetime.datetime.now().strftime("%Y%m%d")
-
-        filename = f"{stock_filename}_{timestamp}.md"
-        filepath = os.path.join(self.initial_memos_dir, filename)
-
-        with open(filepath, "w") as f:
-            f.write(memo_content)
-
-        return filepath
-
     def save_final_memo(self, ticker: str, memo_content: str) -> str:
         """Save a final memo to the final memos directory with timestamp
 
@@ -208,18 +195,6 @@ class FileManager:
             Path to the most recent file, or None if no files exist
         """
         _, file_path = self.needs_json_update(ticker, days_threshold=999999)
-        return file_path
-
-    def get_latest_initial_memo(self, ticker: str) -> Optional[str]:
-        """Get path to the most recent initial memo for a stock
-
-        Args:
-            ticker: Stock ticker
-
-        Returns:
-            Path to the most recent file, or None if no files exist
-        """
-        _, file_path = self.needs_initial_memo_update(ticker, days_threshold=999999)
         return file_path
 
     def get_latest_final_memo(self, ticker: str) -> Optional[str]:

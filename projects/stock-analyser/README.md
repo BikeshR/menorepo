@@ -17,11 +17,10 @@ stock-analyser/
 ├── data/
 │   ├── watchlist.yaml              # Stock watchlist in YAML format
 │   ├── sws_data/                   # SimplyWall.st API data (refreshed every 5 days)
-│   ├── initial_memos/              # Historical initial investment memos (refreshed daily)
+│   ├── initial_memos/              # Initial investment memos
 │   └── final_memos/                # Historical final investment memos
 ├── prompts/
-│   ├── investment-memo-template.md # Template for initial memo
-│   └── update-investment-memo.md   # Template for final memo
+│   ├── investment-memo.md          # Updated prompt template
 ├── src/
 │   ├── simplywall_api.py           # API client
 │   ├── file_manager.py             # File/folder operations
@@ -29,7 +28,7 @@ stock-analyser/
 │   ├── claude_integration.py       # Claude API integration
 │   └── main.py                     # Main workflow script
 ├── .env.example                    # Example environment variables
-├── setup.sh                        # Setup script 
+├── setup.sh                        # Setup script
 └── requirements.txt                # Dependencies
 ```
 
@@ -70,6 +69,8 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 # Edit .env with your API token
+# Example contents:
+# SIMPLYWALL_API_TOKEN=your_api_token_here
 ```
 
 5. Install the Claude CLI:
@@ -88,7 +89,7 @@ cp .env.example .env
 python src/main.py
 
 # Or with custom settings
-python src/main.py --json-days-threshold 7 --initial-memo-days-threshold 2 --claude-command "claude" --verbose
+python src/main.py --json-days-threshold 7 --memo-days-threshold 2 --claude-command "claude" --verbose
 ```
 
 ## Workflow
@@ -97,15 +98,15 @@ For each stock in the watchlist:
 
 1. Check if SimplyWall.st data needs to be refreshed (>5 days since last update)
    - If yes, fetch new data from SimplyWall.st API and save as timestamped JSON
+   - Data includes company information, financial statements, ownership, insider transactions, and management details
 
-2. Check if initial memo needs to be refreshed (>5 days since last update or API data was updated)
-   - If yes, generate new initial memo using the template
-   
-3. Check if final memo needs to be refreshed (>5 days since last update or if API data/initial memo was updated):
-   - If yes, generate a new final memo using stock data and the initial memo
+2. Check if investment memo needs to be refreshed (>5 days since last update or if API data was updated)
+   - If yes, generate a new investment memo using Claude and the template
+   - The memo includes a comprehensive analysis with BUY/HOLD/SELL recommendation
+   - Generated memo is processed to extract the investment memorandum section
    - Save as timestamped markdown file
 
-All files are stored with timestamps in their respective folders, maintaining a historical record.
+All files are stored with timestamps in their respective folders, maintaining a historical record for performance tracking and analysis.
 
 ## Command-line Arguments
 
@@ -114,7 +115,7 @@ All files are stored with timestamps in their respective folders, maintaining a 
 | `--api-token` | SimplyWall.st API token | From .env file |
 | `--watchlist` | Path to watchlist file | data/watchlist.yaml |
 | `--json-days-threshold` | Days before refreshing API data | 5 |
-| `--initial-memo-days-threshold` | Days before refreshing initial memo | 5 |
+| `--memo-days-threshold` | Days before refreshing investment memo | 5 |
 | `--claude-command` | Command to invoke Claude | claude |
 | `--verbose` | Enable verbose logging | False |
 | `--env-file` | Path to .env file | .env |
@@ -144,6 +145,42 @@ stocks:
 
 Note: The watchlist is in YAML format with a list of stocks using the format `TICKER (Company Name)`. This structure provides better organization and allows for categorization with comments and grouping.
 
+## Investment Memo Format
+
+The generated investment memos follow a structured format:
+
+```markdown
+# Investment Memorandum
+**Ticker/Company:** AAPL (Apple Inc.)
+**Date:** 2023-05-01
+**Recommendation:** BUY
+**Target Price:** $200.00
+**Current Price:** $170.50
+**Potential Upside:** 17.3%
+**Confidence Level:** HIGH
+
+## 1. Executive Summary
+[Concise overview with investment thesis]
+
+## 2. Company Overview
+[Business model, management, ownership structure]
+
+## 3. Financial Analysis
+[Revenue, earnings, balance sheet, return metrics]
+
+## 4. Valuation & Technical Factors
+[Fundamental valuation, technical indicators]
+
+## 5. Investment Thesis & Catalysts
+[Thesis, catalysts, scenario analysis]
+
+## 6. Risk Assessment
+[Key risks and mitigating factors]
+
+## 7. Investment Recommendation
+[Final recommendation with rationale]
+```
+
 ## Troubleshooting
 
 ### Claude CLI Issues
@@ -165,5 +202,6 @@ If you see "externally-managed-environment" errors:
 ## Requirements
 
 - Python 3.8+
-- SimplyWall.st Pro API access
-- Claude CLI installed and configured
+- SimplyWall.st Pro API access (for financial data)
+- Claude CLI installed and configured (for investment memo generation)
+- YAML support for watchlist management
