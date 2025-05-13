@@ -5,8 +5,9 @@ A tool for analyzing stocks using SimplyWall.st API data and generating investme
 ## Features
 
 - Fetches detailed stock information from SimplyWall.st API
-- Manages historical stock data 
+- Manages historical stock data
 - Generates investment memos using Claude
+- Creates portfolio allocation recommendations based on current holdings
 - Tracks a watchlist of stocks in YAML format
 - Maintains history of analyses for tracking performance
 
@@ -16,11 +17,12 @@ A tool for analyzing stocks using SimplyWall.st API data and generating investme
 stock-analyser/
 ├── data/
 │   ├── watchlist.yaml              # Stock watchlist in YAML format
-│   ├── sws_data/                   # SimplyWall.st API data (refreshed every 5 days)
-│   ├── initial_memos/              # Initial investment memos
-│   └── final_memos/                # Historical final investment memos
+│   ├── sws_data/                   # SimplyWall.st API data
+│   ├── final_memos/                # Historical investment memos
+│   └── portfolio/                  # Portfolio allocation recommendations
 ├── prompts/
-│   ├── investment-memo.md          # Updated prompt template
+│   ├── investment-memo.md          # Investment memo prompt template
+│   └── portfolio-allocation.md     # Portfolio allocation prompt template
 ├── src/
 │   ├── simplywall_api.py           # API client
 │   ├── file_manager.py             # File/folder operations
@@ -94,6 +96,9 @@ python src/main.py --claude-command "claude" --verbose
 
 ## Workflow
 
+The workflow consists of two main phases:
+
+### Phase 1: Individual Stock Analysis
 For each stock in the watchlist:
 
 1. Check if an investment memo already exists for the stock
@@ -111,7 +116,21 @@ For each stock in the watchlist:
    - Generated memo is processed to extract the investment memorandum section
    - Save as timestamped markdown file
 
-This approach minimizes API calls and storage requirements while ensuring that investment memos are generated only once for each stock. The system maintains only the most recent API data for each stock.
+### Phase 2: Portfolio Allocation
+After all individual stocks are successfully processed:
+
+1. Collect all the latest investment memos for stocks in the watchlist
+2. Read current portfolio holdings from CSV file (if available)
+3. Generate a portfolio allocation recommendation using Claude
+   - Analyze all BUY-rated stocks for inclusion in the portfolio
+   - Consider current holdings and investments when making recommendations
+   - Determine allocation percentages based on conviction and diversification
+   - Suggest sector allocations and implementation strategy
+4. Save the portfolio allocation as a timestamped file
+
+Note: The portfolio allocation is only generated if all stocks in the watchlist are successfully processed. This ensures the allocation recommendation is based on a complete dataset.
+
+This approach minimizes API calls and storage requirements while providing both individual stock analysis and holistic portfolio recommendations.
 
 ## Command-line Arguments
 
@@ -148,7 +167,9 @@ stocks:
 
 Note: The watchlist is in YAML format with a list of stocks using the format `TICKER (Company Name)`. This structure provides better organization and allows for categorization with comments and grouping.
 
-## Investment Memo Format
+## Output Formats
+
+### Investment Memo Format
 
 The generated investment memos follow a structured format:
 
@@ -182,6 +203,46 @@ The generated investment memos follow a structured format:
 
 ## 7. Investment Recommendation
 [Final recommendation with rationale]
+```
+
+### Portfolio Allocation Format
+
+The portfolio allocation recommendation follows this structure:
+
+```markdown
+# Portfolio Allocation Recommendation
+**Date:** 2023-05-01
+**Number of Analyzed Securities:** 15
+**Recommended Positions:** 8
+**Expected Return:** 12.4%
+**Risk Level:** MEDIUM
+
+## 1. Executive Summary
+[Overview of portfolio strategy and key themes]
+
+## 2. Portfolio Allocation
+| Stock | Company | Sector | Recommendation | Target Price | Current Price | Upside | Allocation % | Rationale |
+|-------|---------|--------|----------------|-------------|---------------|--------|--------------|-----------|
+| AAPL  | Apple   | Tech   | BUY            | $200        | $170          | 17.6%  | 8%           | High conviction |
+| [Other BUY-rated stocks] |
+
+## 3. Sector Allocation
+| Sector | Allocation % | Key Holdings | Sector View |
+|--------|--------------|--------------|-------------|
+| Technology | 25% | AAPL, MSFT | Overweight |
+| [Other sectors] |
+
+## 4. Risk Assessment
+[Portfolio-level risks and mitigation strategies]
+
+## 5. Implementation Strategy
+[Recommended implementation approach]
+
+## 6. Alternative Scenarios
+[Performance under different market conditions]
+
+## 7. Conclusion
+[Summary of recommendations]
 ```
 
 ## Troubleshooting

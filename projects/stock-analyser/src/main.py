@@ -102,16 +102,23 @@ def process_stock(
     current_index: int = 0,
     total_stocks: int = 0
 ) -> bool:
-    """Process a single stock
+    """Process a single stock by fetching data and generating an investment memo
+
+    The function follows these steps:
+    1. Check if a memo already exists - if so, skip this stock
+    2. Check if today's stock data exists - if so, use it
+    3. Otherwise, fetch new data from SimplyWall.st API
+    4. Generate investment memo using Claude
+    5. Save the memo for future reference
 
     Args:
-        ticker: Stock ticker
+        ticker: Stock ticker symbol
         company_name: Company name from watchlist
         api_client: SimplyWall.st API client
-        file_manager: File manager
-        claude: Claude integration
-        current_index: Current stock index in the processing queue
-        total_stocks: Total number of stocks to process
+        file_manager: File manager for data and memo files
+        claude: Claude AI integration for memo generation
+        current_index: Current stock index in the processing queue (for logging)
+        total_stocks: Total number of stocks to process (for logging)
 
     Returns:
         True if processing was successful, False otherwise
@@ -134,11 +141,20 @@ def process_stock(
         else:
             # Get data from API with company name for better matching
             logger.info(f"Fetching data for {ticker}")
-            stock_data = api_client.get_company_data(ticker, company_name)
+            try:
+                stock_data = api_client.get_company_data(ticker, company_name)
 
-            # Verify we have valid stock data before proceeding
-            if not stock_data:
-                logger.error(f"Received empty or invalid data for {ticker}")
+                # Verify we have valid stock data before proceeding
+                if not stock_data:
+                    logger.error(f"Received empty data for {ticker} - this ticker may not exist or be supported")
+                    return False
+
+                # Check if we only have minimal data for this stock
+                if stock_data.get("is_minimal_data", False):
+                    logger.warning(f"Only minimal data available for {ticker} - detailed analysis will be limited")
+
+            except Exception as e:
+                logger.error(f"Failed to retrieve data for {ticker}: {str(e)}")
                 return False
 
             # Ensure required fields exist
@@ -188,23 +204,27 @@ def main():
 
         # Get project root directory (assuming src/ is in project root)
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(project_root, "data")
 
         # Resolve paths
         watchlist_path = os.path.join(project_root, args.watchlist)
-        sws_data_dir = os.path.join(project_root, "data", "sws_data")
-        final_memos_dir = os.path.join(project_root, "data", "final_memos")
+        sws_data_dir = os.path.join(data_dir, "sws_data")
+        final_memos_dir = os.path.join(data_dir, "final_memos")
+        portfolio_dir = os.path.join(data_dir, "portfolio")
         prompt_dir = os.path.join(project_root, "prompts")
 
         logger.debug(f"Project root: {project_root}")
+        logger.debug(f"Data dir: {data_dir}")
         logger.debug(f"Watchlist path: {watchlist_path}")
         logger.debug(f"SimplyWall.st data dir: {sws_data_dir}")
         logger.debug(f"Final memos dir: {final_memos_dir}")
+        logger.debug(f"Portfolio dir: {portfolio_dir}")
         logger.debug(f"Prompt directory: {prompt_dir}")
 
         # Initialize components
         watchlist_parser = WatchlistParser(watchlist_path)
         api_client = SimplywallStAPI(api_token)
-        file_manager = FileManager(sws_data_dir, final_memos_dir)
+        file_manager = FileManager(sws_data_dir, final_memos_dir, portfolio_dir, data_dir)
         claude = ClaudeIntegration(prompt_dir, args.claude_command)
 
         # Parse watchlist
@@ -233,8 +253,39 @@ def main():
             ):
                 successful += 1
 
-        # Print summary
+        # Print summary of stock processing
         logger.info(f"Processed {successful} of {total_tickers} stocks successfully")
+
+        # Generate portfolio allocation only if all stocks were processed successfully
+        if successful == total_tickers:
+            try:
+                logger.info("Starting portfolio allocation generation")
+
+                # Get all the final memos for the stocks in the watchlist
+                memos_data = file_manager.get_all_latest_memos(tickers)
+                memo_count = len(memos_data)
+
+                if memo_count > 0:
+                    # Read portfolio data from CSV
+                    portfolio_data = file_manager.read_portfolio_csv()
+                    if portfolio_data:
+                        logger.info(f"Found current portfolio data with {len(portfolio_data)} holdings")
+                    else:
+                        logger.warning("No portfolio CSV file found - will generate allocation without current holdings")
+
+                    # Generate portfolio allocation with memos and portfolio data
+                    logger.info(f"Generating portfolio allocation from {memo_count} investment memos")
+                    portfolio_allocation = claude.generate_portfolio_allocation(memos_data, portfolio_data)
+
+                    # Save portfolio allocation
+                    portfolio_file = file_manager.save_portfolio_allocation(portfolio_allocation)
+                    logger.info(f"Saved portfolio allocation to {portfolio_file}")
+                else:
+                    logger.warning("No memos found for portfolio allocation - unable to proceed")
+
+            except Exception as e:
+                logger.error(f"Error generating portfolio allocation: {str(e)}")
+                # Continue even if portfolio allocation fails
 
         if successful < total_tickers:
             logger.warning(

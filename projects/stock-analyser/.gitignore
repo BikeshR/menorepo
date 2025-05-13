@@ -6,8 +6,10 @@
 # Data directories
 data/final_memos/*
 data/sws_data/*
+data/portfolio/*
 !data/final_memos/.gitkeep
 !data/sws_data/.gitkeep
+!data/portfolio/.gitkeep
 
 # Python cache files
 __pycache__/

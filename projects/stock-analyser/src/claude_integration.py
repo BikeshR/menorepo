@@ -52,11 +52,15 @@ class ClaudeIntegration:
         self.prompt_dir = prompt_dir
         self.claude_command = claude_command or "claude"
 
-        # Validate prompt file exists
+        # Validate investment memo prompt file exists
         self.memo_prompt_path = os.path.join(prompt_dir, "investment-memo.md")
-
         if not os.path.exists(self.memo_prompt_path):
             raise FileNotFoundError(f"Investment memo template not found: {self.memo_prompt_path}")
+
+        # Validate portfolio allocation prompt file exists
+        self.portfolio_prompt_path = os.path.join(prompt_dir, "portfolio-allocation.md")
+        if not os.path.exists(self.portfolio_prompt_path):
+            raise FileNotFoundError(f"Portfolio allocation template not found: {self.portfolio_prompt_path}")
 
     def _extract_company_info(
         self, stock_data: Dict[str, Any], company_name: str = ""
@@ -229,6 +233,7 @@ class ClaudeIntegration:
 
         Raises:
             RuntimeError: If Claude command fails
+            ValueError: If stock data is empty or None
         """
         # Ensure we have valid data
         if not stock_data:
@@ -270,3 +275,59 @@ class ClaudeIntegration:
 
         # Run Claude and return response
         return self._run_claude(prompt)
+
+    def generate_portfolio_allocation(self, memos_data: Dict[str, str], portfolio_data: Dict[str, Dict[str, Any]] = None) -> str:
+        """Generate portfolio allocation recommendation using investment memos and current portfolio data
+
+        Args:
+            memos_data: Dictionary with ticker as key and memo content as value
+            portfolio_data: Optional dictionary with ticker as key and portfolio holdings data as value
+
+        Returns:
+            Generated portfolio allocation content
+
+        Raises:
+            RuntimeError: If Claude command fails
+            ValueError: If memos data is empty
+        """
+        # Ensure we have valid data
+        if not memos_data:
+            raise ValueError("No investment memos provided for portfolio allocation")
+
+        # Get current date for the prompt
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        # Format memos data for the prompt
+        formatted_memos = ""
+        for ticker, memo in memos_data.items():
+            formatted_memos += f"\n\n==== MEMO FOR {ticker} ====\n\n{memo}"
+
+        # Format portfolio data if provided
+        formatted_portfolio = ""
+        if portfolio_data:
+            # Add CSV header
+            formatted_portfolio = "Ticker,Name,Invested Value (GBP),Current Value (GBP),Result (GBP),Quantity\n"
+
+            # Add each holding as a CSV row
+            for ticker, data in portfolio_data.items():
+                row = f"{ticker},{data['name']},{data['invested_value']:.2f},{data['current_value']:.2f},{data['result']:.2f},{data['quantity']:.6f}\n"
+                formatted_portfolio += row
+
+            logger.info(f"Including {len(portfolio_data)} holdings from current portfolio in allocation")
+
+        # Prepare replacements for the prompt
+        replacements = {
+            "DATE": current_date,
+            "MEMOS_DATA": formatted_memos,
+            "CURRENT_PORTFOLIO": formatted_portfolio
+        }
+
+        logger.info(f"Generating portfolio allocation using {len(memos_data)} investment memos")
+
+        # Prepare prompt with replacements
+        prompt = self._prepare_prompt(self.portfolio_prompt_path, replacements)
+
+        # Run Claude and return response
+        result = self._run_claude(prompt)
+
+        return result

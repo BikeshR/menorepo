@@ -25,7 +25,10 @@ error handling to manage potential issues with API connectivity.
 
 import requests
 import json
+import logging
 from typing import Dict, List, Optional, Any, Union
+
+logger = logging.getLogger("stock_analyzer")
 
 
 class SimplywallStAPI:
@@ -288,11 +291,20 @@ class SimplywallStAPI:
             # Get company ID
             company = self.get_company_by_ticker(exchange, symbol)
         else:
-            # Try to find the company by name/symbol
-            search_results = self.search_companies(ticker_info)
+            # Try to find the company by ticker first
+            try:
+                search_results = self.search_companies(ticker_info)
 
-            if not search_results:
-                raise ValueError(f"Could not find company matching '{ticker_info}'")
+                # If ticker search didn't find anything and we have a company name, try searching by name
+                if not search_results and company_name:
+                    logger.info(f"Could not find ticker '{ticker_info}', trying search with company name '{company_name}'")
+                    search_results = self.search_companies(company_name)
+
+                if not search_results:
+                    raise ValueError(f"Could not find company matching '{ticker_info}' or name '{company_name}'")
+
+            except Exception as e:
+                raise ValueError(f"Error searching for company '{ticker_info}': {str(e)}")
 
             # If company_name is provided, try to find best match
             if company_name and len(search_results) > 1:
@@ -300,17 +312,16 @@ class SimplywallStAPI:
                 highest_score = 0
 
                 for result in search_results:
-                    # Extract core company name (remove Inc, Corp, etc.)
+                    # Extract company names for comparison
                     result_name = result.get("name", "").lower()
                     watch_name = company_name.lower()
 
-                    # Simple scoring: 1 point if watchlist name is in result name
-                    # 2 points if they are exactly the same
+                    # Simple scoring: 2 points for exact match, 1 point for partial match
                     score = 0
                     if watch_name == result_name:
-                        score = 2
+                        score = 2  # Exact match
                     elif watch_name in result_name or result_name in watch_name:
-                        score = 1
+                        score = 1  # Partial match
 
                     # Update best match if this score is higher
                     if score > highest_score:
@@ -333,18 +344,36 @@ class SimplywallStAPI:
         if "id" not in company or not company["id"]:
             raise ValueError(f"Company found for '{ticker_info}' but has no valid ID")
 
+        # Create a minimal data object with basic info in case detailed call fails
+        minimal_data = {
+            "tickerSymbol": company.get("tickerSymbol", ticker_info),
+            "name": company.get("name", "Unknown Company"),
+            "exchangeSymbol": company.get("exchangeSymbol", ""),
+            "marketCapUSD": company.get("marketCapUSD", 0),
+            "is_minimal_data": True  # Flag to indicate this is minimal data
+        }
+
         # Get detailed information using the company ID
-        detailed_data = self.get_company_detailed(company["id"])
+        try:
+            detailed_data = self.get_company_detailed(company["id"])
 
-        # Ensure we have valid data
-        if not detailed_data:
-            raise ValueError(f"Could not retrieve detailed data for '{ticker_info}'")
+            # Ensure we have valid data
+            if not detailed_data:
+                logger.warning(f"Empty detailed data returned for '{ticker_info}', using minimal data")
+                return minimal_data
 
-        # Add basic company information to ensure it's available
-        # This helps when the detailed data might be missing some fields
-        for key in ["name", "exchangeSymbol", "tickerSymbol", "marketCapUSD"]:
-            if key in company and key not in detailed_data:
-                detailed_data[key] = company[key]
+            # Add basic company information to ensure it's available
+            # This helps when the detailed data might be missing some fields
+            for key in ["name", "exchangeSymbol", "tickerSymbol", "marketCapUSD"]:
+                if key in company and key not in detailed_data:
+                    detailed_data[key] = company[key]
+        except Exception as e:
+            # Log the error
+            logger.warning(f"Error getting detailed data for '{ticker_info}': {str(e)}")
+            logger.info(f"Using minimal data for '{ticker_info}'")
+
+            # Return minimal data when detailed data cannot be retrieved
+            return minimal_data
 
         # Override company name if provided from watchlist and significantly different
         if company_name and detailed_data.get("name") and company_name.lower() != detailed_data["name"].lower():
