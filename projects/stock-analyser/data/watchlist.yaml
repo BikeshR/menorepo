@@ -41,12 +41,12 @@ stocks:
   # ETFs
   - UGRW (WisdomTree UK Quality Dividend Growth)
 
-  # # Quantum
-  # - IONQ (Ionq)
-  # - RGTI (Rigetti Computing)
-  # - QBTS (D-Wave Quantum)
-  # - QUBT (Quantum Computing)
-  # - IBM (IBM)
+  # Quantum
+  - IONQ (Ionq)
+  - RGTI (Rigetti Computing)
+  - QBTS (D-Wave Quantum)
+  - QUBT (Quantum Computing)
+  - IBM (IBM)
 
   # # Other
   # - COST (Costco Wholesale)
