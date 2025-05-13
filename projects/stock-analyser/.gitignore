@@ -7,6 +7,7 @@
 data/final_memos/*
 data/sws_data/*
 data/portfolio/*
+data/Portfolio*
 !data/final_memos/.gitkeep
 !data/sws_data/.gitkeep
 !data/portfolio/.gitkeep
