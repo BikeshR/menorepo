@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: hsl(214.3 31.8% 91.4%);
+  }
+
+  body {
+    background-color: hsl(0 0% 100%);
+    color: hsl(222.2 84% 4.9%);
+    font-family: system-ui, sans-serif;
+  }
+}
+
+/* Dark mode styles */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: hsl(240 10% 3.9%);
+  color: hsl(0 0% 98%);
+}
+
+.dark * {
+  border-color: hsl(240 3.7% 15.9%);
+}
