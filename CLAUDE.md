@@ -9,10 +9,11 @@ This is a personal development monorepo containing boilerplates and projects for
 ```
 menorepo/
 ├── boilerplates/
-│   └── react/          # Complete React 19 + TypeScript boilerplate
+│   └── react/                  # Complete React 19 + TypeScript boilerplate
 └── projects/
-    ├── stock-analyser/  # Python stock analysis tool with Claude integration  
-    └── t212-portfolio/  # Trading212 portfolio export tool
+    ├── ai-patent-platform-ui/  # Next.js 15 patent management UI (Phase 3 complete)
+    ├── stock-analyser/         # Python stock analysis tool with Claude integration  
+    └── t212-portfolio/         # Trading212 portfolio export tool
 ```
 
 ## Common Development Commands
@@ -35,6 +36,9 @@ npm run test                 # Unit tests with Vitest
 npm run test:coverage        # Test coverage report
 npm run test:e2e            # End-to-end tests with Playwright
 npm run test:e2e:ui         # Playwright UI interface
+
+# Run single test file
+npm run test -- path/to/test.spec.ts
 ```
 
 ### Stock Analyser (`/projects/stock-analyser/`)
@@ -50,6 +54,26 @@ python src/main.py --claude-command  # Custom Claude command
 pipenv install              # Install dependencies
 pipenv shell               # Activate environment
 python main.py             # Run portfolio export
+```
+
+### AI Patent Platform UI (`/projects/ai-patent-platform-ui/`)
+```bash
+# Development
+npm run dev                  # Start dev server (port 3000)
+npm run build               # Production build
+npm run start               # Production server
+
+# Code Quality  
+npm run lint                # ESLint checks
+npm run type-check          # TypeScript validation
+
+# Testing
+npm run test                # Unit tests with Jest
+npm run test:watch          # Watch mode for tests
+npm run test:coverage       # Test coverage report
+
+# Run single test file
+npm run test -- path/to/test.spec.ts
 ```
 
 ## Architecture Overview
@@ -72,6 +96,13 @@ Two-phase analysis process:
 - Rate limiting and data caching
 - Historical tracking and analysis
 
+### AI Patent Platform UI Architecture
+- **Stack:** Next.js 15 + React 19 + TypeScript + Tailwind CSS
+- **Component Library:** 15+ patent-specific components with AI confidence indicators
+- **Planning:** Comprehensive PRD, ADR, and implementation phases
+- **Design System:** Custom design tokens for patents, AI, and interaction states
+- **Key Features:** Patent search, AI-assisted drafting, prior art analysis, trademark management
+
 ### Development Patterns
 
 #### State Management Strategy (React)
@@ -85,7 +116,7 @@ Two-phase analysis process:
 - **Python:** Clear separation of concerns with dedicated modules for API, analysis, and CLI
 
 #### Testing Strategy
-- **Unit Tests:** Fast feedback with Vitest
+- **Unit Tests:** Fast feedback with Vitest (React boilerplate) or Jest (Next.js)
 - **Integration Tests:** Component interactions with RTL
 - **E2E Tests:** Full user flows with Playwright
 - **API Mocking:** MSW for reliable integration testing
