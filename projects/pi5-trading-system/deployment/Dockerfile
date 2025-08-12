@@ -30,8 +30,8 @@ WORKDIR /app
 # Copy Poetry files
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies
-RUN poetry install --only=main && rm -rf $POETRY_CACHE_DIR
+# Install dependencies (without installing the current project)
+RUN poetry install --only=main --no-root && rm -rf $POETRY_CACHE_DIR
 
 # Copy application code
 COPY trading_api/ ./trading_api/
