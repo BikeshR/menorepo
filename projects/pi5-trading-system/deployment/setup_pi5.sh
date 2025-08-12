@@ -254,11 +254,12 @@ install_dev_tools() {
     curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
     apt-get install -y nodejs
     
-    # Install useful CLI tools
-    pip3 install --upgrade \
+    # Install useful CLI tools (using system packages for Ubuntu 24.04 compatibility)
+    apt-get install -y \
         httpie \
         jq \
-        yq
+        python3-pip \
+        python3-full
     
     success "Development tools installed"
 }
