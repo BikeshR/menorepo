@@ -311,12 +311,12 @@ verify_installation() {
         warning "Node.js installation failed (optional)"
     fi
     
-    # Check user
-    if id developer &>/dev/null; then
-        success "Development user: developer created"
+    # Check current user docker permissions
+    local CURRENT_USER="${SUDO_USER:-$(logname 2>/dev/null || echo $USER)}"
+    if groups "$CURRENT_USER" | grep -q docker; then
+        success "User permissions: $CURRENT_USER configured for Docker"
     else
-        error "Development user creation failed"
-        ((errors++))
+        warning "User $CURRENT_USER may need to logout/login for Docker permissions"
     fi
     
     if [ $errors -eq 0 ]; then
