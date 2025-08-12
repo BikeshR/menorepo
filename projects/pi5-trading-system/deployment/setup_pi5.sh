@@ -135,11 +135,27 @@ install_poetry() {
         return
     fi
     
-    log "Installing Poetry..."
-    curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3 -
-    ln -sf /opt/poetry/bin/poetry /usr/local/bin/poetry
+    log "Installing Poetry using official installer..."
     
-    success "Poetry installed: $(poetry --version)"
+    # Ensure we have curl and python3-venv
+    apt-get update -qq
+    apt-get install -y curl python3-venv python3-pip
+    
+    # Use official Poetry installer (works with externally-managed environments)
+    if curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3 -; then
+        ln -sf /opt/poetry/bin/poetry /usr/local/bin/poetry
+        
+        # Verify installation
+        if command -v poetry &> /dev/null; then
+            success "Poetry installed: $(poetry --version)"
+        else
+            error "Poetry installation failed - command not found"
+            exit 1
+        fi
+    else
+        error "Failed to download or install Poetry"
+        exit 1
+    fi
 }
 
 # Create development user
