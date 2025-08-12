@@ -3,12 +3,7 @@ FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    POETRY_NO_INTERACTION=1 \
-    POETRY_VENV_IN_PROJECT=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache \
-    VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
+    PYTHONUNBUFFERED=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -20,20 +15,12 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Note: TA-Lib C library installation commented out for initial deployment
-# Complex ARM64 build - can be added later if technical analysis features are needed
-
-# Install Poetry
-RUN pip install poetry
-
 # Set work directory
 WORKDIR /app
 
-# Copy Poetry files
-COPY pyproject.toml poetry.lock* ./
-
-# Install dependencies (without installing the current project)
-RUN poetry install --only=main --no-root && rm -rf $POETRY_CACHE_DIR
+# Copy requirements and install Python dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY trading_api/ ./trading_api/
