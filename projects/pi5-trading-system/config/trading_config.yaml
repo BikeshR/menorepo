@@ -1,0 +1,259 @@
+# Pi5 Trading System - Trading Configuration
+
+# ================================
+# Strategy Configuration
+# ================================
+strategies:
+  moving_average_crossover:
+    enabled: true
+    symbols: ["AAPL", "MSFT", "GOOGL", "TSLA"]
+    parameters:
+      short_period: 20
+      long_period: 50
+      ma_type: "sma"  # sma, ema, wma
+      min_volume: 100000
+      confidence_threshold: 0.75
+      volume_weight: 0.4
+      volatility_weight: 0.3
+      trend_strength_weight: 0.3
+    
+  mean_reversion_rsi:
+    enabled: false
+    symbols: ["SPY", "QQQ", "IWM"]
+    parameters:
+      rsi_period: 14
+      oversold_threshold: 30
+      overbought_threshold: 70
+      holding_period: 5
+      stop_loss_percent: 0.02
+      
+  momentum_trend:
+    enabled: false
+    symbols: ["AMZN", "NFLX", "META"]
+    parameters:
+      momentum_period: 20
+      trend_threshold: 0.02
+      breakout_volume_multiplier: 1.5
+      atr_period: 14
+
+# ================================
+# Risk Management Configuration
+# ================================
+risk_management:
+  # Position sizing
+  position_sizing_method: "volatility_adjusted"  # fixed_fractional, volatility_adjusted, kelly, risk_parity
+  
+  # Portfolio limits
+  max_position_size: 0.15  # 15% of portfolio
+  max_portfolio_exposure: 0.9  # 90% of portfolio
+  max_sector_exposure: 0.4  # 40% per sector
+  max_correlation: 0.8  # Maximum correlation between positions
+  
+  # Risk limits
+  max_daily_loss: 0.03  # 3% daily loss limit
+  max_drawdown: 0.15  # 15% maximum drawdown
+  stop_loss_percent: 0.05  # 5% stop loss
+  
+  # Volatility settings
+  volatility_lookback_days: 20
+  volatility_target: 0.15  # 15% target volatility
+  
+  # Kelly criterion settings
+  kelly_lookback_periods: 100
+  kelly_max_fraction: 0.25  # Maximum 25% of capital
+  
+  # Risk parity settings
+  risk_parity_lookback_days: 60
+  risk_parity_rebalance_frequency: "weekly"
+
+# ================================
+# Trading Schedule Configuration
+# ================================
+trading_schedule:
+  # Market hours (UTC)
+  market_open: "14:30"  # 9:30 AM ET
+  market_close: "21:00"  # 4:00 PM ET
+  
+  # Pre/post market trading
+  extended_hours: false
+  pre_market_start: "09:00"  # 4:00 AM ET
+  after_hours_end: "01:00"   # 8:00 PM ET
+  
+  # Trading days (Monday=0, Sunday=6)
+  trading_days: [0, 1, 2, 3, 4]  # Monday through Friday
+  
+  # Market holidays (YYYY-MM-DD format)
+  market_holidays:
+    - "2025-01-01"  # New Year's Day
+    - "2025-01-20"  # Martin Luther King Jr. Day
+    - "2025-02-17"  # Presidents' Day
+    - "2025-04-18"  # Good Friday
+    - "2025-05-26"  # Memorial Day
+    - "2025-06-19"  # Juneteenth
+    - "2025-07-04"  # Independence Day
+    - "2025-09-01"  # Labor Day
+    - "2025-11-27"  # Thanksgiving
+    - "2025-12-25"  # Christmas Day
+
+# ================================
+# Data Configuration
+# ================================
+market_data:
+  # Data frequencies
+  primary_frequency: "1min"
+  supported_frequencies: ["1min", "5min", "15min", "1hour", "1day"]
+  
+  # Historical data
+  historical_days: 252  # 1 year of trading days
+  max_historical_days: 1260  # 5 years
+  
+  # Data quality
+  max_missing_data_percent: 0.05  # 5% maximum missing data
+  outlier_detection: true
+  outlier_std_threshold: 4.0
+  
+  # Data providers priority
+  provider_priority:
+    - "yahoo_finance"
+    - "alpha_vantage"
+    - "iex_cloud"
+  
+  # Cache settings
+  cache_enabled: true
+  cache_ttl_minutes: 5
+  cache_max_symbols: 1000
+
+# ================================
+# Order Management Configuration
+# ================================
+order_management:
+  # Order limits
+  max_orders_per_minute: 30
+  max_orders_per_day: 1000
+  order_timeout_minutes: 60
+  
+  # Order execution
+  default_order_type: "market"
+  smart_routing: true
+  partial_fills_allowed: true
+  
+  # Commission and fees
+  commission_per_trade: 1.0
+  commission_per_share: 0.005
+  
+  # Slippage modeling
+  max_slippage_bps: 5  # 5 basis points
+  slippage_model: "linear"  # linear, sqrt, fixed
+  
+  # Paper trading settings
+  paper_trading:
+    fill_delay_ms: [50, 500]  # Random delay between 50-500ms
+    partial_fill_probability: 0.05  # 5% chance
+    rejection_probability: 0.01  # 1% rejection rate
+    realistic_execution: true
+
+# ================================
+# Portfolio Configuration
+# ================================
+portfolio:
+  # Initial settings
+  initial_cash: 100000.0
+  currency: "USD"
+  
+  # Rebalancing
+  auto_rebalance: false
+  rebalance_frequency: "monthly"
+  rebalance_threshold: 0.05  # 5% drift threshold
+  
+  # Performance tracking
+  benchmark_symbol: "SPY"
+  performance_attribution: true
+  risk_metrics_calculation: true
+  
+  # Reporting
+  daily_reports: true
+  weekly_reports: true
+  monthly_reports: true
+  performance_alerts: true
+
+# ================================
+# Technical Indicators Configuration
+# ================================
+technical_indicators:
+  # Moving averages
+  moving_averages:
+    periods: [10, 20, 50, 100, 200]
+    types: ["sma", "ema", "wma"]
+  
+  # Momentum indicators
+  momentum:
+    rsi_period: 14
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    stochastic_k: 14
+    stochastic_d: 3
+  
+  # Volatility indicators
+  volatility:
+    atr_period: 14
+    bollinger_period: 20
+    bollinger_std: 2.0
+  
+  # Volume indicators
+  volume:
+    volume_sma_period: 20
+    on_balance_volume: true
+    volume_weighted_price: true
+
+# ================================
+# Alert Configuration
+# ================================
+alerts:
+  # Risk alerts
+  daily_loss_alert: 0.02  # 2% daily loss
+  drawdown_alert: 0.10   # 10% drawdown
+  position_size_alert: 0.12  # 12% position size
+  
+  # Performance alerts
+  high_return_alert: 0.05  # 5% daily gain
+  unusual_volume_alert: 3.0  # 3x average volume
+  
+  # System alerts
+  connection_failure: true
+  data_quality_issues: true
+  order_execution_failures: true
+  
+  # Alert channels
+  channels:
+    email: true
+    discord: false
+    slack: false
+    file_log: true
+
+# ================================
+# Logging Configuration
+# ================================
+logging:
+  # Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # Log formats
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+  
+  # File logging
+  file_logging: true
+  log_file: "/app/logs/pi5_trading.log"
+  max_file_size: "10MB"
+  backup_count: 5
+  
+  # Component logging levels
+  components:
+    strategy_manager: "INFO"
+    risk_manager: "INFO"
+    order_manager: "INFO"
+    portfolio_manager: "INFO"
+    market_data: "WARNING"
+    event_bus: "WARNING"
+    database: "ERROR"
