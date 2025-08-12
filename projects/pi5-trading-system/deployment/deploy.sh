@@ -10,7 +10,7 @@ set -e
 # Configuration
 PROJECT_NAME="pi5-trading-system"
 SERVICE_NAME="pi5-trading-system"
-COMPOSE_FILE="docker-compose.yml"
+COMPOSE_FILE="deployment/docker-compose.yml"
 
 # Colors for output
 RED='\033[0;31m'
@@ -25,6 +25,11 @@ success() { echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] ✅ $1${NC}"; }
 warning() { echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] ⚠️  $1${NC}"; }
 error() { echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ❌ $1${NC}"; }
 header() { echo -e "${PURPLE}[$(date +'%Y-%m-%d %H:%M:%S')] 🚀 $1${NC}"; }
+
+# Docker compose wrapper to use correct file path
+dc() {
+    docker-compose -f "$COMPOSE_FILE" "$@"
+}
 
 # Parse command line arguments
 CLEAN_BUILD=false
@@ -142,9 +147,9 @@ stop_services() {
     fi
     
     # Stop docker containers
-    if docker-compose ps | grep -q "Up"; then
+    if dc ps | grep -q "Up"; then
         log "Stopping Docker containers..."
-        docker-compose down
+        dc down
         success "Containers stopped"
     else
         log "No running containers found"
@@ -158,11 +163,11 @@ clean_build() {
         
         # Remove containers
         log "Removing old containers..."
-        docker-compose down --remove-orphans
+        dc down --remove-orphans
         
         # Remove images
         log "Removing old images..."
-        docker-compose down --rmi all 2>/dev/null || true
+        dc down --rmi all 2>/dev/null || true
         
         # Remove unused volumes (but keep named volumes)
         log "Removing unused volumes..."
@@ -183,15 +188,15 @@ deploy_services() {
     # Build images
     log "Building Docker images..."
     if [ "$CLEAN_BUILD" = true ]; then
-        docker-compose build --no-cache
+        dc build --no-cache
     else
-        docker-compose build
+        dc build
     fi
     success "Images built successfully"
     
     # Start services
     log "Starting services..."
-    docker-compose up -d
+    dc up -d
     success "Services started"
     
     # Wait for services to be ready
@@ -200,13 +205,13 @@ deploy_services() {
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
-        if docker-compose ps | grep -q "Up (healthy)"; then
+        if dc ps | grep -q "Up (healthy)"; then
             success "Services are healthy and ready"
             break
         fi
         
         if [ $attempt -eq $max_attempts ]; then
-            warning "Services may not be fully healthy yet. Check status with: docker-compose ps"
+            warning "Services may not be fully healthy yet. Check status with: dc ps"
             break
         fi
         
@@ -266,13 +271,13 @@ verify_deployment() {
     
     # Check container status
     log "Checking container status..."
-    if docker-compose ps | grep -q "Up"; then
+    if dc ps | grep -q "Up"; then
         success "Containers are running"
         
         # Show container details
         echo ""
         echo "📦 Container Status:"
-        docker-compose ps
+        dc ps
     else
         error "Containers are not running properly"
         ((errors++))
@@ -280,7 +285,7 @@ verify_deployment() {
     
     # Check database connectivity
     log "Testing database connectivity..."
-    if docker-compose exec -T timescaledb pg_isready -U pi5trader -d pi5_trading &>/dev/null; then
+    if dc exec -T timescaledb pg_isready -U pi5trader -d pi5_trading &>/dev/null; then
         success "Database is accessible"
     else
         error "Database connection failed"
@@ -289,7 +294,7 @@ verify_deployment() {
     
     # Check Redis connectivity
     log "Testing Redis connectivity..."
-    if docker-compose exec -T redis redis-cli ping | grep -q "PONG"; then
+    if dc exec -T redis redis-cli ping | grep -q "PONG"; then
         success "Redis is accessible"
     else
         error "Redis connection failed"
@@ -335,7 +340,7 @@ show_deployment_info() {
     echo "=========================================="
     echo ""
     echo "📊 System Status:"
-    docker-compose ps
+    dc ps
     echo ""
     echo "🌐 Access Points:"
     echo "   📱 API Documentation:  http://${pi_ip}:8080/docs"
