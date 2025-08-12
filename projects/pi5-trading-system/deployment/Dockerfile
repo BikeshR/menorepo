@@ -45,4 +45,4 @@ USER pi5trader
 EXPOSE 8080
 
 # Default command - run FastAPI application directly
-CMD ["poetry", "run", "python", "-m", "trading_api.main"]
+CMD ["poetry", "run", "python", "trading_api/main.py"]
