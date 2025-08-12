@@ -158,23 +158,32 @@ install_poetry() {
     fi
 }
 
-# Create development user
-create_dev_user() {
-    header "Setting up development user..."
+# Configure current user for development
+configure_current_user() {
+    header "Configuring current user for development..."
     
-    local DEV_USER="developer"
+    # Get the user who called sudo (the actual user, not root)
+    local CURRENT_USER="${SUDO_USER:-$(logname 2>/dev/null || echo $USER)}"
     
-    if id "$DEV_USER" &>/dev/null; then
-        success "User $DEV_USER already exists"
-    else
-        log "Creating user: $DEV_USER"
-        useradd -m -s /bin/bash -G sudo,docker $DEV_USER
-        success "User $DEV_USER created"
+    if [ "$CURRENT_USER" = "root" ]; then
+        warning "Running as root user - this is not recommended for development"
+        warning "Please run this script with sudo from a regular user account"
+        return 1
     fi
     
+    log "Configuring user: $CURRENT_USER"
+    
     # Ensure user is in docker group
-    usermod -aG docker $DEV_USER
-    success "User $DEV_USER added to docker group"
+    usermod -aG docker "$CURRENT_USER"
+    success "User $CURRENT_USER added to docker group"
+    
+    # Ensure user is in sudo group (if not already)
+    if ! groups "$CURRENT_USER" | grep -q sudo; then
+        usermod -aG sudo "$CURRENT_USER"
+        log "User $CURRENT_USER added to sudo group"
+    fi
+    
+    success "User $CURRENT_USER configured for development"
 }
 
 # Configure system optimizations
@@ -337,12 +346,12 @@ show_completion_summary() {
     echo "   - Firewall configuration"
     echo ""
     echo "✅ Users & Permissions:"
-    echo "   - 'developer' user created"
+    echo "   - Current user configured for development"
     echo "   - Docker group permissions configured"
     echo ""
     echo "📋 Next Steps:"
     echo "   1. Logout and log back in (to apply group changes)"
-    echo "   2. Run: ./scripts/deploy.sh"
+    echo "   2. Run: ./deployment/deploy.sh"
     echo ""
     echo "🔧 Useful Commands:"
     echo "   - docker ps       # Docker containers"
@@ -379,7 +388,7 @@ main() {
     install_docker
     install_docker_compose
     install_poetry
-    create_dev_user
+    configure_current_user
     configure_system_optimizations
     setup_firewall
     install_dev_tools
