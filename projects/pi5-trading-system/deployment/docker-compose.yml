@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # TimescaleDB for time-series data
   timescaledb:
@@ -39,7 +37,9 @@ services:
 
   # Pi5 Trading API Application  
   trading_api:
-    build: .
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
     container_name: pi5_trading_api
     environment:
       # Database Configuration
