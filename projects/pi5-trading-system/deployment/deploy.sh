@@ -167,7 +167,7 @@ clean_build() {
         
         # Remove images
         log "Removing old images..."
-        dc down --rmi all 2>/dev/null || true
+        dc down --rmi local 2>/dev/null || true
         
         # Remove unused volumes (but keep named volumes)
         log "Removing unused volumes..."
