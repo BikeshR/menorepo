@@ -37,6 +37,15 @@ from .exceptions import (
     SystemError,
 )
 
+# Import market data components
+from .market_data import (
+    YahooFinanceProvider,
+    AlphaVantageProvider,
+    MarketDataManager,
+    TechnicalIndicators,
+    DataQualityValidator
+)
+
 __all__ = [
     # Interfaces
     "BaseEvent",
@@ -52,6 +61,13 @@ __all__ = [
     "OrderStatus",
     "Position",
     "Portfolio",
+    
+    # Market Data Components
+    "YahooFinanceProvider",
+    "AlphaVantageProvider",
+    "MarketDataManager",
+    "TechnicalIndicators",
+    "DataQualityValidator",
     
     # Exceptions
     "TradingSystemError",

@@ -54,15 +54,15 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --clean     Clean build (remove old images and rebuild)"
-            echo "  --update    Update code from git before deployment"
+            echo "  --clean     Clean build (remove old images and rebuild all services)"
+            echo "  --update    Update code from git and deploy (optimized - only restarts API)"
             echo "  --logs      Show logs after deployment"
             echo "  --help      Show this help message"
             echo ""
             echo "Examples:"
             echo "  $0                    # Standard deployment"
-            echo "  $0 --update          # Update code and deploy"
-            echo "  $0 --clean --update  # Full clean deployment with code update"
+            echo "  $0 --update          # Fast update (only rebuilds/restarts API, preserves DB/Redis)"
+            echo "  $0 --clean --update  # Full clean deployment with code update (restarts everything)"
             echo "  $0 --logs            # Deploy and show logs"
             exit 0
             ;;
@@ -146,13 +146,21 @@ stop_services() {
         sudo systemctl stop "$SERVICE_NAME"
     fi
     
-    # Stop docker containers
-    if dc ps | grep -q "Up"; then
-        log "Stopping Docker containers..."
-        dc down
-        success "Containers stopped"
+    # For update mode, only stop the API container to preserve database state
+    if [ "$UPDATE_CODE" = true ] && [ "$CLEAN_BUILD" = false ]; then
+        log "Update mode: Only stopping trading API container..."
+        dc stop trading_api
+        dc rm -f trading_api
+        success "Trading API container stopped"
     else
-        log "No running containers found"
+        # Stop all docker containers for clean builds
+        if dc ps | grep -q "Up"; then
+            log "Stopping all Docker containers..."
+            dc down
+            success "All containers stopped"
+        else
+            log "No running containers found"
+        fi
     fi
 }
 
@@ -186,38 +194,70 @@ deploy_services() {
     header "Deploying trading system..."
     
     # Build images
-    log "Building Docker images..."
-    if [ "$CLEAN_BUILD" = true ]; then
-        dc build --no-cache
+    if [ "$UPDATE_CODE" = true ] && [ "$CLEAN_BUILD" = false ]; then
+        log "Update mode: Building only trading API image..."
+        dc build trading_api
+        success "Trading API image built successfully"
+        
+        # Start only the trading API service (DB and Redis should still be running)
+        log "Starting trading API service..."
+        dc up -d trading_api
+        success "Trading API service started"
+        
+        # Quick health check for API only
+        log "Waiting for trading API to be healthy..."
+        local max_attempts=15
+        local attempt=1
+        
+        while [ $attempt -le $max_attempts ]; do
+            if dc ps trading_api | grep -q "Up (healthy)"; then
+                success "Trading API is healthy and ready"
+                break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+                warning "Trading API may not be fully healthy yet. Check status with: dc ps"
+                break
+            fi
+            
+            sleep 3
+            ((attempt++))
+        done
     else
-        dc build
+        # Full deployment for clean builds
+        log "Building Docker images..."
+        if [ "$CLEAN_BUILD" = true ]; then
+            dc build --no-cache
+        else
+            dc build
+        fi
+        success "Images built successfully"
+        
+        # Start all services
+        log "Starting all services..."
+        dc up -d
+        success "Services started"
+        
+        # Wait for all services to be ready
+        log "Waiting for all services to be healthy..."
+        local max_attempts=30
+        local attempt=1
+        
+        while [ $attempt -le $max_attempts ]; do
+            if dc ps | grep -q "Up (healthy)"; then
+                success "All services are healthy and ready"
+                break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+                warning "Services may not be fully healthy yet. Check status with: dc ps"
+                break
+            fi
+            
+            sleep 5
+            ((attempt++))
+        done
     fi
-    success "Images built successfully"
-    
-    # Start services
-    log "Starting services..."
-    dc up -d
-    success "Services started"
-    
-    # Wait for services to be ready
-    log "Waiting for services to be healthy..."
-    local max_attempts=30
-    local attempt=1
-    
-    while [ $attempt -le $max_attempts ]; do
-        if dc ps | grep -q "Up (healthy)"; then
-            success "Services are healthy and ready"
-            break
-        fi
-        
-        if [ $attempt -eq $max_attempts ]; then
-            warning "Services may not be fully healthy yet. Check status with: dc ps"
-            break
-        fi
-        
-        sleep 5
-        ((attempt++))
-    done
 }
 
 # Create and enable systemd service
