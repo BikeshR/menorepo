@@ -603,12 +603,23 @@ if os.path.exists(dashboard_build_path):
 
 
 def create_app() -> FastAPI:
-    """Factory function to create the FastAPI application."""
+    """
+    Application factory function that creates and configures the FastAPI application.
+    
+    This follows the Application Factory pattern for better modularity and testing.
+    
+    Returns:
+        FastAPI: Configured application instance
+    """
     return app
 
 
 def main():
-    """Main application entry point for standalone execution."""
+    """Entry point for standalone execution (development only)."""
+    import uvicorn
+    
+    logger.info("🚀 Starting Pi5 Trading System Web Application (Development Mode)")
+    
     # Use uvloop for better performance
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     
@@ -616,12 +627,12 @@ def main():
     uvicorn.run(
         "trading_api.web.app:app",
         host="0.0.0.0",
-        port=8080,  # Match Docker port mapping
-        reload=False,  # Set to True for development
+        port=8080,
+        reload=True,  # Development mode
         loop="uvloop",
         log_level="info",
         access_log=True,
-        workers=1  # Single worker for Pi 5
+        workers=1
     )
 
 

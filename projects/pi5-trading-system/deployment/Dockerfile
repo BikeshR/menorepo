@@ -46,5 +46,5 @@ USER pi5trader
 # Expose internal port 8080 
 EXPOSE 8080
 
-# Default command - run the integrated web application  
-CMD ["python", "trading_api/web/app.py"]
+# Default command - run main entry point (Application Factory pattern)
+CMD ["python", "trading_api/main.py"]
