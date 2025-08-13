@@ -43,7 +43,7 @@ from core.exceptions import (
     OrderExecutionError,
     InsufficientFundsError,
     OrderNotFoundError,
-    ConnectionError,
+    BrokerConnectionError,
 )
 from events.event_bus import EventBus
 from events.event_types import OrderFilledEvent, OrderStatusEvent

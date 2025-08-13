@@ -40,7 +40,6 @@ from events.event_types import (
     OrderCreatedEvent,
     OrderFilledEvent,
     OrderStatusEvent,
-    OrderRejectedEvent,
 )
 from database.connection_manager import DatabaseManager
 from .brokers.broker_manager import BrokerManager, BrokerConfig, BrokerType, FailoverStrategy

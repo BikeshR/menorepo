@@ -83,6 +83,14 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
+class TokenData(BaseModel):
+    """Token data model for JWT payload."""
+    username: Optional[str] = None
+    user_id: Optional[str] = None
+    role: Optional[UserRole] = None
+    scopes: Optional[List[str]] = None
+
+
 class UserInfo(BaseModel):
     """User information model."""
     id: str
@@ -192,7 +200,7 @@ class UpdateStrategyRequest(BaseModel):
 
 class StrategyActionRequest(BaseModel):
     """Strategy action request model."""
-    action: str = Field(..., regex="^(start|stop|pause|resume)$")
+    action: str = Field(..., pattern="^(start|stop|pause|resume)$")
     reason: Optional[str] = None
 
 
@@ -304,12 +312,12 @@ class TradeInfo(BaseModel):
 class CreateOrderRequest(BaseModel):
     """Create order request model."""
     symbol: str = Field(..., min_length=1, max_length=20)
-    side: str = Field(..., regex="^(buy|sell)$")
+    side: str = Field(..., pattern="^(buy|sell)$")
     order_type: OrderType
     quantity: Decimal = Field(..., gt=0)
     price: Optional[Decimal] = Field(None, gt=0)
     stop_price: Optional[Decimal] = Field(None, gt=0)
-    time_in_force: str = Field("GTC", regex="^(GTC|IOC|FOK|DAY)$")
+    time_in_force: str = Field("GTC", pattern="^(GTC|IOC|FOK|DAY)$")
     strategy_id: Optional[str] = None
 
 

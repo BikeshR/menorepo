@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Tuple
 
 import asyncpg
 import pandas as pd
+from typing import TYPE_CHECKING
 
 from core.exceptions import (
     DataQualityError,
@@ -26,7 +27,9 @@ from core.exceptions import (
     DatabaseError,
 )
 from database.repositories.base import BaseRepository
-from database.connection_manager import DatabaseManager
+
+if TYPE_CHECKING:
+    from database.connection_manager import DatabaseManager
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +43,7 @@ class MarketDataRepository(BaseRepository):
     with TimescaleDB optimization for efficient time-series queries.
     """
     
-    def __init__(self, db_manager: DatabaseManager):
+    def __init__(self, db_manager: "DatabaseManager"):
         """Initialize market data repository."""
         super().__init__(db_manager, "market_data")
     

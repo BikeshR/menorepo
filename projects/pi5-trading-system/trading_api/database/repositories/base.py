@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import asyncpg
+from typing import TYPE_CHECKING
 
 from core.exceptions import (
     DatabaseError,
@@ -26,7 +27,9 @@ from core.exceptions import (
     OrderNotFoundError,
     StrategyNotFoundError,
 )
-from database.connection_manager import DatabaseManager
+
+if TYPE_CHECKING:
+    from database.connection_manager import DatabaseManager
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +45,7 @@ class BaseRepository(ABC):
     with consistent error handling and connection management.
     """
     
-    def __init__(self, db_manager: DatabaseManager, table_name: str):
+    def __init__(self, db_manager: "DatabaseManager", table_name: str):
         """
         Initialize base repository.
         
