@@ -1,4 +1,14 @@
 # Pi5 Trading System - ARM64 Dockerfile
+FROM node:18-alpine AS dashboard-builder
+
+# Build React Dashboard
+WORKDIR /app/dashboard
+COPY dashboard/package*.json ./
+RUN npm ci
+COPY dashboard/ ./
+RUN npm run build
+
+# Main Python Application
 FROM python:3.11-slim
 
 # Set environment variables
@@ -25,12 +35,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY trading_api/ ./trading_api/
 
+# Copy built dashboard from builder stage
+COPY --from=dashboard-builder /app/dashboard/build ./dashboard/build
+
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash pi5trader
 RUN chown -R pi5trader:pi5trader /app
 USER pi5trader
 
-# Expose port for web interface (API + Dashboard)
+# Expose port for unified web interface (API + Dashboard)
 EXPOSE 8080
 
 # Default command - run FastAPI application directly

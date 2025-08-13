@@ -189,9 +189,49 @@ clean_build() {
     fi
 }
 
+# Build React Dashboard
+build_dashboard() {
+    header "Building React Dashboard for production..."
+    
+    local dashboard_dir="dashboard"
+    
+    # Check if dashboard directory exists
+    if [ ! -d "$dashboard_dir" ]; then
+        warning "Dashboard directory not found, skipping dashboard build"
+        return 0
+    fi
+    
+    log "Installing dashboard dependencies..."
+    cd "$dashboard_dir"
+    npm ci
+    
+    log "Building dashboard for production..."
+    npm run build
+    
+    # Verify build exists
+    if [ -d "build" ]; then
+        success "Dashboard build completed successfully"
+        log "Build files: $(find build -type f | wc -l) files created"
+    else
+        error "Dashboard build failed - build directory not found"
+        exit 1
+    fi
+    
+    # Return to project root
+    cd ..
+    success "Dashboard ready for deployment"
+}
+
 # Build and start services
 deploy_services() {
     header "Deploying trading system..."
+    
+    # Build dashboard first (only if dashboard directory exists)
+    if [ -d "dashboard" ]; then
+        build_dashboard
+    else
+        warning "No dashboard directory found, skipping dashboard build"
+    fi
     
     # Build images
     if [ "$UPDATE_CODE" = true ] && [ "$CLEAN_BUILD" = false ]; then
@@ -383,6 +423,7 @@ show_deployment_info() {
     dc ps
     echo ""
     echo "🌐 Access Points:"
+    echo "   🎯 Trading Dashboard:  http://${pi_ip}:8080/"
     echo "   📱 API Documentation:  http://${pi_ip}:8080/docs"
     echo "   🔍 Alternative Docs:   http://${pi_ip}:8080/redoc"
     echo "   💹 Health Check:      http://${pi_ip}:8080/health"
