@@ -29,7 +29,7 @@ from core.exceptions import (
     AuthenticationError,
     OrderValidationError,
     RiskManagementError,
-    DataValidationError,
+    ValidationError,
     BrokerError,
     PortfolioError
 )
@@ -139,7 +139,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 message="Portfolio operation failed"
             )
         
-        elif isinstance(error, DataValidationError):
+        elif isinstance(error, ValidationError):
             response = self._create_error_response(
                 error=error,
                 status_code=HTTP_422_UNPROCESSABLE_ENTITY,

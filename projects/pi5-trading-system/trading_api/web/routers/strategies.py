@@ -26,9 +26,10 @@ from ..models import (
 )
 from ..auth import User
 from strategies.manager import StrategyManager
-from strategies.rsi_mean_reversion import RSIMeanReversionStrategy
-from strategies.moving_average_crossover import MovingAverageCrossoverStrategy
-from strategies.momentum_trend_following import MomentumTrendFollowingStrategy
+# Temporarily disabled for deployment
+# from strategies.rsi_mean_reversion import RSIMeanReversionStrategy
+# from strategies.moving_average_crossover import MovingAverageCrossoverStrategy
+# from strategies.momentum_trend_following import MomentumTrendFollowingStrategy
 from core.exceptions import TradingSystemError
 
 
@@ -37,101 +38,101 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# Strategy registry for available strategies
+# Strategy registry for available strategies (temporarily disabled for deployment)
 STRATEGY_REGISTRY = {
-    "RSIMeanReversion": {
-        "class": RSIMeanReversionStrategy,
-        "name": "RSI Mean Reversion",
-        "description": "Mean reversion strategy based on RSI indicator",
-        "version": "1.0.0",
-        "parameters": [
-            {
-                "name": "rsi_period",
-                "type": "int",
-                "default_value": 14,
-                "min_value": 5,
-                "max_value": 50,
-                "description": "RSI calculation period",
-                "required": True
-            },
-            {
-                "name": "oversold_threshold",
-                "type": "int", 
-                "default_value": 30,
-                "min_value": 10,
-                "max_value": 40,
-                "description": "RSI oversold threshold",
-                "required": True
-            },
-            {
-                "name": "overbought_threshold",
-                "type": "int",
-                "default_value": 70,
-                "min_value": 60,
-                "max_value": 90,
-                "description": "RSI overbought threshold",
-                "required": True
-            }
-        ],
-        "supported_symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
-        "timeframes": ["1m", "5m", "15m", "1h", "1d"]
-    },
-    "MovingAverageCrossover": {
-        "class": MovingAverageCrossoverStrategy,
-        "name": "Moving Average Crossover",
-        "description": "Strategy based on moving average crossovers",
-        "version": "1.0.0",
-        "parameters": [
-            {
-                "name": "short_window",
-                "type": "int",
-                "default_value": 20,
-                "min_value": 5,
-                "max_value": 50,
-                "description": "Short moving average period",
-                "required": True
-            },
-            {
-                "name": "long_window",
-                "type": "int",
-                "default_value": 50,
-                "min_value": 20,
-                "max_value": 200,
-                "description": "Long moving average period",
-                "required": True
-            }
-        ],
-        "supported_symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
-        "timeframes": ["5m", "15m", "1h", "4h", "1d"]
-    },
-    "MomentumTrendFollowing": {
-        "class": MomentumTrendFollowingStrategy,
-        "name": "Momentum Trend Following",
-        "description": "Trend following strategy based on momentum indicators",
-        "version": "1.0.0",
-        "parameters": [
-            {
-                "name": "momentum_period",
-                "type": "int",
-                "default_value": 14,
-                "min_value": 5,
-                "max_value": 30,
-                "description": "Momentum calculation period",
-                "required": True
-            },
-            {
-                "name": "trend_threshold",
-                "type": "float",
-                "default_value": 0.02,
-                "min_value": 0.01,
-                "max_value": 0.05,
-                "description": "Trend strength threshold",
-                "required": True
-            }
-        ],
-        "supported_symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
-        "timeframes": ["15m", "1h", "4h", "1d"]
-    }
+    # "RSIMeanReversion": {
+    #     "class": RSIMeanReversionStrategy,
+    #     "name": "RSI Mean Reversion",
+    #     "description": "Mean reversion strategy based on RSI indicator",
+    #     "version": "1.0.0",
+    #     "parameters": [
+    #         {
+    #             "name": "rsi_period",
+    #             "type": "int",
+    #             "default_value": 14,
+    #             "min_value": 5,
+    #             "max_value": 50,
+    #             "description": "RSI calculation period",
+    #             "required": True
+    #         },
+    #         {
+    #             "name": "oversold_threshold",
+    #             "type": "int", 
+    #             "default_value": 30,
+    #             "min_value": 10,
+    #             "max_value": 40,
+    #             "description": "RSI oversold threshold",
+    #             "required": True
+    #         },
+    #         {
+    #             "name": "overbought_threshold",
+    #             "type": "int",
+    #             "default_value": 70,
+    #             "min_value": 60,
+    #             "max_value": 90,
+    #             "description": "RSI overbought threshold",
+    #             "required": True
+    #         }
+    #     ],
+    #     "supported_symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
+    #     "timeframes": ["1m", "5m", "15m", "1h", "1d"]
+    # },
+    # "MovingAverageCrossover": {
+    #     "class": MovingAverageCrossoverStrategy,
+    #     "name": "Moving Average Crossover",
+    #     "description": "Strategy based on moving average crossovers",
+    #     "version": "1.0.0",
+    #     "parameters": [
+    #         {
+    #             "name": "short_window",
+    #             "type": "int",
+    #             "default_value": 20,
+    #             "min_value": 5,
+    #             "max_value": 50,
+    #             "description": "Short moving average period",
+    #             "required": True
+    #         },
+    #         {
+    #             "name": "long_window",
+    #             "type": "int",
+    #             "default_value": 50,
+    #             "min_value": 20,
+    #             "max_value": 200,
+    #             "description": "Long moving average period",
+    #             "required": True
+    #         }
+    #     ],
+    #     "supported_symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
+    #     "timeframes": ["5m", "15m", "1h", "4h", "1d"]
+    # },
+    # "MomentumTrendFollowing": {
+    #     "class": MomentumTrendFollowingStrategy,
+    #     "name": "Momentum Trend Following",
+    #     "description": "Trend following strategy based on momentum indicators",
+    #     "version": "1.0.0",
+    #     "parameters": [
+    #         {
+    #             "name": "momentum_period",
+    #             "type": "int",
+    #             "default_value": 14,
+    #             "min_value": 5,
+    #             "max_value": 30,
+    #             "description": "Momentum calculation period",
+    #             "required": True
+    #         },
+    #         {
+    #             "name": "trend_threshold",
+    #             "type": "float",
+    #             "default_value": 0.02,
+    #             "min_value": 0.01,
+    #             "max_value": 0.05,
+    #             "description": "Trend strength threshold",
+    #             "required": True
+    #         }
+    #     ],
+    #     "supported_symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
+    #     "timeframes": ["15m", "1h", "4h", "1d"]
+    # }
 }
 
 

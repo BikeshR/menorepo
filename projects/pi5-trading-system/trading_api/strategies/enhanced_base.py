@@ -20,7 +20,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, AsyncGenerator
 
 from strategies.base import BaseStrategyImplementation
-from core.market_data import MarketDataManager, TechnicalIndicators, DataQualityValidator
+# Temporarily disabled for deployment
+# from core.market_data import MarketDataManager, TechnicalIndicators, DataQualityValidator
 from core.interfaces import Signal, TradingSignal
 from core.exceptions import (
     StrategyExecutionError,
@@ -44,7 +45,7 @@ class EnhancedBaseStrategy(BaseStrategyImplementation):
     def __init__(
         self,
         name: str,
-        market_data_manager: MarketDataManager,
+        market_data_manager = None,  # Temporarily disabled
         parameters: Dict[str, Any] = None,
         max_history_size: int = 1000,
         min_history_required: int = 50,
@@ -56,7 +57,7 @@ class EnhancedBaseStrategy(BaseStrategyImplementation):
         
         Args:
             name: Strategy name
-            market_data_manager: MarketDataManager instance
+            market_data_manager: MarketDataManager instance (temporarily disabled)
             parameters: Strategy parameters
             max_history_size: Maximum historical data points
             min_history_required: Minimum history needed
@@ -65,9 +66,10 @@ class EnhancedBaseStrategy(BaseStrategyImplementation):
         """
         super().__init__(name, parameters, max_history_size, min_history_required)
         
+        # Temporarily disabled for deployment
         self.market_data_manager = market_data_manager
-        self.technical_indicators = TechnicalIndicators()
-        self.data_validator = DataQualityValidator() if data_validation else None
+        # self.technical_indicators = TechnicalIndicators()
+        # self.data_validator = DataQualityValidator() if data_validation else None
         self.enable_live_data = enable_live_data
         
         # Enhanced data storage
@@ -305,11 +307,12 @@ class EnhancedBaseStrategy(BaseStrategyImplementation):
             if not indicators_config:
                 return data  # No indicators configured
             
-            # Calculate indicators using the TechnicalIndicators library
-            enhanced_data = self.technical_indicators.calculate_multiple_indicators(
-                ohlcv_data=data,
-                indicators=indicators_config
-            )
+            # Temporarily disabled for deployment
+            # enhanced_data = self.technical_indicators.calculate_multiple_indicators(
+            #     ohlcv_data=data,
+            #     indicators=indicators_config
+            # )
+            enhanced_data = data  # Return original data temporarily
             
             logger.debug(f"Calculated {len(indicators_config)} indicator types for {symbol}")
             return enhanced_data

@@ -8,6 +8,7 @@ the trading system components for maximum efficiency.
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, Any, Optional
@@ -75,7 +76,7 @@ async def lifespan(app: FastAPI):
         # Initialize database manager
         db_manager = DatabaseManager(
             database_url=config.database_url,
-            pool_size=config.db_pool_size
+            max_connections=config.db_pool_size
         )
         await db_manager.initialize()
         app_state['db_manager'] = db_manager
