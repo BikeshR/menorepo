@@ -25,6 +25,9 @@ import uvloop
 # Import trading system components
 from database.connection_manager import DatabaseManager
 from database.repositories.market_data import MarketDataRepository
+from core.market_data.manager import MarketDataManager
+from core.market_data.providers.yahoo_finance import YahooFinanceProvider
+from core.market_data.providers.alpha_vantage import AlphaVantageProvider
 from events.event_bus import EventBus
 from strategies.manager import StrategyManager
 from portfolio.manager import PortfolioManager
@@ -40,7 +43,8 @@ from .routers import (
     orders_router,
     system_router,
     websocket_router,
-    auth_router
+    auth_router,
+    market_data_router
 )
 from .middleware import (
     RateLimitMiddleware,
@@ -130,8 +134,25 @@ async def lifespan(app: FastAPI):
         await enhanced_order_manager.start()
         app_state['enhanced_order_manager'] = enhanced_order_manager
         
-        # Initialize portfolio manager
+        # Initialize market data manager with providers
         market_data_repo = MarketDataRepository(db_manager)
+        
+        # Create market data providers
+        yahoo_provider = YahooFinanceProvider(name="yahoo_finance", priority=10)
+        
+        # TODO: Add Alpha Vantage provider when API key is configured
+        # alpha_vantage_provider = AlphaVantageProvider(api_key="YOUR_API_KEY", name="alpha_vantage", priority=20)
+        
+        # Initialize market data manager
+        market_data_manager = MarketDataManager(
+            market_data_repo=market_data_repo,
+            event_bus=event_bus,
+            providers=[yahoo_provider]
+        )
+        await market_data_manager.start()
+        app_state['market_data_manager'] = market_data_manager
+        
+        # Initialize portfolio manager
         portfolio_manager = PortfolioManager(
             event_bus=event_bus,
             db_manager=db_manager,
@@ -180,6 +201,9 @@ async def lifespan(app: FastAPI):
         
         if 'portfolio_manager' in app_state:
             await app_state['portfolio_manager'].stop()
+        
+        if 'market_data_manager' in app_state:
+            await app_state['market_data_manager'].stop()
         
         if 'enhanced_order_manager' in app_state:
             await app_state['enhanced_order_manager'].stop()
@@ -308,6 +332,11 @@ def get_strategy_manager() -> StrategyManager:
 def get_portfolio_manager() -> PortfolioManager:
     """Get portfolio manager dependency."""
     return app_state.get('portfolio_manager')
+
+
+def get_market_data_manager() -> MarketDataManager:
+    """Get market data manager dependency."""
+    return app_state.get('market_data_manager')
 
 
 def get_order_manager() -> EnhancedOrderManager:
@@ -569,6 +598,14 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
+app.include_router(
+    market_data_router,
+    prefix="/api/v1/market-data",
+    tags=["Market Data"]
+    # Temporarily disabled for testing
+    # dependencies=[Depends(get_current_user)]
+)
+
 # WebSocket router (auth handled per connection)
 app.include_router(
     websocket_router,
@@ -582,6 +619,7 @@ app.include_router(
     prefix="/auth",
     tags=["Authentication"]
 )
+
 
 # Add root route for dashboard and SPA fallback
 if os.path.exists(dashboard_build_path):

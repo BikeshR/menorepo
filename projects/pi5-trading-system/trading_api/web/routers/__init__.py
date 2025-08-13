@@ -11,6 +11,7 @@ from .orders import router as orders_router
 from .system import router as system_router
 from .websocket import router as websocket_router
 from .auth import router as auth_router
+from .market_data import router as market_data_router
 
 __all__ = [
     "strategies_router",
@@ -18,5 +19,6 @@ __all__ = [
     "orders_router",
     "system_router",
     "websocket_router",
-    "auth_router"
+    "auth_router",
+    "market_data_router"
 ]
