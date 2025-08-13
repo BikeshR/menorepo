@@ -10,7 +10,15 @@ set -e
 # Configuration
 PROJECT_NAME="pi5-trading-system"
 SERVICE_NAME="pi5-trading-system"
-COMPOSE_FILE="docker-compose.yml"
+
+# Determine compose file location based on current directory
+if [ -f "docker-compose.yml" ]; then
+    COMPOSE_FILE="docker-compose.yml"
+elif [ -f "deployment/docker-compose.yml" ]; then
+    COMPOSE_FILE="deployment/docker-compose.yml"
+else
+    COMPOSE_FILE="docker-compose.yml"  # fallback
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -26,9 +34,15 @@ warning() { echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] ⚠️  $1${NC}"; }
 error() { echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ❌ $1${NC}"; }
 header() { echo -e "${PURPLE}[$(date +'%Y-%m-%d %H:%M:%S')] 🚀 $1${NC}"; }
 
-# Docker compose wrapper to use correct file path
+# Docker compose wrapper to use correct file path and working directory
 dc() {
-    docker compose -f "$COMPOSE_FILE" "$@"
+    if [[ "$COMPOSE_FILE" == "deployment/docker-compose.yml" ]]; then
+        # Running from project root, change to deployment directory
+        (cd deployment && docker compose -f "docker-compose.yml" "$@")
+    else
+        # Running from deployment directory
+        docker compose -f "$COMPOSE_FILE" "$@"
+    fi
 }
 
 # Parse command line arguments
@@ -80,7 +94,9 @@ check_requirements() {
     
     # Check if we're in the right directory
     if [ ! -f "$COMPOSE_FILE" ]; then
-        error "docker-compose.yml not found. Make sure you're in the project root directory."
+        error "docker-compose.yml not found. Run from project root or deployment/ directory."
+        error "Current directory: $(pwd)"
+        error "Looking for: $COMPOSE_FILE"
         exit 1
     fi
     
