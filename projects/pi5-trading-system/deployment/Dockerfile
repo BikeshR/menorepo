@@ -43,8 +43,8 @@ RUN useradd --create-home --shell /bin/bash pi5trader
 RUN chown -R pi5trader:pi5trader /app
 USER pi5trader
 
-# Expose internal port (mapped to 8080 externally via Docker)
-EXPOSE 8000
+# Expose internal port 8080 
+EXPOSE 8080
 
 # Default command - run FastAPI application directly
 CMD ["python", "trading_api/main.py"]

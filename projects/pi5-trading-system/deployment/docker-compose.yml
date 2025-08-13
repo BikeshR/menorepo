@@ -73,7 +73,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "8080:8000"  # Map external 8080 to internal 8000
+      - "8080:8080"  # Map external 8080 to internal 8080
     volumes:
       - ./logs:/app/logs
       - ./config:/app/config
