@@ -86,51 +86,67 @@ class DatabaseManager:
         }
     
     async def initialize(self) -> None:
-        """Initialize database connection pool."""
-        try:
-            logger.info("Initializing database connection pool...")
-            
-            # Validate database URL
-            if not self.database_url:
-                raise ConfigurationError("Database URL not configured")
-            
-            # Create connection pool
-            self._pool = await asyncpg.create_pool(
-                self.database_url,
-                min_size=self.min_connections,
-                max_size=self.max_connections,
-                max_queries=self.max_queries,
-                max_inactive_connection_lifetime=self.max_inactive_connection_lifetime,
-                timeout=self.timeout,
-                command_timeout=self.timeout,
-                server_settings={
-                    'application_name': 'pi5_trading_system',
-                    'timezone': 'UTC',
-                }
-            )
-            
-            self._is_connected = True
-            self._connection_attempts = 0
-            self._last_health_check = datetime.utcnow()
-            self._stats['total_connections'] += 1
-            
-            # Verify TimescaleDB extension
-            await self._verify_timescaledb()
-            
-            logger.info(
-                f"Database connection pool initialized "
-                f"({self.min_connections}-{self.max_connections} connections)"
-            )
-            
-        except Exception as e:
-            self._is_connected = False
-            self._stats['failed_connections'] += 1
-            self._stats['last_error'] = str(e)
-            logger.error(f"Failed to initialize database connection: {e}")
-            raise DatabaseConnectionError(
-                f"Failed to initialize database connection: {e}",
-                context={'database_url': self.database_url}
-            ) from e
+        """Initialize database connection pool with retry logic."""
+        last_error = None
+        
+        for attempt in range(self.retry_attempts):
+            try:
+                if attempt > 0:
+                    wait_time = self.retry_delay * (2 ** (attempt - 1))  # Exponential backoff
+                    logger.info(f"Database connection attempt {attempt + 1}/{self.retry_attempts} (waiting {wait_time}s)")
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.info("Initializing database connection pool...")
+                
+                # Validate database URL
+                if not self.database_url:
+                    raise ConfigurationError("Database URL not configured")
+                
+                # Create connection pool
+                self._pool = await asyncpg.create_pool(
+                    self.database_url,
+                    min_size=self.min_connections,
+                    max_size=self.max_connections,
+                    max_queries=self.max_queries,
+                    max_inactive_connection_lifetime=self.max_inactive_connection_lifetime,
+                    timeout=self.timeout,
+                    command_timeout=self.timeout,
+                    server_settings={
+                        'application_name': 'pi5_trading_system',
+                        'timezone': 'UTC',
+                    }
+                )
+                
+                self._is_connected = True
+                self._connection_attempts = 0
+                self._last_health_check = datetime.utcnow()
+                self._stats['total_connections'] += 1
+                
+                # Verify TimescaleDB extension
+                await self._verify_timescaledb()
+                
+                logger.info(
+                    f"Database connection pool initialized "
+                    f"({self.min_connections}-{self.max_connections} connections)"
+                )
+                return  # Success - exit retry loop
+                
+            except Exception as e:
+                last_error = e
+                self._stats['failed_connections'] += 1
+                self._stats['last_error'] = str(e)
+                logger.warning(f"Database connection attempt {attempt + 1} failed: {e}")
+                
+                if attempt < self.retry_attempts - 1:
+                    continue  # Try again
+        
+        # All attempts failed
+        self._is_connected = False
+        logger.error(f"Failed to initialize database connection after {self.retry_attempts} attempts")
+        raise DatabaseConnectionError(
+            f"Failed to initialize database connection after {self.retry_attempts} attempts: {last_error}",
+            context={'database_url': self.database_url, 'attempts': self.retry_attempts}
+        ) from last_error
     
     async def close(self) -> None:
         """Close database connection pool."""

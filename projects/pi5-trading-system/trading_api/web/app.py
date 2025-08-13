@@ -73,10 +73,12 @@ async def lifespan(app: FastAPI):
         config = WebConfig()
         app_state['config'] = config
         
-        # Initialize database manager
+        # Initialize database manager with retry logic for startup
         db_manager = DatabaseManager(
             database_url=config.database_url,
-            max_connections=config.db_pool_size
+            max_connections=config.db_pool_size,
+            retry_attempts=5,
+            retry_delay=2.0
         )
         await db_manager.initialize()
         app_state['db_manager'] = db_manager
