@@ -30,12 +30,10 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.5.1",
     "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.59",
+    "@types/node": "^18.19.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.1.1",
-    "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.16",
     "jsdom": "^23.0.1",
     "postcss": "^8.4.31",
@@ -46,8 +44,6 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

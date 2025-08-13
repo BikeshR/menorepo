@@ -203,7 +203,7 @@ build_dashboard() {
     
     log "Installing dashboard dependencies..."
     cd "$dashboard_dir"
-    npm install --legacy-peer-deps
+    npm ci
     
     log "Building dashboard for production..."
     npm run build

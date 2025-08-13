@@ -4,7 +4,7 @@ FROM node:18-alpine AS dashboard-builder
 # Build React Dashboard
 WORKDIR /app/dashboard
 COPY dashboard/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci
 COPY dashboard/ ./
 RUN npm run build
 
