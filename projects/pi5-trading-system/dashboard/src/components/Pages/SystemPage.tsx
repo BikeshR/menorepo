@@ -500,7 +500,7 @@ const SystemPage: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="text-gray-900">{event.message}</div>
                 <div className="text-gray-500 text-xs mt-1">
-                  {new Date(event.timestamp).toLocaleString()}
+                  {event.timestamp ? new Date(event.timestamp).toLocaleString() : 'N/A'}
                 </div>
               </div>
             </div>

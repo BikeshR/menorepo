@@ -37,14 +37,13 @@ from .exceptions import (
     SystemError,
 )
 
-# Import market data components (temporarily disabled for deployment)
-# from .market_data import (
-#     YahooFinanceProvider,
-#     AlphaVantageProvider,
-#     MarketDataManager,
-#     TechnicalIndicators,
-#     DataQualityValidator
-# )
+from .market_data import (
+    YahooFinanceProvider,
+    AlphaVantageProvider,
+    MarketDataManager,
+    TechnicalIndicators,
+    DataQualityValidator
+)
 
 __all__ = [
     # Interfaces
@@ -62,12 +61,12 @@ __all__ = [
     "Position",
     "Portfolio",
     
-    # Market Data Components (temporarily disabled for deployment)
-    # "YahooFinanceProvider",
-    # "AlphaVantageProvider", 
-    # "MarketDataManager",
-    # "TechnicalIndicators",
-    # "DataQualityValidator",
+    # Market Data Components
+    "YahooFinanceProvider",
+    "AlphaVantageProvider", 
+    "MarketDataManager",
+    "TechnicalIndicators",
+    "DataQualityValidator",
     
     # Exceptions
     "TradingSystemError",

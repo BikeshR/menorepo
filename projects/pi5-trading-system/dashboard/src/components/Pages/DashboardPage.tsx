@@ -244,7 +244,7 @@ const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Portfolio Value"
-          value={portfolioSummary ? `$${portfolioSummary.total_value.toLocaleString()}` : 'Loading...'}
+          value={portfolioSummary?.total_value ? `$${Number(portfolioSummary.total_value).toLocaleString()}` : 'Loading...'}
           change={portfolioSummary?.daily_pnl_percent}
           icon={CurrencyDollarIcon}
           color={portfolioSummary && portfolioSummary.daily_pnl >= 0 ? 'green' : 'red'}
@@ -252,7 +252,7 @@ const DashboardPage: React.FC = () => {
         
         <StatCard
           title="Today's P&L"
-          value={portfolioSummary ? `$${portfolioSummary.daily_pnl.toLocaleString()}` : 'Loading...'}
+          value={portfolioSummary?.daily_pnl !== undefined ? `$${Number(portfolioSummary.daily_pnl).toLocaleString()}` : 'Loading...'}
           change={portfolioSummary?.daily_pnl_percent}
           icon={portfolioSummary && portfolioSummary.daily_pnl >= 0 ? ArrowTrendingUpIcon : ArrowTrendingDownIcon}
           color={portfolioSummary && portfolioSummary.daily_pnl >= 0 ? 'green' : 'red'}

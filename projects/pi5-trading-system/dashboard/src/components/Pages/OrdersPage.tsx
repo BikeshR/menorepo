@@ -64,13 +64,13 @@ const OrderRow: React.FC<OrderRowProps> = ({ order, onCancel }) => {
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {order.quantity.toLocaleString()}
+        {order.quantity ? Number(order.quantity).toLocaleString() : '0'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         {order.order_type}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${order.price?.toFixed(2) || 'Market'}
+        ${order.price ? Number(order.price).toFixed(2) : 'Market'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         {order.filled_quantity?.toLocaleString() || 0}
@@ -113,16 +113,16 @@ const TradeRow: React.FC<TradeRowProps> = ({ trade }) => {
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {trade.quantity.toLocaleString()}
+        {trade.quantity ? Number(trade.quantity).toLocaleString() : '0'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${trade.price.toFixed(2)}
+        ${trade.price ? Number(trade.price).toFixed(2) : '0.00'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${(trade.quantity * trade.price).toLocaleString()}
+        ${(trade.quantity && trade.price) ? Number(trade.quantity * trade.price).toLocaleString() : '0'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {new Date(trade.executed_at).toLocaleString()}
+        {trade.executed_at ? new Date(trade.executed_at).toLocaleString() : 'N/A'}
       </td>
     </tr>
   );

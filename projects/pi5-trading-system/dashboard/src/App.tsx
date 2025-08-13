@@ -13,6 +13,7 @@ import PortfolioPage from './components/Pages/PortfolioPage';
 import StrategiesPage from './components/Pages/StrategiesPage';
 import OrdersPage from './components/Pages/OrdersPage';
 import SystemPage from './components/Pages/SystemPage';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -101,11 +102,11 @@ function App() {
             <ProtectedRoute>
               <DashboardLayout>
                 <Routes>
-                  <Route index element={<DashboardPage />} />
-                  <Route path="portfolio" element={<PortfolioPage />} />
-                  <Route path="strategies" element={<StrategiesPage />} />
-                  <Route path="orders" element={<OrdersPage />} />
-                  <Route path="system" element={<SystemPage />} />
+                  <Route index element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+                  <Route path="portfolio" element={<ErrorBoundary><PortfolioPage /></ErrorBoundary>} />
+                  <Route path="strategies" element={<ErrorBoundary><StrategiesPage /></ErrorBoundary>} />
+                  <Route path="orders" element={<ErrorBoundary><OrdersPage /></ErrorBoundary>} />
+                  <Route path="system" element={<ErrorBoundary><SystemPage /></ErrorBoundary>} />
                   
                   {/* Catch all route */}
                   <Route path="*" element={<Navigate to="/" replace />} />

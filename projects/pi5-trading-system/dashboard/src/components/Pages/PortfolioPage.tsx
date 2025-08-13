@@ -40,8 +40,9 @@ interface PositionCardProps {
 }
 
 const PositionCard: React.FC<PositionCardProps> = ({ position }) => {
-  const isPositive = position.unrealized_pnl >= 0;
-  const pnlPercent = ((position.unrealized_pnl / (position.avg_price * position.quantity)) * 100);
+  const isPositive = Number(position.unrealized_pnl || 0) >= 0;
+  const costBasis = (position.avg_price && position.quantity) ? Number(position.avg_price) * Number(position.quantity) : 0;
+  const pnlPercent = (position.unrealized_pnl && costBasis > 0) ? ((Number(position.unrealized_pnl) / costBasis) * 100) : 0;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
@@ -52,10 +53,10 @@ const PositionCard: React.FC<PositionCardProps> = ({ position }) => {
         </div>
         <div className="text-right">
           <div className={`text-sm font-medium ${isPositive ? 'text-success-600' : 'text-danger-600'}`}>
-            ${position.unrealized_pnl.toLocaleString()}
+            ${position.unrealized_pnl ? Number(position.unrealized_pnl).toLocaleString() : '0'}
           </div>
           <div className={`text-xs ${isPositive ? 'text-success-500' : 'text-danger-500'}`}>
-            {isPositive ? '▲' : '▼'} {Math.abs(pnlPercent).toFixed(2)}%
+            {isPositive ? '▲' : '▼'} {pnlPercent ? Math.abs(pnlPercent).toFixed(2) : '0.00'}%
           </div>
         </div>
       </div>
@@ -63,19 +64,19 @@ const PositionCard: React.FC<PositionCardProps> = ({ position }) => {
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <span className="text-gray-500">Avg Price:</span>
-          <div className="font-medium">${position.avg_price.toFixed(2)}</div>
+          <div className="font-medium">${position.avg_price ? Number(position.avg_price).toFixed(2) : '0.00'}</div>
         </div>
         <div>
           <span className="text-gray-500">Current:</span>
-          <div className="font-medium">${position.current_price.toFixed(2)}</div>
+          <div className="font-medium">${position.current_price ? Number(position.current_price).toFixed(2) : '0.00'}</div>
         </div>
         <div>
           <span className="text-gray-500">Market Value:</span>
-          <div className="font-medium">${position.market_value.toLocaleString()}</div>
+          <div className="font-medium">${position.market_value ? Number(position.market_value).toLocaleString() : '0'}</div>
         </div>
         <div>
           <span className="text-gray-500">Cost Basis:</span>
-          <div className="font-medium">${(position.avg_price * position.quantity).toLocaleString()}</div>
+          <div className="font-medium">${(position.avg_price && position.quantity) ? Number(position.avg_price * position.quantity).toLocaleString() : '0'}</div>
         </div>
       </div>
 
@@ -236,7 +237,7 @@ const PortfolioPage: React.FC = () => {
             <div className="ml-4">
               <div className="text-sm text-gray-500">Total Value</div>
               <div className="text-2xl font-bold text-gray-900">
-                ${summary?.total_value.toLocaleString() || '0'}
+                ${summary?.total_value ? Number(summary.total_value).toLocaleString() : '0'}
               </div>
             </div>
           </div>
@@ -257,7 +258,7 @@ const PortfolioPage: React.FC = () => {
               <div className={`text-2xl font-bold ${
                 summary && summary.daily_pnl >= 0 ? 'text-success-600' : 'text-danger-600'
               }`}>
-                ${summary?.daily_pnl.toLocaleString() || '0'}
+                ${summary?.daily_pnl !== undefined ? Number(summary.daily_pnl).toLocaleString() : '0'}
               </div>
             </div>
           </div>
@@ -281,7 +282,7 @@ const PortfolioPage: React.FC = () => {
             <div className="ml-4">
               <div className="text-sm text-gray-500">Cash</div>
               <div className="text-2xl font-bold text-gray-900">
-                ${summary?.cash_balance.toLocaleString() || '0'}
+                ${summary?.cash_balance ? Number(summary.cash_balance).toLocaleString() : '0'}
               </div>
             </div>
           </div>
@@ -355,7 +356,7 @@ const PortfolioPage: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900">
-                {(performance.total_return * 100).toFixed(2)}%
+                {performance.total_return ? (performance.total_return * 100).toFixed(2) : '0.00'}%
               </div>
               <div className="text-sm text-gray-500">Total Return</div>
             </div>
@@ -369,14 +370,14 @@ const PortfolioPage: React.FC = () => {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900">
-                {performance.volatility ? (performance.volatility * 100).toFixed(2) + '%' : 'N/A'}
+                {(performance.volatility && !isNaN(performance.volatility)) ? (performance.volatility * 100).toFixed(2) + '%' : 'N/A'}
               </div>
               <div className="text-sm text-gray-500">Volatility</div>
             </div>
 
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900">
-                {performance.max_drawdown ? (performance.max_drawdown * 100).toFixed(2) + '%' : 'N/A'}
+                {(performance.max_drawdown && !isNaN(performance.max_drawdown)) ? (performance.max_drawdown * 100).toFixed(2) + '%' : 'N/A'}
               </div>
               <div className="text-sm text-gray-500">Max Drawdown</div>
             </div>

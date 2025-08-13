@@ -134,14 +134,14 @@ const StrategyCard: React.FC<StrategyCardProps> = ({
         </div>
         <div>
           <span className="text-gray-500">Allocation:</span>
-          <div className="font-medium">${strategy.allocation?.toLocaleString() || '0'}</div>
+          <div className="font-medium">${strategy.allocation ? Number(strategy.allocation).toLocaleString() : '0'}</div>
         </div>
         <div>
           <span className="text-gray-500">P&L:</span>
           <div className={`font-medium ${
             strategy.total_pnl && strategy.total_pnl >= 0 ? 'text-success-600' : 'text-danger-600'
           }`}>
-            ${strategy.total_pnl?.toLocaleString() || '0'}
+            ${strategy.total_pnl !== undefined ? Number(strategy.total_pnl).toLocaleString() : '0'}
           </div>
         </div>
         <div>
@@ -160,7 +160,7 @@ const StrategyCard: React.FC<StrategyCardProps> = ({
                 <span className="ml-2 text-gray-600">({strategy.last_signal.symbol})</span>
               )}
               <div className="text-xs text-gray-500 mt-1">
-                {new Date(strategy.last_signal.timestamp).toLocaleString()}
+                {strategy.last_signal?.timestamp ? new Date(strategy.last_signal.timestamp).toLocaleString() : 'N/A'}
               </div>
             </div>
           </div>
