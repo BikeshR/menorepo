@@ -91,10 +91,11 @@ class AuthManager:
         # Session management
         self._active_sessions: Dict[str, datetime] = {}
         
+        # Initialize logger first
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
+        
         # Initialize default users
         self._initialize_default_users()
-        
-        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
     
     def _initialize_default_users(self):
         """Initialize default users for development and demo."""

@@ -112,12 +112,29 @@ class WebConfig:
         self.port = int(os.getenv("WEB_PORT", str(self.port)))
         self.workers = int(os.getenv("WEB_WORKERS", str(self.workers)))
         
-        # Database settings
-        self.database_url = os.getenv("DATABASE_URL", self.database_url)
+        # Database settings - build URL from components or use full URL
+        if os.getenv("DATABASE_URL"):
+            self.database_url = os.getenv("DATABASE_URL")
+        else:
+            # Build from individual components for Docker
+            db_host = os.getenv("DB_HOST", "localhost")
+            db_port = os.getenv("DB_PORT", "5432") 
+            db_name = os.getenv("DB_NAME", "pi5_trading")
+            db_user = os.getenv("DB_USER", "pi5trader")
+            db_password = os.getenv("DB_PASSWORD", "tradingpass")
+            self.database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        
         self.db_pool_size = int(os.getenv("DB_POOL_SIZE", str(self.db_pool_size)))
         
-        # Redis settings
-        self.redis_url = os.getenv("REDIS_URL", self.redis_url)
+        # Redis settings - build URL from components or use full URL  
+        if os.getenv("REDIS_URL"):
+            self.redis_url = os.getenv("REDIS_URL")
+        else:
+            # Build from individual components for Docker
+            redis_host = os.getenv("REDIS_HOST", "localhost")
+            redis_port = os.getenv("REDIS_PORT", "6379")
+            self.redis_url = f"redis://{redis_host}:{redis_port}"
+        
         self.redis_db = int(os.getenv("REDIS_DB", str(self.redis_db)))
         self.redis_password = os.getenv("REDIS_PASSWORD")
         

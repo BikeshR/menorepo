@@ -24,6 +24,7 @@ import uvloop
 
 # Import trading system components
 from database.connection_manager import DatabaseManager
+from database.repositories.market_data import MarketDataRepository
 from events.event_bus import EventBus
 from strategies.manager import StrategyManager
 from portfolio.manager import PortfolioManager
@@ -93,7 +94,11 @@ async def lifespan(app: FastAPI):
             max_portfolio_exposure=0.8,
             max_daily_loss=0.05
         )
-        risk_manager = RiskManagerImplementation(risk_limits=risk_limits)
+        risk_manager = RiskManagerImplementation(
+            risk_limits=risk_limits,
+            db_manager=db_manager,
+            event_bus=event_bus
+        )
         app_state['risk_manager'] = risk_manager
         
         # Initialize broker manager
@@ -125,10 +130,12 @@ async def lifespan(app: FastAPI):
         app_state['enhanced_order_manager'] = enhanced_order_manager
         
         # Initialize portfolio manager
+        market_data_repo = MarketDataRepository(db_manager)
         portfolio_manager = PortfolioManager(
             event_bus=event_bus,
             db_manager=db_manager,
-            risk_manager=risk_manager
+            market_data_repo=market_data_repo,
+            initial_cash=100000.0
         )
         await portfolio_manager.start()
         app_state['portfolio_manager'] = portfolio_manager
