@@ -103,21 +103,21 @@ class AuthManager:
             {
                 "id": "admin-001",
                 "username": "admin",
-                "email": "admin@pi5trading.local",
+                "email": "admin@example.com",
                 "password": "admin123",
                 "role": UserRole.ADMIN
             },
             {
                 "id": "trader-001", 
                 "username": "trader",
-                "email": "trader@pi5trading.local",
+                "email": "trader@example.com",
                 "password": "trader123",
                 "role": UserRole.TRADER
             },
             {
                 "id": "viewer-001",
                 "username": "viewer",
-                "email": "viewer@pi5trading.local", 
+                "email": "viewer@example.com", 
                 "password": "viewer123",
                 "role": UserRole.VIEWER
             }

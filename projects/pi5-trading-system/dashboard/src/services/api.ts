@@ -24,7 +24,10 @@ class ApiService {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    // In production, use the same host/port as the current page
+    // In development, use the dev server proxy or env variable
+    this.baseURL = process.env.REACT_APP_API_URL || 
+      (process.env.NODE_ENV === 'production' ? window.location.origin : 'http://localhost:8080');
     
     this.client = axios.create({
       baseURL: this.baseURL,

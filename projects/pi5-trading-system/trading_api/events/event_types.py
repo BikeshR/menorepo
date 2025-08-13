@@ -311,6 +311,10 @@ class PortfolioValueEvent(BaseEvent):
     daily_return: Optional[float] = None
     total_return: Optional[float] = None
     
+    def __post_init__(self):
+        """Initialize base event attributes."""
+        super().__init__()
+    
     def _event_data(self) -> Dict[str, Any]:
         """Return portfolio value specific fields."""
         return {

@@ -90,9 +90,9 @@ check_requirements() {
         exit 1
     fi
     
-    # Check if docker-compose is available
-    if ! command -v docker-compose &>/dev/null; then
-        error "docker-compose not found. Please install Docker Compose."
+    # Check if docker compose is available (new syntax) or legacy docker-compose
+    if ! docker compose version &>/dev/null && ! command -v docker-compose &>/dev/null; then
+        error "Docker Compose not found. Please install Docker Compose."
         exit 1
     fi
     

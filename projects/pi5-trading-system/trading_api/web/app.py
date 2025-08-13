@@ -483,9 +483,9 @@ async def health_check():
         )
 
 
-# API Info endpoint (no auth required)
-@app.get("/", tags=["System"], summary="API Information")
-async def root():
+# API Info endpoint (moved to /api/info to avoid conflict with dashboard)
+@app.get("/api/info", tags=["System"], summary="API Information")
+async def api_info():
     """Get basic API information and available endpoints."""
     return {
         "name": "Pi5 Trading System",
@@ -512,7 +512,7 @@ setup_middleware(app)
 
 # Mount static files (for React frontend)
 # Prepare React Dashboard static files
-dashboard_build_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard", "build")
+dashboard_build_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "dashboard", "build")
 if os.path.exists(dashboard_build_path):
     # Mount static assets (JS, CSS, images, etc.) - these need exact path matches
     static_path = os.path.join(dashboard_build_path, "static")
