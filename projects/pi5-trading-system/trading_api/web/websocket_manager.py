@@ -10,12 +10,13 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Set
 from events.event_bus import EventBus
+from core.interfaces import EventHandler
 
 
 logger = logging.getLogger(__name__)
 
 
-class WebSocketManager:
+class WebSocketManager(EventHandler):
     """
     Centralized WebSocket manager for real-time communication.
     
@@ -60,31 +61,67 @@ class WebSocketManager:
         for client_id in list(self.active_connections.keys()):
             await self.disconnect_client(client_id)
         
+        # Unsubscribe from all events
+        event_types = [
+            "portfolio.updated", "position.updated",
+            "order.created", "order.filled", "order.cancelled",
+            "strategy.signal", "strategy.started", "strategy.stopped",
+            "system.health", "system.alert"
+        ]
+        for event_type in event_types:
+            self.event_bus.unsubscribe(event_type, self)
+        
         self._logger.info("WebSocket manager stopped")
     
     async def _setup_event_subscriptions(self):
         """Subscribe to trading system events."""
         try:
             # Subscribe to portfolio events
-            await self.event_bus.subscribe("portfolio.updated", self._handle_portfolio_event)
-            await self.event_bus.subscribe("position.updated", self._handle_position_event)
+            self.event_bus.subscribe("portfolio.updated", self)
+            self.event_bus.subscribe("position.updated", self)
             
             # Subscribe to order events
-            await self.event_bus.subscribe("order.created", self._handle_order_event)
-            await self.event_bus.subscribe("order.filled", self._handle_order_event)
-            await self.event_bus.subscribe("order.cancelled", self._handle_order_event)
+            self.event_bus.subscribe("order.created", self)
+            self.event_bus.subscribe("order.filled", self)
+            self.event_bus.subscribe("order.cancelled", self)
             
             # Subscribe to strategy events
-            await self.event_bus.subscribe("strategy.signal", self._handle_strategy_event)
-            await self.event_bus.subscribe("strategy.started", self._handle_strategy_event)
-            await self.event_bus.subscribe("strategy.stopped", self._handle_strategy_event)
+            self.event_bus.subscribe("strategy.signal", self)
+            self.event_bus.subscribe("strategy.started", self)
+            self.event_bus.subscribe("strategy.stopped", self)
             
             # Subscribe to system events
-            await self.event_bus.subscribe("system.health", self._handle_system_event)
-            await self.event_bus.subscribe("system.alert", self._handle_system_event)
+            self.event_bus.subscribe("system.health", self)
+            self.event_bus.subscribe("system.alert", self)
             
         except Exception as e:
             self._logger.error(f"Error setting up event subscriptions: {e}")
+    
+    async def handle(self, event) -> None:
+        """Handle incoming events from the event bus."""
+        try:
+            event_type = event.event_type
+            
+            if event_type in ["portfolio.updated", "position.updated"]:
+                await self._handle_portfolio_event(event)
+            elif event_type in ["order.created", "order.filled", "order.cancelled"]:
+                await self._handle_order_event(event)
+            elif event_type in ["strategy.signal", "strategy.started", "strategy.stopped"]:
+                await self._handle_strategy_event(event)
+            elif event_type in ["system.health", "system.alert"]:
+                await self._handle_system_event(event)
+            
+        except Exception as e:
+            self._logger.error(f"Error handling event {event.event_type}: {e}")
+    
+    def can_handle(self, event_type: str) -> bool:
+        """Check if this handler can process the given event type."""
+        return event_type in [
+            "portfolio.updated", "position.updated",
+            "order.created", "order.filled", "order.cancelled",
+            "strategy.signal", "strategy.started", "strategy.stopped",
+            "system.health", "system.alert"
+        ]
     
     async def add_connection(self, client_id: str, websocket: Any):
         """Add a new WebSocket connection."""
@@ -139,52 +176,62 @@ class WebSocketManager:
     
     # Event handlers
     
-    async def _handle_portfolio_event(self, event: Dict[str, Any]):
+    async def _handle_portfolio_event(self, event):
         """Handle portfolio-related events."""
         try:
             await self.broadcast_message({
                 "type": "portfolio_update",
-                "data": event
+                "data": {
+                    "event_id": event.event_id,
+                    "timestamp": event.timestamp.isoformat(),
+                    "event_type": event.event_type,
+                    "data": getattr(event, 'data', {})
+                }
             }, channel="portfolio")
         except Exception as e:
             self._logger.error(f"Error handling portfolio event: {e}")
     
-    async def _handle_position_event(self, event: Dict[str, Any]):
-        """Handle position-related events.""" 
-        try:
-            await self.broadcast_message({
-                "type": "position_update",
-                "data": event
-            }, channel="portfolio")
-        except Exception as e:
-            self._logger.error(f"Error handling position event: {e}")
-    
-    async def _handle_order_event(self, event: Dict[str, Any]):
+    async def _handle_order_event(self, event):
         """Handle order-related events."""
         try:
             await self.broadcast_message({
                 "type": "order_update",
-                "data": event
+                "data": {
+                    "event_id": event.event_id,
+                    "timestamp": event.timestamp.isoformat(),
+                    "event_type": event.event_type,
+                    "data": getattr(event, 'data', {})
+                }
             }, channel="orders")
         except Exception as e:
             self._logger.error(f"Error handling order event: {e}")
     
-    async def _handle_strategy_event(self, event: Dict[str, Any]):
+    async def _handle_strategy_event(self, event):
         """Handle strategy-related events."""
         try:
             await self.broadcast_message({
                 "type": "strategy_update",
-                "data": event
+                "data": {
+                    "event_id": event.event_id,
+                    "timestamp": event.timestamp.isoformat(),
+                    "event_type": event.event_type,
+                    "data": getattr(event, 'data', {})
+                }
             }, channel="strategies")
         except Exception as e:
             self._logger.error(f"Error handling strategy event: {e}")
     
-    async def _handle_system_event(self, event: Dict[str, Any]):
+    async def _handle_system_event(self, event):
         """Handle system-related events."""
         try:
             await self.broadcast_message({
                 "type": "system_update",
-                "data": event
+                "data": {
+                    "event_id": event.event_id,
+                    "timestamp": event.timestamp.isoformat(),
+                    "event_type": event.event_type,
+                    "data": getattr(event, 'data', {})
+                }
             }, channel="system")
         except Exception as e:
             self._logger.error(f"Error handling system event: {e}")

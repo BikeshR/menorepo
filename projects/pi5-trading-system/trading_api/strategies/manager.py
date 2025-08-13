@@ -689,6 +689,10 @@ class EnhancedStrategyManager(EventHandler):
             'active_allocations': len([a for a in self._strategy_allocations.values() if a.is_active]),
         }
 
+    def get_manager_status(self) -> Dict[str, Any]:
+        """Get strategy manager status (alias for get_manager_stats for compatibility)."""
+        return self.get_manager_stats()
+
     # ============================================================================
     # ENHANCED MULTI-STRATEGY COORDINATION METHODS
     # ============================================================================

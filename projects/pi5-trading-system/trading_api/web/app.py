@@ -86,6 +86,7 @@ async def lifespan(app: FastAPI):
         
         # Initialize event bus
         event_bus = EventBus()
+        await event_bus.start()
         app_state['event_bus'] = event_bus
         
         # Initialize risk manager
@@ -185,6 +186,9 @@ async def lifespan(app: FastAPI):
         
         if 'broker_manager' in app_state:
             await app_state['broker_manager'].stop()
+        
+        if 'event_bus' in app_state:
+            await app_state['event_bus'].stop()
         
         if 'db_manager' in app_state:
             await app_state['db_manager'].close()
@@ -438,7 +442,7 @@ async def health_check():
         if portfolio_manager:
             health_data["components"]["portfolio"] = {
                 "status": "healthy",
-                "tracked_symbols": len(portfolio_manager.get_positions())
+                "tracked_symbols": len(portfolio_manager.get_all_positions())
             }
         
         # Check order manager

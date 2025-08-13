@@ -577,31 +577,39 @@ class PortfolioManager(EventHandler):
         reason: str
     ) -> None:
         """Publish position changed event."""
-        event = PositionChangedEvent(
-            symbol=symbol,
-            old_quantity=old_quantity,
-            new_quantity=new_quantity,
-            price=price,
-            timestamp=datetime.utcnow(),
-            change_reason=reason
-        )
-        await self.event_bus.publish(event)
+        try:
+            event = PositionChangedEvent(
+                symbol=symbol,
+                old_quantity=old_quantity,
+                new_quantity=new_quantity,
+                price=price,
+                timestamp=datetime.utcnow(),
+                change_reason=reason
+            )
+            await self.event_bus.publish(event)
+        except Exception as e:
+            self._logger.warning(f"Failed to publish position changed event: {e}")
+            # Continue execution even if event publishing fails
     
     async def _publish_portfolio_value_event(self) -> None:
         """Publish portfolio value event."""
-        metrics = self.get_performance_metrics()
-        
-        event = PortfolioValueEvent(
-            total_value=self._portfolio.total_value,
-            cash=self._portfolio.cash,
-            positions_value=sum(pos.market_value for pos in self._portfolio.positions.values()),
-            unrealized_pnl=sum(pos.unrealized_pnl for pos in self._portfolio.positions.values()),
-            realized_pnl=sum(self._realized_pnl_by_symbol.values()),
-            timestamp=datetime.utcnow(),
-            daily_return=self._daily_returns[-1] if self._daily_returns else None,
-            total_return=metrics.total_return
-        )
-        await self.event_bus.publish(event)
+        try:
+            metrics = self.get_performance_metrics()
+            
+            event = PortfolioValueEvent(
+                total_value=self._portfolio.total_value,
+                cash=self._portfolio.cash,
+                positions_value=sum(pos.market_value for pos in self._portfolio.positions.values()),
+                unrealized_pnl=sum(pos.unrealized_pnl for pos in self._portfolio.positions.values()),
+                realized_pnl=sum(self._realized_pnl_by_symbol.values()),
+                timestamp=datetime.utcnow(),
+                daily_return=self._daily_returns[-1] if self._daily_returns else None,
+                total_return=metrics.total_return
+            )
+            await self.event_bus.publish(event)
+        except Exception as e:
+            self._logger.warning(f"Failed to publish portfolio value event: {e}")
+            # Continue execution even if event publishing fails
     
     async def _persist_portfolio_state(self) -> None:
         """Persist portfolio state to database."""
