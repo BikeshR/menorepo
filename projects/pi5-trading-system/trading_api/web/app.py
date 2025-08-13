@@ -587,7 +587,7 @@ def main():
     uvicorn.run(
         "trading_api.web.app:app",
         host="0.0.0.0",
-        port=8080,  # Unified port for API and Dashboard
+        port=8000,  # Internal port (Docker maps to 8080 externally)
         reload=False,  # Set to True for development
         loop="uvloop",
         log_level="info",

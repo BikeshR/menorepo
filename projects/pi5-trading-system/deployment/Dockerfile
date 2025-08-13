@@ -4,7 +4,7 @@ FROM node:18-alpine AS dashboard-builder
 # Build React Dashboard
 WORKDIR /app/dashboard
 COPY dashboard/package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY dashboard/ ./
 RUN npm run build
 
@@ -43,8 +43,8 @@ RUN useradd --create-home --shell /bin/bash pi5trader
 RUN chown -R pi5trader:pi5trader /app
 USER pi5trader
 
-# Expose port for unified web interface (API + Dashboard)
-EXPOSE 8080
+# Expose internal port (mapped to 8080 externally via Docker)
+EXPOSE 8000
 
 # Default command - run FastAPI application directly
 CMD ["python", "trading_api/main.py"]
