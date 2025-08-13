@@ -244,6 +244,9 @@ setup_firewall() {
         ufw allow from 172.16.0.0/12
         ufw allow from 192.168.0.0/16
         
+        # Allow Pi5 Trading System API
+        ufw allow 8080/tcp comment "Pi5 Trading System API"
+        
         # Enable UFW
         ufw --force enable
         
