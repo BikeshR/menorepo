@@ -501,8 +501,28 @@ setup_middleware(app)
 dashboard_build_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard", "build")
 if os.path.exists(dashboard_build_path):
     # Mount static assets (JS, CSS, images, etc.) - these need exact path matches
-    app.mount("/static", StaticFiles(directory=os.path.join(dashboard_build_path, "static")), name="static")
-    logger.info(f"React static assets mounted from {dashboard_build_path}/static")
+    static_path = os.path.join(dashboard_build_path, "static")
+    if os.path.exists(static_path):
+        app.mount("/static", StaticFiles(directory=static_path), name="static")
+        logger.info(f"React static assets mounted from {static_path}")
+    else:
+        logger.warning(f"Static directory not found at {static_path}")
+    
+    # Also mount favicon.ico and manifest.json from build root
+    favicon_path = os.path.join(dashboard_build_path, "favicon.ico")
+    manifest_path = os.path.join(dashboard_build_path, "manifest.json")
+    
+    if os.path.exists(favicon_path):
+        @app.get("/favicon.ico")
+        async def favicon():
+            return FileResponse(favicon_path)
+    
+    if os.path.exists(manifest_path):
+        @app.get("/manifest.json")
+        async def manifest():
+            return FileResponse(manifest_path)
+            
+    logger.info(f"Dashboard build directory found at {dashboard_build_path}")
 else:
     logger.warning("Dashboard build directory not found - dashboard will not be available")
 
@@ -549,28 +569,37 @@ app.include_router(
     tags=["Authentication"]
 )
 
-# SPA fallback route (MUST be last) - serves React index.html for all non-API routes
+# Add root route for dashboard and SPA fallback
 if os.path.exists(dashboard_build_path):
     from fastapi.responses import FileResponse
     
+    @app.get("/", response_class=FileResponse)
+    async def serve_dashboard():
+        """Serve React dashboard at root path."""
+        index_path = os.path.join(dashboard_build_path, "index.html")
+        return FileResponse(index_path, media_type="text/html")
+    
     @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
+    async def serve_spa_fallback(full_path: str):
         """
-        Serve the React SPA for all routes that don't match API endpoints.
-        This enables client-side routing in React Router.
+        SPA fallback for client-side routing - serves index.html for dashboard routes only.
         """
-        # Don't serve SPA for API routes, docs, health, ws, etc.
-        if full_path.startswith(("api/", "docs", "redoc", "health", "ws", "auth", "static/")):
-            raise HTTPException(status_code=404, detail="Not Found")
+        # Only serve SPA for dashboard routes, reject API routes
+        api_prefixes = ("api/", "docs", "redoc", "health", "ws/", "auth/", "static/")
         
-        # Serve index.html for all other routes (React will handle routing)
+        if full_path.startswith(api_prefixes):
+            # This is an API route that doesn't exist - return 404
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        # This looks like a dashboard route (e.g., /portfolio, /orders)
+        # Serve index.html and let React Router handle it
         index_path = os.path.join(dashboard_build_path, "index.html")
         if os.path.exists(index_path):
             return FileResponse(index_path, media_type="text/html")
         else:
             raise HTTPException(status_code=404, detail="Dashboard not found")
     
-    logger.info("React SPA fallback route configured - serving dashboard at root /")
+    logger.info("React SPA configured - dashboard at / with client-side routing support")
 
 
 def create_app() -> FastAPI:
