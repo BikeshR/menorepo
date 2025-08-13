@@ -10,38 +10,47 @@ A comprehensive, production-ready algorithmic trading system designed specifical
 
 **Step 1: System Setup (Run Once)**
 ```bash
-# Clone the monorepo
+# Clone the repository
 git clone https://github.com/BikeshR/menorepo.git
-cd menorepo/projects/pi5-trading-system
+cd menorepo/projects/pi5-trading-system/deployment
 
-# Set up Pi5 system (installs Docker, Poetry, development tools)
-sudo ./scripts/setup_pi5.sh
+# Set up Pi5 system (installs Docker, dependencies, etc.)
+sudo ./setup_pi5.sh
 ```
 
-**Step 2: Deploy Trading System (Run for deployments)**
+**Step 2: Deploy Trading System**
 ```bash
-# Deploy the trading system in Docker containers
-./scripts/deploy.sh
+# Deploy the trading system
+./deploy.sh
 
-# For future updates:
-git pull
-./scripts/deploy.sh --update
+# For updates with clean build:
+./deploy.sh --clean --update
+
+# Deploy and show logs:
+./deploy.sh --logs
 ```
 
-### Advanced Deployment Options
+### Deployment Options
 
 ```bash
-# Clean build (rebuild everything from scratch)
-./scripts/deploy.sh --clean
+# From deployment/ directory:
+
+# Basic deployment
+./deploy.sh
+
+# Clean build (rebuild everything)
+./deploy.sh --clean
 
 # Update code and deploy
-./scripts/deploy.sh --update
+./deploy.sh --update
 
-# Deploy and show logs
-./scripts/deploy.sh --logs
+# Full clean update with logs
+./deploy.sh --clean --update --logs
 
-# Full clean update
-./scripts/deploy.sh --clean --update --logs
+# Manual Docker commands (if needed)
+docker compose up -d        # Start
+docker compose down         # Stop
+docker compose logs -f      # View logs
 ```
 
 ### Access the System
@@ -169,17 +178,17 @@ risk_management:
 
 ### **Docker Commands** (Primary Management)
 ```bash
-# Container management
-docker-compose up -d       # Start all services
-docker-compose down        # Stop all services
-docker-compose restart     # Restart all services
-docker-compose ps          # Show container status
-docker-compose logs -f     # View real-time logs
+# From deployment/ directory:
+docker compose up -d       # Start all services
+docker compose down        # Stop all services
+docker compose restart     # Restart all services
+docker compose ps          # Show container status
+docker compose logs -f     # View real-time logs
 
 # Individual service management
-docker-compose restart trading_api  # Restart just the trading API
-docker-compose logs trading_api     # View trading API logs
-docker-compose exec trading_api bash # Access container shell
+docker compose restart trading_api  # Restart just the trading API
+docker compose logs trading_api     # View trading API logs
+docker compose exec trading_api bash # Access container shell
 ```
 
 ### **System Service Commands** (Auto-start Management)

@@ -10,7 +10,7 @@ set -e
 # Configuration
 PROJECT_NAME="pi5-trading-system"
 SERVICE_NAME="pi5-trading-system"
-COMPOSE_FILE="deployment/docker-compose.yml"
+COMPOSE_FILE="docker-compose.yml"
 
 # Colors for output
 RED='\033[0;31m'
@@ -28,7 +28,7 @@ header() { echo -e "${PURPLE}[$(date +'%Y-%m-%d %H:%M:%S')] 🚀 $1${NC}"; }
 
 # Docker compose wrapper to use correct file path
 dc() {
-    docker-compose -f "$COMPOSE_FILE" "$@"
+    docker compose -f "$COMPOSE_FILE" "$@"
 }
 
 # Parse command line arguments
