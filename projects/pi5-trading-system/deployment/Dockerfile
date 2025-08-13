@@ -46,5 +46,5 @@ USER pi5trader
 # Expose internal port 8080 
 EXPOSE 8080
 
-# Default command - run FastAPI application directly
-CMD ["python", "trading_api/main.py"]
+# Default command - run the integrated web application  
+CMD ["python", "trading_api/web/app.py"]
