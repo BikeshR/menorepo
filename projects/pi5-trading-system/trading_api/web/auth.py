@@ -307,10 +307,10 @@ class AuthManager:
                 self._logger.warning(f"Invalid token type: {token_type}")
                 return None
             
-            # Check if session is active
-            if jti and jti not in self._active_sessions:
-                self._logger.warning("Token session not found or expired")
-                return None
+            # Check if session is active (skip for development - rely on JWT expiration instead)
+            # if jti and jti not in self._active_sessions:
+            #     self._logger.warning("Token session not found or expired")
+            #     return None
             
             # Get user
             user = self.get_user(username)

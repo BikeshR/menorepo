@@ -358,6 +358,13 @@ def get_websocket_manager():
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Get current authenticated user."""
     try:
+        if not credentials:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
         auth_manager = app_state.get('auth_manager')
         if not auth_manager:
             raise HTTPException(
