@@ -37,13 +37,8 @@ from .exceptions import (
     SystemError,
 )
 
-from .market_data import (
-    YahooFinanceProvider,
-    AlphaVantageProvider,
-    MarketDataManager,
-    TechnicalIndicators,
-    DataQualityValidator
-)
+# Market data imports moved to avoid circular import issues
+# Import these directly from their modules when needed
 
 __all__ = [
     # Interfaces
@@ -61,12 +56,7 @@ __all__ = [
     "Position",
     "Portfolio",
     
-    # Market Data Components
-    "YahooFinanceProvider",
-    "AlphaVantageProvider", 
-    "MarketDataManager",
-    "TechnicalIndicators",
-    "DataQualityValidator",
+    # Market Data Components (import directly from modules)
     
     # Exceptions
     "TradingSystemError",

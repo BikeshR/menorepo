@@ -16,7 +16,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/trading_api:/app
+    PYTHONPATH=/app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -49,5 +49,6 @@ USER pi5trader
 # Expose internal port 8080 
 EXPOSE 8080
 
-# Default command - run main entry point (Application Factory pattern)
-CMD ["python", "trading_api/main.py"]
+# Set working directory to trading_api and run main entry point
+WORKDIR /app/trading_api
+CMD ["python", "main.py"]
