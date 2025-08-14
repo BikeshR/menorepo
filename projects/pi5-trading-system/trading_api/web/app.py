@@ -180,6 +180,7 @@ async def lifespan(app: FastAPI):
         await websocket_manager.start()
         app_state['websocket_manager'] = websocket_manager
         
+        
         logger.info("Pi5 Trading System Web Interface started successfully")
         
         yield
@@ -546,35 +547,21 @@ async def api_info():
 # Setup middleware
 setup_middleware(app)
 
-# Mount static files (for React frontend)
-# Prepare React Dashboard static files
+# Mount static files immediately at module level
 dashboard_build_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "dashboard", "build")
+logger.info(f"MODULE: Attempting to mount static files from {dashboard_build_path}")
+
 if os.path.exists(dashboard_build_path):
-    # Mount static assets (JS, CSS, images, etc.) - these need exact path matches
-    static_path = os.path.join(dashboard_build_path, "static")
-    if os.path.exists(static_path):
-        app.mount("/static", StaticFiles(directory=static_path), name="static")
-        logger.info(f"React static assets mounted from {static_path}")
+    assets_path = os.path.join(dashboard_build_path, "assets")
+    logger.info(f"MODULE: Assets path {assets_path} exists: {os.path.exists(assets_path)}")
+    
+    if os.path.exists(assets_path):
+        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+        logger.info(f"MODULE: Successfully mounted assets from {assets_path}")
     else:
-        logger.warning(f"Static directory not found at {static_path}")
-    
-    # Also mount favicon.ico and manifest.json from build root
-    favicon_path = os.path.join(dashboard_build_path, "favicon.ico")
-    manifest_path = os.path.join(dashboard_build_path, "manifest.json")
-    
-    if os.path.exists(favicon_path):
-        @app.get("/favicon.ico")
-        async def favicon():
-            return FileResponse(favicon_path)
-    
-    if os.path.exists(manifest_path):
-        @app.get("/manifest.json")
-        async def manifest():
-            return FileResponse(manifest_path)
-            
-    logger.info(f"Dashboard build directory found at {dashboard_build_path}")
+        logger.warning(f"MODULE: Assets directory not found at {assets_path}")
 else:
-    logger.warning("Dashboard build directory not found - dashboard will not be available")
+    logger.warning(f"MODULE: Dashboard build directory not found at {dashboard_build_path}")
 
 # Include routers with dependencies
 app.include_router(
@@ -628,6 +615,69 @@ app.include_router(
 )
 
 
+# Mount static files (for React frontend) - IMPORTANT: Must be after API routes but before catch-all
+logger.info(f"DEBUG: Checking dashboard build path: {dashboard_build_path}")
+logger.info(f"DEBUG: Dashboard build path exists: {os.path.exists(dashboard_build_path)}")
+if os.path.exists(dashboard_build_path):
+    # Mount static assets (JS, CSS, images, etc.) - these need exact path matches
+    # Vite builds create an "assets" directory, not "static"
+    assets_path = os.path.join(dashboard_build_path, "assets")
+    logger.info(f"DEBUG: Assets path: {assets_path}")
+    logger.info(f"DEBUG: Assets path exists: {os.path.exists(assets_path)}")
+    
+    if os.path.exists(assets_path):
+        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+        logger.info(f"✅ React assets mounted from {assets_path}")
+    else:
+        logger.warning(f"❌ Assets directory not found at {assets_path}")
+        
+    # Also check for legacy static directory for backward compatibility
+    static_path = os.path.join(dashboard_build_path, "static")
+    if os.path.exists(static_path):
+        app.mount("/static", StaticFiles(directory=static_path), name="static")
+        logger.info(f"✅ React static assets mounted from {static_path}")
+    else:
+        logger.warning(f"❌ Static directory not found at {static_path}")
+    
+    # Mount Vite assets directory (this is where Vite puts JS/CSS files)
+    assets_path = os.path.join(dashboard_build_path, "assets")
+    if os.path.exists(assets_path):
+        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+        logger.info(f"✅ React assets mounted from {assets_path}")
+    else:
+        logger.warning(f"❌ Assets directory not found at {assets_path}")
+    
+    # Also mount favicon.ico and manifest.json from build root
+    favicon_path = os.path.join(dashboard_build_path, "favicon.ico")
+    manifest_path = os.path.join(dashboard_build_path, "manifest.json")
+    
+    if os.path.exists(favicon_path):
+        @app.get("/favicon.ico")
+        async def favicon():
+            return FileResponse(favicon_path)
+    
+    if os.path.exists(manifest_path):
+        @app.get("/manifest.json")
+        async def manifest():
+            return FileResponse(manifest_path)
+            
+    logger.info(f"✅ Dashboard build directory found at {dashboard_build_path}")
+    
+    # CRITICAL: Mount assets immediately after confirming dashboard exists
+    assets_path = os.path.join(dashboard_build_path, "assets")
+    logger.info(f"CRITICAL: Checking assets at {assets_path}")
+    if os.path.exists(assets_path):
+        try:
+            app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+            logger.info(f"SUCCESS: Assets mounted from {assets_path}")
+        except Exception as e:
+            logger.error(f"FAILED: Assets mount failed: {e}")
+    else:
+        logger.error(f"FAILED: Assets directory not found at {assets_path}")
+        
+else:
+    logger.warning("❌ Dashboard build directory not found - dashboard will not be available")
+
 # Add root route for dashboard and SPA fallback
 if os.path.exists(dashboard_build_path):
     from fastapi.responses import FileResponse
@@ -644,7 +694,7 @@ if os.path.exists(dashboard_build_path):
         SPA fallback for client-side routing - serves index.html for dashboard routes only.
         """
         # Only serve SPA for dashboard routes, reject API routes
-        api_prefixes = ("api/", "docs", "redoc", "health", "ws/", "auth/", "static/")
+        api_prefixes = ("api/", "docs", "redoc", "health", "ws/", "auth/", "static/", "assets/")
         
         if full_path.startswith(api_prefixes):
             # This is an API route that doesn't exist - return 404
@@ -670,7 +720,35 @@ def create_app() -> FastAPI:
     Returns:
         FastAPI: Configured application instance
     """
+    logger.info("🚀 CREATE_APP: create_app() function called")
+    # Ensure static files are mounted
+    mount_static_files()
+    logger.info("🚀 CREATE_APP: Returning app instance")
     return app
+
+
+def mount_static_files():
+    """Mount static files for the React dashboard."""
+    logger.info("🔥 MOUNT_STATIC_FILES: Function called!")
+    try:
+        dashboard_build_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "dashboard", "build")
+        logger.info(f"🔧 MOUNT_DEBUG: Mounting static files from {dashboard_build_path}")
+        
+        if os.path.exists(dashboard_build_path):
+            assets_path = os.path.join(dashboard_build_path, "assets")
+            logger.info(f"🔧 MOUNT_DEBUG: Assets path: {assets_path}, exists: {os.path.exists(assets_path)}")
+            
+            if os.path.exists(assets_path):
+                app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+                logger.info(f"🎯 Assets successfully mounted from {assets_path}")
+            else:
+                logger.error(f"❌ Assets directory not found at {assets_path}")
+        else:
+            logger.error(f"❌ Dashboard build directory not found at {dashboard_build_path}")
+    except Exception as e:
+        logger.error(f"🚨 Error in mount_static_files: {e}")
+        import traceback
+        logger.error(f"🚨 Traceback: {traceback.format_exc()}")
 
 
 def main():

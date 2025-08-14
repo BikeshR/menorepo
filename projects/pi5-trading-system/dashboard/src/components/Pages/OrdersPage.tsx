@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react';
 import {
-  PlusIcon,
-  XMarkIcon,
   ArrowPathIcon,
+  CheckCircleIcon,
+  ClockIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
-  ClockIcon,
-  CheckCircleIcon,
+  PlusIcon,
   XCircleIcon,
-} from '@heroicons/react/24/outline';
-import { useWebSocketStore } from '../../store/websocketStore';
-import { useAuthStore } from '../../store/authStore';
-import { apiService } from '../../services/api';
-import { Order, Trade, CreateOrderFormData } from '../../types';
-import { toast } from 'react-hot-toast';
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { apiService } from "../../services/api";
+import { useAuthStore } from "../../store/authStore";
+import { useWebSocketStore } from "../../store/websocketStore";
+import type { CreateOrderFormData, Order, Trade } from "../../types";
 
 interface OrderRowProps {
   order: Order;
@@ -31,24 +32,26 @@ const OrderRow: React.FC<OrderRowProps> = ({ order, onCancel }) => {
   };
 
   const statusColors: Record<string, string> = {
-    pending: 'bg-warning-100 text-warning-800',
-    filled: 'bg-success-100 text-success-800',
-    cancelled: 'bg-gray-100 text-gray-800',
-    rejected: 'bg-danger-100 text-danger-800',
-    expired: 'bg-gray-100 text-gray-800',
-    partial: 'bg-blue-100 text-blue-800',
+    pending: "bg-warning-100 text-warning-800",
+    filled: "bg-success-100 text-success-800",
+    cancelled: "bg-gray-100 text-gray-800",
+    rejected: "bg-danger-100 text-danger-800",
+    expired: "bg-gray-100 text-gray-800",
+    partial: "bg-blue-100 text-blue-800",
   };
 
-  const canCancel = order.status === 'pending' || order.status === 'partial';
+  const canCancel = order.status === "pending" || order.status === "partial";
 
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           {statusIcons[order.status] || statusIcons.pending}
-          <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            statusColors[order.status] || statusColors.pending
-          }`}>
+          <span
+            className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              statusColors[order.status] || statusColors.pending
+            }`}
+          >
             {order.status}
           </span>
         </div>
@@ -57,20 +60,18 @@ const OrderRow: React.FC<OrderRowProps> = ({ order, onCancel }) => {
         {order.symbol}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        <span className={`font-medium ${
-          order.side === 'buy' ? 'text-success-600' : 'text-danger-600'
-        }`}>
+        <span
+          className={`font-medium ${order.side === "buy" ? "text-success-600" : "text-danger-600"}`}
+        >
           {order.side.toUpperCase()}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {order.quantity ? Number(order.quantity).toLocaleString() : '0'}
+        {order.quantity ? Number(order.quantity).toLocaleString() : "0"}
       </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.order_type}</td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {order.order_type}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${order.price ? Number(order.price).toFixed(2) : 'Market'}
+        ${order.price ? Number(order.price).toFixed(2) : "Market"}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         {order.filled_quantity?.toLocaleString() || 0}
@@ -82,6 +83,7 @@ const OrderRow: React.FC<OrderRowProps> = ({ order, onCancel }) => {
         <div className="flex items-center space-x-2">
           {canCancel && (
             <button
+              type="button"
               onClick={() => onCancel(order.id)}
               className="text-danger-600 hover:text-danger-900 transition-colors"
               title="Cancel Order"
@@ -106,23 +108,26 @@ const TradeRow: React.FC<TradeRowProps> = ({ trade }) => {
         {trade.symbol}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        <span className={`font-medium ${
-          trade.side === 'buy' ? 'text-success-600' : 'text-danger-600'
-        }`}>
+        <span
+          className={`font-medium ${trade.side === "buy" ? "text-success-600" : "text-danger-600"}`}
+        >
           {trade.side.toUpperCase()}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {trade.quantity ? Number(trade.quantity).toLocaleString() : '0'}
+        {trade.quantity ? Number(trade.quantity).toLocaleString() : "0"}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${trade.price ? Number(trade.price).toFixed(2) : '0.00'}
+        ${trade.price ? Number(trade.price).toFixed(2) : "0.00"}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${(trade.quantity && trade.price) ? Number(trade.quantity * trade.price).toLocaleString() : '0'}
+        $
+        {trade.quantity && trade.price
+          ? Number(trade.quantity * trade.price).toLocaleString()
+          : "0"}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {trade.executed_at ? new Date(trade.executed_at).toLocaleString() : 'N/A'}
+        {trade.executed_at ? new Date(trade.executed_at).toLocaleString() : "N/A"}
       </td>
     </tr>
   );
@@ -136,28 +141,39 @@ interface CreateOrderModalProps {
 
 const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState<CreateOrderFormData>({
-    symbol: '',
-    side: 'buy',
+    symbol: "",
+    side: "buy",
     quantity: 100,
-    order_type: 'market',
+    order_type: "market",
     price: undefined,
-    time_in_force: 'DAY',
+    time_in_force: "DAY",
     stop_loss: undefined,
     take_profit: undefined,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    // Filter out undefined values for optional properties
+    const cleanedData: CreateOrderFormData = {
+      symbol: formData.symbol,
+      side: formData.side,
+      order_type: formData.order_type,
+      quantity: formData.quantity,
+      ...(formData.price !== undefined && { price: formData.price }),
+      ...(formData.time_in_force !== undefined && { time_in_force: formData.time_in_force }),
+      ...(formData.stop_loss !== undefined && { stop_loss: formData.stop_loss }),
+      ...(formData.take_profit !== undefined && { take_profit: formData.take_profit }),
+    };
+    onSubmit(cleanedData);
     onClose();
     // Reset form
     setFormData({
-      symbol: '',
-      side: 'buy',
+      symbol: "",
+      side: "buy",
       quantity: 100,
-      order_type: 'market',
+      order_type: "market",
       price: undefined,
-      time_in_force: 'DAY',
+      time_in_force: "DAY",
       stop_loss: undefined,
       take_profit: undefined,
     });
@@ -174,13 +190,19 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="symbol-input"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Symbol
                 </label>
                 <input
+                  id="symbol-input"
                   type="text"
                   value={formData.symbol}
-                  onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, symbol: e.target.value.toUpperCase() })
+                  }
                   placeholder="AAPL"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
@@ -188,12 +210,18 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="side-select"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Side
                 </label>
                 <select
+                  id="side-select"
                   value={formData.side}
-                  onChange={(e) => setFormData({ ...formData, side: e.target.value as 'buy' | 'sell' })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, side: e.target.value as "buy" | "sell" })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="buy">Buy</option>
@@ -204,10 +232,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="quantity-input"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Quantity
                 </label>
                 <input
+                  id="quantity-input"
                   type="number"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
@@ -218,12 +250,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="order-type-select"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Order Type
                 </label>
                 <select
+                  id="order-type-select"
                   value={formData.order_type}
-                  onChange={(e) => setFormData({ ...formData, order_type: e.target.value as 'market' | 'limit' | 'stop' | 'stop_limit' })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      order_type: e.target.value as "market" | "limit" | "stop" | "stop_limit",
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="market">Market</option>
@@ -234,14 +275,18 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
               </div>
             </div>
 
-            {(formData.order_type === 'limit' || formData.order_type === 'stop_limit') && (
+            {(formData.order_type === "limit" || formData.order_type === "stop_limit") && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="price-input"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Price ($)
                 </label>
                 <input
+                  id="price-input"
                   type="number"
-                  value={formData.price || ''}
+                  value={formData.price || ""}
                   onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
                   step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -251,12 +296,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="time-in-force-select"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Time in Force
               </label>
               <select
+                id="time-in-force-select"
                 value={formData.time_in_force}
-                onChange={(e) => setFormData({ ...formData, time_in_force: e.target.value as 'DAY' | 'GTC' | 'IOC' | 'FOK' })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    time_in_force: e.target.value as "DAY" | "GTC" | "IOC" | "FOK",
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="DAY">Day</option>
@@ -268,26 +322,44 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="stop-loss-input"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Stop Loss ($)
                 </label>
                 <input
+                  id="stop-loss-input"
                   type="number"
-                  value={formData.stop_loss || ''}
-                  onChange={(e) => setFormData({ ...formData, stop_loss: e.target.value ? Number(e.target.value) : undefined })}
+                  value={formData.stop_loss || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      stop_loss: e.target.value ? Number(e.target.value) : undefined,
+                    })
+                  }
                   step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="take-profit-input"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Take Profit ($)
                 </label>
                 <input
+                  id="take-profit-input"
                   type="number"
-                  value={formData.take_profit || ''}
-                  onChange={(e) => setFormData({ ...formData, take_profit: e.target.value ? Number(e.target.value) : undefined })}
+                  value={formData.take_profit || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      take_profit: e.target.value ? Number(e.target.value) : undefined,
+                    })
+                  }
                   step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
@@ -305,12 +377,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
               <button
                 type="submit"
                 className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
-                  formData.side === 'buy' 
-                    ? 'bg-success-600 hover:bg-success-700' 
-                    : 'bg-danger-600 hover:bg-danger-700'
+                  formData.side === "buy"
+                    ? "bg-success-600 hover:bg-success-700"
+                    : "bg-danger-600 hover:bg-danger-700"
                 }`}
               >
-                Place {formData.side === 'buy' ? 'Buy' : 'Sell'} Order
+                Place {formData.side === "buy" ? "Buy" : "Sell"} Order
               </button>
             </div>
           </form>
@@ -323,21 +395,50 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
 const OrdersPage: React.FC = () => {
   const { user } = useAuthStore();
   const { ordersData, isConnected } = useWebSocketStore();
-  const [activeTab, setActiveTab] = useState<'orders' | 'trades'>('orders');
+  const [activeTab, setActiveTab] = useState<"orders" | "trades">("orders");
   const [orders, setOrders] = useState<Order[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Check if user can create orders
-  const canCreateOrders = user?.role === 'admin' || user?.role === 'trader';
+  const canCreateOrders = user?.role === "admin" || user?.role === "trader";
+
+  const loadOrdersData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [ordersResult, tradesResult] = await Promise.allSettled([
+        apiService.getOrders({ limit: 100 }),
+        apiService.getTrades({ limit: 100 }),
+      ]);
+
+      if (ordersResult.status === "fulfilled") {
+        setOrders(ordersResult.value);
+      }
+      if (tradesResult.status === "fulfilled") {
+        setTrades(tradesResult.value);
+      }
+
+      // Handle errors
+      [ordersResult, tradesResult].forEach((result, index) => {
+        if (result.status === "rejected") {
+          console.error(`Orders data load error ${index}:`, result.reason);
+        }
+      });
+    } catch (error) {
+      console.error("Error loading orders data:", error);
+      toast.error("Failed to load orders data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadOrdersData();
-  }, []);
+  }, [loadOrdersData]);
 
   // Update orders from WebSocket
   useEffect(() => {
@@ -346,40 +447,11 @@ const OrdersPage: React.FC = () => {
     }
   }, [ordersData]);
 
-  const loadOrdersData = async () => {
-    try {
-      setLoading(true);
-      const [ordersResult, tradesResult] = await Promise.allSettled([
-        apiService.getOrders({ limit: 100 }),
-        apiService.getTrades({ limit: 100 }),
-      ]);
-
-      if (ordersResult.status === 'fulfilled') {
-        setOrders(ordersResult.value);
-      }
-      if (tradesResult.status === 'fulfilled') {
-        setTrades(tradesResult.value);
-      }
-
-      // Handle errors
-      [ordersResult, tradesResult].forEach((result, index) => {
-        if (result.status === 'rejected') {
-          console.error(`Orders data load error ${index}:`, result.reason);
-        }
-      });
-    } catch (error) {
-      console.error('Error loading orders data:', error);
-      toast.error('Failed to load orders data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const refreshData = async () => {
     setRefreshing(true);
     await loadOrdersData();
     setRefreshing(false);
-    toast.success('Orders data refreshed');
+    toast.success("Orders data refreshed");
   };
 
   const handleCreateOrder = async (data: CreateOrderFormData) => {
@@ -387,29 +459,29 @@ const OrdersPage: React.FC = () => {
       await apiService.createOrder(data);
       await loadOrdersData(); // Refresh data
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error("Error creating order:", error);
     }
   };
 
   const handleCancelOrder = async (orderId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
     try {
       await apiService.cancelOrder(orderId);
       await loadOrdersData(); // Refresh data
     } catch (error) {
-      console.error('Error cancelling order:', error);
+      console.error("Error cancelling order:", error);
     }
   };
 
   // Filter orders
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = orders.filter((order) => {
     const matchesSearch = order.symbol.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   // Filter trades
-  const filteredTrades = trades.filter(trade => 
+  const filteredTrades = trades.filter((trade) =>
     trade.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -432,21 +504,23 @@ const OrdersPage: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
-            <div className={`h-3 w-3 rounded-full ${isConnected ? 'bg-success-400' : 'bg-danger-400'}`}></div>
-            <span className="text-sm text-gray-600">
-              {isConnected ? 'Live Data' : 'Offline'}
-            </span>
+            <div
+              className={`h-3 w-3 rounded-full ${isConnected ? "bg-success-400" : "bg-danger-400"}`}
+            ></div>
+            <span className="text-sm text-gray-600">{isConnected ? "Live Data" : "Offline"}</span>
           </div>
           <button
+            type="button"
             onClick={refreshData}
             disabled={refreshing}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
           >
-            <ArrowPathIcon className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <ArrowPathIcon className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </button>
           {canCreateOrders && (
             <button
+              type="button"
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
@@ -461,21 +535,23 @@ const OrdersPage: React.FC = () => {
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setActiveTab('orders')}
+            type="button"
+            onClick={() => setActiveTab("orders")}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'orders'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "orders"
+                ? "border-primary-500 text-primary-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
             Orders ({filteredOrders.length})
           </button>
           <button
-            onClick={() => setActiveTab('trades')}
+            type="button"
+            onClick={() => setActiveTab("trades")}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'trades'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              activeTab === "trades"
+                ? "border-primary-500 text-primary-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
             Trades ({filteredTrades.length})
@@ -496,8 +572,8 @@ const OrdersPage: React.FC = () => {
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 w-64"
             />
           </div>
-          
-          {activeTab === 'orders' && (
+
+          {activeTab === "orders" && (
             <div className="flex items-center space-x-2">
               <FunnelIcon className="h-5 w-5 text-gray-400" />
               <select
@@ -518,7 +594,7 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {/* Orders Table */}
-      {activeTab === 'orders' && (
+      {activeTab === "orders" && (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -555,11 +631,7 @@ const OrdersPage: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
-                  <OrderRow 
-                    key={order.id} 
-                    order={order} 
-                    onCancel={handleCancelOrder}
-                  />
+                  <OrderRow key={order.id} order={order} onCancel={handleCancelOrder} />
                 ))
               ) : (
                 <tr>
@@ -574,7 +646,7 @@ const OrdersPage: React.FC = () => {
       )}
 
       {/* Trades Table */}
-      {activeTab === 'trades' && (
+      {activeTab === "trades" && (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -601,9 +673,7 @@ const OrdersPage: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredTrades.length > 0 ? (
-                filteredTrades.map((trade) => (
-                  <TradeRow key={trade.id} trade={trade} />
-                ))
+                filteredTrades.map((trade) => <TradeRow key={trade.id} trade={trade} />)
               ) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">

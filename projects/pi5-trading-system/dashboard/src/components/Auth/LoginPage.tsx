@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { toast } from 'react-hot-toast';
-import { useAuthStore } from '../../store/authStore';
-import { LoginFormData } from '../../types';
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import type React from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
+import { useAuthStore } from "../../store/authStore";
+import type { LoginFormData } from "../../types";
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -19,8 +20,8 @@ const LoginPage: React.FC = () => {
     try {
       clearError();
       await login(data.username, data.password);
-      toast.success('Welcome to Pi5 Trading System!');
-    } catch (error) {
+      toast.success("Welcome to Pi5 Trading System!");
+    } catch (_error) {
       // Error is handled by the store
     }
   };
@@ -31,14 +32,18 @@ const LoginPage: React.FC = () => {
         <div>
           {/* Logo */}
           <div className="mx-auto h-16 w-16 bg-primary-600 rounded-xl flex items-center justify-center">
-            <svg className="h-10 w-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-10 w-10 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              aria-label="Pi5 Trading System Logo"
+            >
+              <title>Pi5 Trading System Logo</title>
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
           </div>
-          
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Pi5 Trading System
-          </h2>
+
+          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">Pi5 Trading System</h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to access your trading dashboard
           </p>
@@ -52,17 +57,17 @@ const LoginPage: React.FC = () => {
                 Username
               </label>
               <input
-                {...register('username', {
-                  required: 'Username is required',
+                {...register("username", {
+                  required: "Username is required",
                   minLength: {
                     value: 3,
-                    message: 'Username must be at least 3 characters',
+                    message: "Username must be at least 3 characters",
                   },
                 })}
                 type="text"
                 autoComplete="username"
                 className={`appearance-none rounded-none relative block w-full px-3 py-3 border ${
-                  errors.username ? 'border-danger-300' : 'border-gray-300'
+                  errors.username ? "border-danger-300" : "border-gray-300"
                 } placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
                 placeholder="Username"
                 disabled={isLoading}
@@ -78,17 +83,17 @@ const LoginPage: React.FC = () => {
                 Password
               </label>
               <input
-                {...register('password', {
-                  required: 'Password is required',
+                {...register("password", {
+                  required: "Password is required",
                   minLength: {
                     value: 6,
-                    message: 'Password must be at least 6 characters',
+                    message: "Password must be at least 6 characters",
                   },
                 })}
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 className={`appearance-none rounded-none relative block w-full px-3 py-3 pr-10 border ${
-                  errors.password ? 'border-danger-300' : 'border-gray-300'
+                  errors.password ? "border-danger-300" : "border-gray-300"
                 } placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
                 placeholder="Password"
                 disabled={isLoading}
@@ -131,7 +136,7 @@ const LoginPage: React.FC = () => {
                   Signing in...
                 </div>
               ) : (
-                'Sign in'
+                "Sign in"
               )}
             </button>
           </div>
@@ -158,12 +163,8 @@ const LoginPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center">
-          <p className="text-xs text-gray-500">
-            Pi5 Trading System v1.0.0
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Professional Algorithmic Trading Platform
-          </p>
+          <p className="text-xs text-gray-500">Pi5 Trading System v1.0.0</p>
+          <p className="text-xs text-gray-400 mt-1">Professional Algorithmic Trading Platform</p>
         </div>
       </div>
     </div>

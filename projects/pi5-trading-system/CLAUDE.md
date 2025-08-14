@@ -79,10 +79,16 @@ docker compose restart trading_api  # Restart just the API
 ```bash
 cd dashboard/
 npm ci                         # Install dependencies
-npm start                      # Development server (port 3000)
-npm run build                  # Production build
-npm test                       # Run tests
+npm run dev                    # Development server (port 3000) - Vite
+npm run build                  # Production build - TypeScript + Vite
+npm run preview                # Preview production build
+npm run lint                   # Biome linting
+npm run lint:fix               # Auto-fix linting issues
+npm run format                 # Format code with Biome
+npm run type-check             # TypeScript type checking
 ```
+
+**Note**: The dashboard uses modern Vite-based tooling and does not include automated tests. Testing is performed manually through the web interface and validated against the backend API integration.
 
 ## Architecture Overview
 
@@ -248,12 +254,15 @@ docker compose exec timescaledb psql -U pi5trader -d pi5_trading
 - **Playwright Testing**: Confirm real-time events update the web interface
 
 ### Testing Strategy
-- **Unit tests**: Test individual components in isolation
-- **Integration tests**: Test component interactions
-- **System tests**: End-to-end workflow validation
+- **Unit tests**: Test individual components in isolation (backend only)
+- **Integration tests**: Test component interactions (backend only)
+- **System tests**: End-to-end workflow validation (backend only)
 - **Docker tests**: Full system testing in containerized environment
-- **Frontend tests**: Playwright automation to verify web interface
-- Mock external APIs (Yahoo Finance, Alpaca) in tests
+- **Frontend verification**: Manual testing through web interface (no automated tests)
+- **Playwright validation**: Use for deployment verification only (Step 4 of development workflow)
+- Mock external APIs (Yahoo Finance, Alpaca) in backend tests only
+
+**Dashboard Testing Philosophy**: The React dashboard relies on manual testing and validation against the backend API. No automated frontend tests are maintained to focus development effort on core trading logic reliability.
 
 ### Error Handling
 - Use structured logging with `structlog`
@@ -397,6 +406,8 @@ asyncio.run(test_endpoints())
 ### Required Playwright MCP Workflow
 
 **For Step 4 of every development task, use Playwright MCP to verify frontend functionality:**
+
+**Note**: Playwright is used exclusively for deployment verification, not as automated testing. The dashboard does not maintain automated tests - all verification is manual through the browser interface during development.
 
 #### 1. Basic Navigation and Login
 ```javascript

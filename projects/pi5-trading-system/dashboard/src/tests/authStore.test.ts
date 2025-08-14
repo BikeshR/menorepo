@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useAuthStore } from '../store/authStore';
-import { apiService } from '../services/api';
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiService } from "../services/api";
+import { useAuthStore } from "../store/authStore";
 
 // Mock apiService
-vi.mock('../services/api', () => ({
+vi.mock("../services/api", () => ({
   apiService: {
     login: vi.fn(),
     logout: vi.fn(),
@@ -18,32 +18,32 @@ const localStorageMock = {
   removeItem: vi.fn(),
   clear: vi.fn(),
 };
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
 });
 
 // Mock console methods
 global.console.error = vi.fn();
 
-describe('Auth Store', () => {
+describe("Auth Store", () => {
   const mockUser = {
-    id: '1',
-    username: 'testuser',
-    email: 'test@example.com',
-    full_name: 'Test User',
-    role: 'trader' as const,
+    id: "1",
+    username: "testuser",
+    email: "test@example.com",
+    full_name: "Test User",
+    role: "trader" as const,
     is_active: true,
-    created_at: '2023-01-01T00:00:00Z',
+    created_at: "2023-01-01T00:00:00Z",
   };
 
   const mockLoginResponse = {
     success: true,
-    access_token: 'mock_access_token',
-    refresh_token: 'mock_refresh_token',
-    token_type: 'bearer',
+    access_token: "mock_access_token",
+    refresh_token: "mock_refresh_token",
+    token_type: "bearer",
     expires_in: 3600,
     user: mockUser,
-    timestamp: '2023-01-01T00:00:00Z',
+    timestamp: "2023-01-01T00:00:00Z",
   };
 
   beforeEach(() => {
@@ -55,8 +55,8 @@ describe('Auth Store', () => {
     vi.resetAllMocks();
   });
 
-  describe('Initial State', () => {
-    it('should have correct initial state', () => {
+  describe("Initial State", () => {
+    it("should have correct initial state", () => {
       const { result } = renderHook(() => useAuthStore());
 
       expect(result.current.user).toBeNull();
@@ -66,21 +66,21 @@ describe('Auth Store', () => {
     });
   });
 
-  describe('Login', () => {
-    it('should login successfully', async () => {
-      (apiService.login as any).mockResolvedValue(mockLoginResponse);
-      
+  describe("Login", () => {
+    it("should login successfully", async () => {
+      (apiService.login as ReturnType<typeof vi.fn>).mockResolvedValue(mockLoginResponse);
+
       const { result } = renderHook(() => useAuthStore());
 
       expect(result.current.isLoading).toBe(false);
 
       await act(async () => {
-        await result.current.login('testuser', 'password123');
+        await result.current.login("testuser", "password123");
       });
 
       expect(apiService.login).toHaveBeenCalledWith({
-        username: 'testuser',
-        password: 'password123',
+        username: "testuser",
+        password: "password123",
       });
 
       expect(result.current.user).toEqual(mockUser);
@@ -89,25 +89,25 @@ describe('Auth Store', () => {
       expect(result.current.error).toBeNull();
     });
 
-    it('should handle login errors', async () => {
+    it("should handle login errors", async () => {
       const errorResponse = {
         response: {
           data: {
             error: {
-              message: 'Invalid credentials',
+              message: "Invalid credentials",
             },
           },
         },
       };
 
-      (apiService.login as any).mockRejectedValue(errorResponse);
-      
+      (apiService.login as ReturnType<typeof vi.fn>).mockRejectedValue(errorResponse);
+
       const { result } = renderHook(() => useAuthStore());
 
       await act(async () => {
         try {
-          await result.current.login('testuser', 'wrongpassword');
-        } catch (error) {
+          await result.current.login("testuser", "wrongpassword");
+        } catch (_error) {
           // Expected to throw
         }
       });
@@ -115,39 +115,39 @@ describe('Auth Store', () => {
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.isLoading).toBe(false);
-      expect(result.current.error).toBe('Invalid credentials');
+      expect(result.current.error).toBe("Invalid credentials");
     });
 
-    it('should handle login errors without specific message', async () => {
-      const errorResponse = new Error('Network error');
-      (apiService.login as any).mockRejectedValue(errorResponse);
-      
+    it("should handle login errors without specific message", async () => {
+      const errorResponse = new Error("Network error");
+      (apiService.login as ReturnType<typeof vi.fn>).mockRejectedValue(errorResponse);
+
       const { result } = renderHook(() => useAuthStore());
 
       await act(async () => {
         try {
-          await result.current.login('testuser', 'password123');
-        } catch (error) {
+          await result.current.login("testuser", "password123");
+        } catch (_error) {
           // Expected to throw
         }
       });
 
-      expect(result.current.error).toBe('Login failed');
+      expect(result.current.error).toBe("Login failed");
     });
 
-    it('should set loading state during login', async () => {
-      let resolveLogin: (value: any) => void;
+    it("should set loading state during login", async () => {
+      let resolveLogin: (value: unknown) => void;
       const loginPromise = new Promise((resolve) => {
         resolveLogin = resolve;
       });
 
-      (apiService.login as any).mockReturnValue(loginPromise);
-      
+      (apiService.login as ReturnType<typeof vi.fn>).mockReturnValue(loginPromise);
+
       const { result } = renderHook(() => useAuthStore());
 
       // Start login
       act(() => {
-        result.current.login('testuser', 'password123');
+        result.current.login("testuser", "password123");
       });
 
       expect(result.current.isLoading).toBe(true);
@@ -155,7 +155,7 @@ describe('Auth Store', () => {
 
       // Resolve login
       await act(async () => {
-        resolveLogin!(mockLoginResponse);
+        resolveLogin?.(mockLoginResponse);
         await loginPromise;
       });
 
@@ -163,7 +163,7 @@ describe('Auth Store', () => {
     });
   });
 
-  describe('Logout', () => {
+  describe("Logout", () => {
     beforeEach(async () => {
       // Set up authenticated state
       const { result } = renderHook(() => useAuthStore());
@@ -172,9 +172,9 @@ describe('Auth Store', () => {
       });
     });
 
-    it('should logout successfully', async () => {
-      (apiService.logout as any).mockResolvedValue({});
-      
+    it("should logout successfully", async () => {
+      (apiService.logout as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
       const { result } = renderHook(() => useAuthStore());
 
       expect(result.current.isAuthenticated).toBe(true);
@@ -190,29 +190,29 @@ describe('Auth Store', () => {
       expect(result.current.error).toBeNull();
     });
 
-    it('should logout even if API call fails', async () => {
-      const error = new Error('Logout API error');
-      (apiService.logout as any).mockRejectedValue(error);
-      
+    it("should logout even if API call fails", async () => {
+      const error = new Error("Logout API error");
+      (apiService.logout as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
       const { result } = renderHook(() => useAuthStore());
 
       await act(async () => {
         await result.current.logout();
       });
 
-      expect(global.console.error).toHaveBeenCalledWith('Logout error:', error);
+      expect(global.console.error).toHaveBeenCalledWith("Logout error:", error);
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
 
-    it('should set loading state during logout', async () => {
+    it("should set loading state during logout", async () => {
       let resolveLogout: () => void;
       const logoutPromise = new Promise<void>((resolve) => {
         resolveLogout = resolve;
       });
 
-      (apiService.logout as any).mockReturnValue(logoutPromise);
-      
+      (apiService.logout as ReturnType<typeof vi.fn>).mockReturnValue(logoutPromise);
+
       const { result } = renderHook(() => useAuthStore());
 
       // Start logout
@@ -224,7 +224,7 @@ describe('Auth Store', () => {
 
       // Resolve logout
       await act(async () => {
-        resolveLogout!();
+        resolveLogout?.();
         await logoutPromise;
       });
 
@@ -232,8 +232,8 @@ describe('Auth Store', () => {
     });
   });
 
-  describe('Set User', () => {
-    it('should set user and authentication state', () => {
+  describe("Set User", () => {
+    it("should set user and authentication state", () => {
       const { result } = renderHook(() => useAuthStore());
 
       act(() => {
@@ -245,7 +245,7 @@ describe('Auth Store', () => {
       expect(result.current.error).toBeNull();
     });
 
-    it('should clear user and authentication state when setting null', () => {
+    it("should clear user and authentication state when setting null", () => {
       const { result } = renderHook(() => useAuthStore());
 
       // Set user first
@@ -266,14 +266,14 @@ describe('Auth Store', () => {
     });
   });
 
-  describe('Check Auth', () => {
-    it('should authenticate user from localStorage', () => {
-      const mockToken = 'valid_token';
+  describe("Check Auth", () => {
+    it("should authenticate user from localStorage", () => {
+      const mockToken = "valid_token";
       const userString = JSON.stringify(mockUser);
 
-      localStorageMock.getItem.mockImplementation((key) => {
-        if (key === 'access_token') return mockToken;
-        if (key === 'user') return userString;
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === "access_token") return mockToken;
+        if (key === "user") return userString;
         return null;
       });
 
@@ -283,15 +283,15 @@ describe('Auth Store', () => {
         result.current.checkAuth();
       });
 
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('access_token');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('user');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith("access_token");
+      expect(localStorageMock.getItem).toHaveBeenCalledWith("user");
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
     });
 
-    it('should not authenticate without token', () => {
+    it("should not authenticate without token", () => {
       localStorageMock.getItem.mockReturnValue(null);
-      
+
       const { result } = renderHook(() => useAuthStore());
 
       act(() => {
@@ -302,13 +302,13 @@ describe('Auth Store', () => {
       expect(result.current.isAuthenticated).toBe(false);
     });
 
-    it('should not authenticate without user data', () => {
-      localStorageMock.getItem.mockImplementation((key) => {
-        if (key === 'access_token') return 'valid_token';
-        if (key === 'user') return null;
+    it("should not authenticate without user data", () => {
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === "access_token") return "valid_token";
+        if (key === "user") return null;
         return null;
       });
-      
+
       const { result } = renderHook(() => useAuthStore());
 
       act(() => {
@@ -319,13 +319,13 @@ describe('Auth Store', () => {
       expect(result.current.isAuthenticated).toBe(false);
     });
 
-    it('should handle invalid JSON in localStorage', () => {
-      const mockToken = 'valid_token';
-      const invalidUserJson = 'invalid json';
+    it("should handle invalid JSON in localStorage", () => {
+      const mockToken = "valid_token";
+      const invalidUserJson = "invalid json";
 
-      localStorageMock.getItem.mockImplementation((key) => {
-        if (key === 'access_token') return mockToken;
-        if (key === 'user') return invalidUserJson;
+      localStorageMock.getItem.mockImplementation((key: string) => {
+        if (key === "access_token") return mockToken;
+        if (key === "user") return invalidUserJson;
         return null;
       });
 
@@ -336,44 +336,44 @@ describe('Auth Store', () => {
       });
 
       expect(global.console.error).toHaveBeenCalledWith(
-        'Error parsing user data:',
+        "Error parsing user data:",
         expect.any(SyntaxError)
       );
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('access_token');
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('refresh_token');
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("access_token");
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("refresh_token");
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("user");
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
   });
 
-  describe('Clear Error', () => {
-    it('should clear error state', async () => {
+  describe("Clear Error", () => {
+    it("should clear error state", async () => {
       // Create an error state first
       const errorResponse = {
         response: {
           data: {
             error: {
-              message: 'Test error',
+              message: "Test error",
             },
           },
         },
       };
 
-      (apiService.login as any).mockRejectedValue(errorResponse);
-      
+      (apiService.login as ReturnType<typeof vi.fn>).mockRejectedValue(errorResponse);
+
       const { result } = renderHook(() => useAuthStore());
 
       // Generate error
       await act(async () => {
         try {
-          await result.current.login('testuser', 'wrongpassword');
-        } catch (error) {
+          await result.current.login("testuser", "wrongpassword");
+        } catch (_error) {
           // Expected to throw
         }
       });
 
-      expect(result.current.error).toBe('Test error');
+      expect(result.current.error).toBe("Test error");
 
       // Clear error
       act(() => {
@@ -384,16 +384,16 @@ describe('Auth Store', () => {
     });
   });
 
-  describe('Store Integration', () => {
-    it('should maintain state across multiple hook instances', async () => {
-      (apiService.login as any).mockResolvedValue(mockLoginResponse);
-      
+  describe("Store Integration", () => {
+    it("should maintain state across multiple hook instances", async () => {
+      (apiService.login as ReturnType<typeof vi.fn>).mockResolvedValue(mockLoginResponse);
+
       const { result: result1 } = renderHook(() => useAuthStore());
       const { result: result2 } = renderHook(() => useAuthStore());
 
       // Login from first instance
       await act(async () => {
-        await result1.current.login('testuser', 'password123');
+        await result1.current.login("testuser", "password123");
       });
 
       // Both instances should have the same state
@@ -403,18 +403,18 @@ describe('Auth Store', () => {
       expect(result2.current.isAuthenticated).toBe(true);
     });
 
-    it('should handle concurrent login attempts', async () => {
-      (apiService.login as any).mockResolvedValue(mockLoginResponse);
-      
+    it("should handle concurrent login attempts", async () => {
+      (apiService.login as ReturnType<typeof vi.fn>).mockResolvedValue(mockLoginResponse);
+
       const { result } = renderHook(() => useAuthStore());
 
       // Start multiple login attempts
       const loginPromise1 = act(async () => {
-        await result.current.login('testuser1', 'password123');
+        await result.current.login("testuser1", "password123");
       });
 
       const loginPromise2 = act(async () => {
-        await result.current.login('testuser2', 'password456');
+        await result.current.login("testuser2", "password456");
       });
 
       await Promise.all([loginPromise1, loginPromise2]);
@@ -427,44 +427,44 @@ describe('Auth Store', () => {
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle undefined user data gracefully', () => {
+  describe("Edge Cases", () => {
+    it("should handle undefined user data gracefully", () => {
       const { result } = renderHook(() => useAuthStore());
 
       act(() => {
-        result.current.setUser(undefined as any);
+        result.current.setUser(null);
       });
 
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
 
-    it('should handle empty string credentials', async () => {
-      (apiService.login as any).mockRejectedValue(new Error('Validation error'));
-      
+    it("should handle empty string credentials", async () => {
+      (apiService.login as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Validation error"));
+
       const { result } = renderHook(() => useAuthStore());
 
       await act(async () => {
         try {
-          await result.current.login('', '');
-        } catch (error) {
+          await result.current.login("", "");
+        } catch (_error) {
           // Expected to throw
         }
       });
 
       expect(apiService.login).toHaveBeenCalledWith({
-        username: '',
-        password: '',
+        username: "",
+        password: "",
       });
-      expect(result.current.error).toBe('Login failed');
+      expect(result.current.error).toBe("Login failed");
     });
 
-    it('should handle special characters in credentials', async () => {
-      (apiService.login as any).mockResolvedValue(mockLoginResponse);
-      
+    it("should handle special characters in credentials", async () => {
+      (apiService.login as ReturnType<typeof vi.fn>).mockResolvedValue(mockLoginResponse);
+
       const { result } = renderHook(() => useAuthStore());
-      const specialUsername = 'test@user+special';
-      const specialPassword = 'p@ssw0rd!@#$%^&*()';
+      const specialUsername = "test@user+special";
+      const specialPassword = "p@ssw0rd!@#$%^&*()";
 
       await act(async () => {
         await result.current.login(specialUsername, specialPassword);

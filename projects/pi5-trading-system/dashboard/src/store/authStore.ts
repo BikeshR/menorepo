@@ -1,13 +1,13 @@
-import { create } from 'zustand';
-import { User } from '../types';
-import { apiService } from '../services/api';
+import { create } from "zustand";
+import { apiService } from "../services/api";
+import type { User } from "../types";
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -16,7 +16,7 @@ interface AuthState {
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set, _get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -24,7 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (username: string, password: string) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await apiService.login({ username, password });
       set({
@@ -33,12 +33,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         error: null,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = "Login failed";
+      
+      // Type guard for axios error
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as { 
+          response?: { data?: { error?: { message?: string } } } 
+        };
+        if (axiosError.response?.data?.error?.message) {
+          errorMessage = axiosError.response.data.error.message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
-        error: error.response?.data?.error?.message || 'Login failed',
+        error: errorMessage,
       });
       throw error;
     }
@@ -46,11 +60,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     set({ isLoading: true });
-    
+
     try {
       await apiService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
       set({
         user: null,
@@ -70,9 +84,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   checkAuth: () => {
-    const token = localStorage.getItem('access_token');
-    const userStr = localStorage.getItem('user');
-    
+    const token = localStorage.getItem("access_token");
+    const userStr = localStorage.getItem("user");
+
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
@@ -81,11 +95,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isAuthenticated: true,
         });
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        console.error("Error parsing user data:", error);
         // Clear invalid data
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
         set({
           user: null,
           isAuthenticated: false,

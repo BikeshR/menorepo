@@ -5,7 +5,7 @@ export interface User {
   username: string;
   email: string;
   full_name?: string;
-  role: 'admin' | 'trader' | 'viewer';
+  role: "admin" | "trader" | "viewer";
   is_active: boolean;
   created_at: string;
   last_login?: string;
@@ -58,7 +58,7 @@ export interface Position {
   unrealized_pnl: number;
   unrealized_pnl_percent: number;
   cost_basis: number;
-  side: 'long' | 'short';
+  side: "long" | "short";
   first_acquired: string;
   last_updated: string;
 }
@@ -85,6 +85,26 @@ export interface PortfolioPerformance {
   beta?: number;
 }
 
+export interface PortfolioAllocation {
+  sectors?: {
+    sector: string;
+    percentage: number;
+  }[];
+}
+
+export interface SystemEvent {
+  id?: string;
+  level: "info" | "warning" | "error";
+  message: string;
+  timestamp: string;
+  source?: string;
+}
+
+export interface SystemStatus {
+  recent_events?: SystemEvent[];
+  [key: string]: unknown;
+}
+
 // Strategy Types
 export interface Strategy {
   id: string;
@@ -92,12 +112,12 @@ export interface Strategy {
   description?: string;
   class_name: string;
   strategy_type: string;
-  status: 'inactive' | 'active' | 'paused' | 'error';
-  parameters: Record<string, any>;
+  status: "inactive" | "active" | "paused" | "error";
+  parameters: Record<string, unknown>;
   symbols: string[];
   allocation?: number;
   total_pnl?: number;
-  risk_level?: 'low' | 'medium' | 'high';
+  risk_level?: "low" | "medium" | "high";
   last_signal?: {
     signal_type: string;
     symbol?: string;
@@ -123,7 +143,7 @@ export interface StrategyInfo {
 export interface StrategyParameter {
   name: string;
   type: string;
-  default_value: any;
+  default_value: unknown;
   min_value?: number;
   max_value?: number;
   description?: string;
@@ -155,15 +175,15 @@ export interface StrategyPerformance {
 export interface Order {
   id: string;
   symbol: string;
-  side: 'buy' | 'sell';
-  order_type: 'market' | 'limit' | 'stop' | 'stop_limit';
+  side: "buy" | "sell";
+  order_type: "market" | "limit" | "stop" | "stop_limit";
   quantity: number;
   price?: number;
   stop_price?: number;
   filled_quantity: number;
   remaining_quantity: number;
   average_fill_price?: number;
-  status: 'pending' | 'filled' | 'cancelled' | 'rejected' | 'expired' | 'partial';
+  status: "pending" | "filled" | "cancelled" | "rejected" | "expired" | "partial";
   created_at: string;
   updated_at: string;
   filled_at?: string;
@@ -176,7 +196,7 @@ export interface Trade {
   id: string;
   order_id: string;
   symbol: string;
-  side: 'buy' | 'sell';
+  side: "buy" | "sell";
   quantity: number;
   price: number;
   value: number;
@@ -192,14 +212,17 @@ export interface SystemHealth {
   uptime_seconds: number;
   uptime?: number;
   last_heartbeat?: string;
-  components: Record<string, {
-    status: string;
-    [key: string]: any;
-  }>;
+  components: Record<
+    string,
+    {
+      status: string;
+      [key: string]: unknown;
+    }
+  >;
   system: {
     cpu_usage: number;
     memory_usage: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   timestamp: string;
 }
@@ -229,7 +252,7 @@ export interface SystemMetrics {
 // WebSocket Types
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
@@ -257,7 +280,7 @@ export interface ChartData {
 }
 
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -284,13 +307,13 @@ export interface LoginFormData {
 
 export interface CreateOrderFormData {
   symbol: string;
-  side: 'buy' | 'sell';
-  order_type: 'market' | 'limit' | 'stop' | 'stop_limit';
+  side: "buy" | "sell";
+  order_type: "market" | "limit" | "stop" | "stop_limit";
   quantity: number;
-  price?: number;
-  time_in_force?: 'GTC' | 'IOC' | 'FOK' | 'DAY';
-  stop_loss?: number;
-  take_profit?: number;
+  price?: number | undefined;
+  time_in_force?: "GTC" | "IOC" | "FOK" | "DAY" | undefined;
+  stop_loss?: number | undefined;
+  take_profit?: number | undefined;
 }
 
 export interface CreateStrategyFormData {
@@ -298,13 +321,13 @@ export interface CreateStrategyFormData {
   description?: string;
   strategy_type: string;
   symbols: string[];
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   allocation: number;
-  risk_level: 'low' | 'medium' | 'high';
+  risk_level: "low" | "medium" | "high";
 }
 
 // Utility Types
-export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+export type LoadingState = "idle" | "loading" | "success" | "error";
 
 export interface PaginationParams {
   page: number;

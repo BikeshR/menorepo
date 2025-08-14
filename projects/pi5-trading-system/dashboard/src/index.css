@@ -1,12 +1,12 @@
+/* Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Custom CSS for the Pi5 Trading Dashboard */
-
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @layer base {
   body {
@@ -19,130 +19,130 @@
   .custom-scrollbar::-webkit-scrollbar {
     @apply w-1 h-1;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-track {
     @apply bg-gray-100 rounded-full;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded-full hover:bg-gray-400;
   }
-  
+
   /* Trading status indicators */
   .status-positive {
     @apply text-success-600 bg-success-50 border-success-200;
   }
-  
+
   .status-negative {
     @apply text-danger-600 bg-danger-50 border-danger-200;
   }
-  
+
   .status-neutral {
     @apply text-gray-600 bg-gray-50 border-gray-200;
   }
-  
+
   /* Card styles */
   .card {
     @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
   }
-  
+
   .card-header {
     @apply flex items-center justify-between mb-6;
   }
-  
+
   .card-title {
     @apply text-lg font-semibold text-gray-900;
   }
-  
+
   /* Button variants */
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
   }
-  
+
   .btn-success {
     @apply bg-success-600 hover:bg-success-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2;
   }
-  
+
   .btn-danger {
     @apply bg-danger-600 hover:bg-danger-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2;
   }
-  
+
   /* Form styles */
   .form-input {
     @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
   }
-  
+
   .form-label {
     @apply block text-sm font-medium text-gray-700 mb-2;
   }
-  
+
   /* Loading animations */
   .loading-spinner {
     @apply inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600;
   }
-  
+
   .loading-pulse {
     @apply animate-pulse bg-gray-200 rounded;
   }
-  
+
   /* Responsive grid */
   .dashboard-grid {
     @apply grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
   }
-  
+
   /* Navigation styles */
   .nav-item {
     @apply flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors;
   }
-  
+
   .nav-item-active {
     @apply bg-primary-100 text-primary-700;
   }
-  
+
   .nav-item-inactive {
     @apply text-gray-600 hover:bg-gray-50 hover:text-gray-900;
   }
-  
+
   /* Chart container */
   .chart-container {
     @apply relative h-64 w-full;
   }
-  
+
   /* Table styles */
   .table-header {
     @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
   }
-  
+
   .table-cell {
     @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
   }
-  
+
   /* Toast notifications */
   .toast-success {
     @apply bg-success-50 border border-success-200 text-success-800;
   }
-  
+
   .toast-error {
     @apply bg-danger-50 border border-danger-200 text-danger-800;
   }
-  
+
   .toast-warning {
     @apply bg-warning-50 border border-warning-200 text-warning-800;
   }
-  
+
   /* Mobile responsive utilities */
   .mobile-menu-item {
     @apply block px-3 py-2 rounded-md text-base font-medium;
   }
-  
+
   .mobile-menu-item-active {
     @apply bg-primary-100 text-primary-700;
   }
-  
+
   .mobile-menu-item-inactive {
     @apply text-gray-600 hover:bg-gray-50 hover:text-gray-900;
   }
@@ -153,11 +153,11 @@
   .dark-mode {
     @apply bg-gray-900 text-gray-100;
   }
-  
+
   .dark-mode .card {
     @apply bg-gray-800 border-gray-700;
   }
-  
+
   .dark-mode .card-title {
     @apply text-gray-100;
   }
@@ -168,7 +168,7 @@
   .no-print {
     display: none !important;
   }
-  
+
   .card {
     @apply shadow-none border border-gray-300;
   }
