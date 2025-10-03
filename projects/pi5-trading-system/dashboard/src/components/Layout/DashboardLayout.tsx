@@ -152,48 +152,37 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   );
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
+    <div className="h-screen flex overflow-hidden bg-gray-50">
       {/* Mobile sidebar */}
-      <div
-        className={`fixed inset-0 flex z-40 md:hidden ${sidebarOpen ? "" : "pointer-events-none"}`}
-      >
-        {/* Overlay */}
-        <button
-          type="button"
-          className={`fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity ${
-            sidebarOpen ? "opacity-100" : "opacity-0"
-          }`}
-          onClick={() => setSidebarOpen(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              setSidebarOpen(false);
-            }
-          }}
-          aria-label="Close sidebar"
-        />
+      {sidebarOpen && (
+        <div className="fixed inset-0 flex z-40 md:hidden">
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-gray-600 bg-opacity-75"
+            onClick={() => setSidebarOpen(false)}
+          />
 
-        {/* Sidebar */}
-        <div
-          className={`relative flex-1 flex flex-col max-w-xs w-full bg-primary-800 transform transition-transform ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          {/* Close button */}
-          <div className="absolute top-0 right-0 -mr-12 pt-2">
-            <button
-              type="button"
-              className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <XMarkIcon className="h-6 w-6 text-white" />
-            </button>
+          {/* Sidebar */}
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-primary-800">
+            {/* Close button */}
+            <div className="absolute top-0 right-0 -mr-12 pt-2">
+              <button
+                type="button"
+                className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <XMarkIcon className="h-6 w-6 text-white" />
+              </button>
+            </div>
+            <Sidebar />
           </div>
-          <Sidebar />
         </div>
-      </div>
+      )}
 
       {/* Desktop sidebar */}
-      <Sidebar className="hidden md:flex md:flex-shrink-0 md:w-64 bg-primary-800" />
+      <div className="hidden md:flex md:flex-shrink-0">
+        <Sidebar className="flex flex-col w-64 bg-primary-800" />
+      </div>
 
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
