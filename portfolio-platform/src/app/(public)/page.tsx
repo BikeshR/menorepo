@@ -48,7 +48,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Link
-              href="https://linkedin.com/in/bikeshrana"
+              href="https://www.linkedin.com/in/bikesh-rana"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-primary transition-colors"
@@ -58,7 +58,7 @@ export default function HomePage() {
                 <span className="sr-only">LinkedIn</span>
               </Button>
             </Link>
-            <Link href="mailto:contact@bikesh.dev" className="hover:text-primary transition-colors">
+            <Link href="mailto:bksh.rana@gmail.com" className="hover:text-primary transition-colors">
               <Button variant="ghost" size="icon" className="h-12 w-12">
                 <Mail className="h-6 w-6" />
                 <span className="sr-only">Email</span>
