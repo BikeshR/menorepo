@@ -33,3 +33,4 @@ CREATE TRIGGER set_updated_at
 
 -- No RLS needed for single-user system
 -- Application-level authentication via iron-session handles access control
+-- Migration deployed via GitHub Actions
