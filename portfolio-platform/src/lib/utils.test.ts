@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { cn } from './utils'
 
 describe('cn utility function', () => {
@@ -86,9 +86,7 @@ describe('cn utility function', () => {
         { 'object-class-1': true, 'object-class-2': false }
       )
 
-      expect(result).toBe(
-        'base-class conditional-class array-class-1 array-class-2 object-class-1'
-      )
+      expect(result).toBe('base-class conditional-class array-class-1 array-class-2 object-class-1')
     })
   })
 })
