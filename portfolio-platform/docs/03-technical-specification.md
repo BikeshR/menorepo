@@ -29,6 +29,7 @@ npm install @supabase/ssr @supabase/supabase-js node-appwrite
 npm install @tanstack/react-query zustand
 npm install react-hook-form zod @hookform/resolvers
 npm install lucide-react class-variance-authority clsx tailwind-merge
+npm install iron-session
 
 # Install Tailwind 4 and animation library
 npm install -D tailwindcss@next @tailwindcss/vite tw-animate-css
@@ -834,17 +835,13 @@ export async function GET() {
   const supabase = createClient()
 
   // Check auth
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
+  const authenticated = await isAuthenticated()
+  if (!authenticated) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Fetch data (RLS automatically filters by user_id)
-  const { data, error } = await supabase
+  // Fetch data (single-user design - no user_id filtering needed)
+  const { data, error} = await supabase
     .from('demo_private_data')
     .select('*')
     .order('created_at', { ascending: false })
@@ -860,15 +857,9 @@ export async function GET() {
 #### POST /api/demo-private/data
 ```typescript
 export async function POST(request: Request) {
-  const supabase = createClient()
-
   // Check auth
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
+  const authenticated = await isAuthenticated()
+  if (!authenticated) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -883,11 +874,11 @@ export async function POST(request: Request) {
     )
   }
 
-  // Insert (user_id automatically set by RLS)
+  // Insert (single-user design - no user_id needed)
+  const supabase = createClient()
   const { data, error } = await supabase
     .from('demo_private_data')
     .insert({
-      user_id: user.id,
       title,
       content,
     })
@@ -1553,11 +1544,12 @@ const nextConfig: NextConfig = {
 ## 16. Deployment Checklist
 
 ### 16.1 Pre-Deployment
-- [ ] All environment variables set in Vercel
+- [ ] All environment variables set in Vercel (including ADMIN_USERNAME, ADMIN_PASSWORD, SESSION_SECRET)
 - [ ] Supabase project created and configured
 - [ ] Appwrite project created and configured
 - [ ] Database migrations applied
-- [ ] Admin user created in Supabase Auth
+- [ ] Admin credentials configured in .env.local (ADMIN_USERNAME, ADMIN_PASSWORD)
+- [ ] SESSION_SECRET generated (32+ random characters)
 - [ ] GitHub Actions secrets configured
 - [ ] Build succeeds locally (`npm run build`)
 - [ ] Type checking passes (`tsc --noEmit`)
@@ -1568,10 +1560,11 @@ const nextConfig: NextConfig = {
 
 ### 16.2 Post-Deployment
 - [ ] Verify public pages accessible
-- [ ] Verify admin login works
-- [ ] Test protected routes redirect correctly
+- [ ] Verify admin login works with username/password
+- [ ] Test protected routes redirect correctly to /login
 - [ ] Check API routes return expected data
-- [ ] Verify RLS policies work
+- [ ] Verify session cookies are encrypted and httpOnly
+- [ ] Test logout functionality
 - [ ] Test on mobile devices
 - [ ] Check Lighthouse scores
 - [ ] Monitor Vercel logs for errors

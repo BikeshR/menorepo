@@ -92,9 +92,10 @@ Build a modular, extensible platform that demonstrates full-stack development ex
 
 #### FR-AUTH-001: User Authentication
 - **Description**: Single admin user can authenticate using username/password
-- **Provider**: Supabase Auth
+- **Provider**: iron-session (cookie-based session management)
 - **Session**: Server-side with httpOnly cookies
 - **Scope**: Both route-level and API endpoint protection
+- **Credentials**: Stored in environment variables (ADMIN_USERNAME, ADMIN_PASSWORD)
 
 #### FR-AUTH-002: Public Access
 - **Description**: All public routes accessible without authentication
@@ -103,7 +104,7 @@ Build a modular, extensible platform that demonstrates full-stack development ex
 #### FR-AUTH-003: Private Access
 - **Description**: All routes under `/admin/*` require authentication
 - **Redirect**: Unauthenticated users redirect to login page
-- **RLS**: Database-level security via Supabase Row Level Security
+- **Security**: Session-based authentication with middleware protection
 
 ### 4.2 Public Features
 
@@ -166,11 +167,12 @@ Build a modular, extensible platform that demonstrates full-stack development ex
 - **Database**: Supabase free tier (500MB, 50K MAU sufficient)
 
 ### 5.3 Security
-- **Auth**: Industry-standard auth via Supabase
-- **RLS**: Database-level security policies
+- **Auth**: Session-based authentication via iron-session
+- **Session Management**: Secure httpOnly cookies with encryption
 - **HTTPS**: Enforced via Vercel
 - **Secrets**: Environment variables, never committed to Git
 - **CORS**: Configured appropriately for API endpoints
+- **Single-User Design**: Application-level access control via middleware
 
 ### 5.4 Reliability
 - **Uptime**: Dependent on Vercel/Supabase SLAs (99.9%+)
@@ -223,10 +225,11 @@ Build a modular, extensible platform that demonstrates full-stack development ex
 - **Migrations**: Supabase CLI with version-controlled migration files
 
 ### 6.4 Authentication
-- **Provider**: Supabase Auth
-- **Method**: Email/password (username/password)
-- **Session**: Server-side, httpOnly cookies
-- **Security**: Row Level Security (RLS) policies
+- **Provider**: iron-session (npm package)
+- **Method**: Username/password (stored in environment variables)
+- **Session**: Server-side, httpOnly cookies with encryption
+- **Security**: Middleware-based route protection and session validation
+- **No Multi-User**: Single admin account only, no signup/registration flow
 
 ### 6.5 Deployment & DevOps
 - **Frontend Hosting**: Vercel
@@ -328,7 +331,7 @@ Build a modular, extensible platform that demonstrates full-stack development ex
 | Free tier limitations exceeded | High | Low | Monitor usage, upgrade if needed |
 | Platform vendor lock-in | Medium | Medium | Abstract external dependencies, use standard interfaces |
 | Complexity creep | Medium | High | Strict MVP scope, defer features to v2+ |
-| Authentication vulnerabilities | High | Low | Use established auth provider (Supabase), follow security best practices |
+| Authentication vulnerabilities | High | Low | Use iron-session with secure cookie settings, strong session secrets |
 
 ### 10.2 Product Risks
 

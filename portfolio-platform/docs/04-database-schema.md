@@ -17,9 +17,10 @@ This document details the database schema design, migration strategy, and data m
 - **Primary Database**: Supabase PostgreSQL (managed)
 - **Free Tier Limits**: 500MB database, 50K monthly active users
 - **Expected Usage**: < 10MB for MVP
-- **Security**: Row Level Security (RLS) enabled on all tables
+- **Security**: Application-level access control via iron-session middleware (single-user design)
 - **Migrations**: Version-controlled SQL files via Supabase CLI
 - **Backup**: Automatic daily backups by Supabase
+- **Authentication**: iron-session (no Supabase Auth, no multi-user)
 
 ---
 
@@ -52,104 +53,106 @@ Tables are namespaced by project to maintain modularity:
 
 ## 3. Core Schema (MVP)
 
-### 3.1 Authentication Schema
+### 3.1 Authentication Approach
 
-Supabase provides built-in authentication tables in the `auth` schema:
-
-```sql
--- Managed by Supabase Auth (read-only for application)
-auth.users (
-  id UUID PRIMARY KEY,
-  email TEXT UNIQUE,
-  encrypted_password TEXT,
-  email_confirmed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ,
-  -- ... other Supabase auth fields
-)
-```
-
-**Note**: We reference `auth.users(id)` for foreign keys but never directly modify this table.
+**Single-User Design:**
+- Authentication handled by `iron-session` (cookie-based sessions)
+- Credentials stored in environment variables (ADMIN_USERNAME, ADMIN_PASSWORD)
+- No user management tables needed
+- No Supabase Auth used
+- All data belongs to the single admin user
 
 ### 3.2 Demo Private Project Schema
 
 ```sql
--- Demo private project data table
+-- Demo private project data table (simplified for single-user)
 CREATE TABLE public.demo_private_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL CHECK (char_length(title) > 0 AND char_length(title) <= 100),
   content TEXT NOT NULL CHECK (char_length(content) > 0 AND char_length(content) <= 1000),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Indexes for performance
-CREATE INDEX idx_demo_private_data_user_id ON public.demo_private_data(user_id);
+-- Index for ordering
 CREATE INDEX idx_demo_private_data_created_at ON public.demo_private_data(created_at DESC);
 
+-- Trigger for updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at
+  BEFORE UPDATE ON public.demo_private_data
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- Comments for documentation
-COMMENT ON TABLE public.demo_private_data IS 'Sample data for demonstrating private project functionality';
-COMMENT ON COLUMN public.demo_private_data.user_id IS 'Reference to the user who owns this data';
+COMMENT ON TABLE public.demo_private_data IS 'Sample data for demonstrating private project functionality (single-user design)';
 COMMENT ON COLUMN public.demo_private_data.title IS 'Title of the demo entry (max 100 chars)';
 COMMENT ON COLUMN public.demo_private_data.content IS 'Content of the demo entry (max 1000 chars)';
 ```
 
+**Note:** No `user_id` column needed since this is a single-user application. Access control is handled by middleware, not database-level policies.
+
 ---
 
-## 4. Row Level Security (RLS) Policies
+## 4. Security Model (Single-User Design)
 
-### 4.1 RLS Philosophy
+### 4.1 Security Philosophy
 
-- **Default Deny**: All tables have RLS enabled with no access by default
-- **Explicit Allow**: Policies explicitly grant access based on conditions
-- **User Isolation**: Users can only access their own data via `auth.uid()`
-- **Service Role Bypass**: Backend service role key bypasses RLS for admin operations
+- **Application-Level Control**: All access control handled by Next.js middleware
+- **Session-Based Auth**: iron-session validates requests before database access
+- **No RLS**: Row Level Security not needed for single-user application
+- **Middleware Protection**: All `/admin` routes protected at application layer
+- **Server Actions**: All mutations check `isAuthenticated()` before executing
 
-### 4.2 Demo Private Data Policies
+### 4.2 Access Control Pattern
 
-```sql
--- Enable RLS on demo_private_data table
-ALTER TABLE public.demo_private_data ENABLE ROW LEVEL SECURITY;
+```typescript
+// Example: Server Action with auth check
+'use server'
 
--- Policy: Users can view their own data
-CREATE POLICY "Users can view own demo data"
-  ON public.demo_private_data
-  FOR SELECT
-  USING (auth.uid() = user_id);
+import { isAuthenticated } from '@/lib/auth/session'
+import { createClient } from '@/lib/supabase/server'
 
--- Policy: Users can insert their own data
-CREATE POLICY "Users can insert own demo data"
-  ON public.demo_private_data
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+export async function createDemoData(formData: FormData) {
+  // Application-level auth check
+  const authenticated = await isAuthenticated()
+  if (!authenticated) {
+    return { success: false, message: 'Unauthorized' }
+  }
 
--- Policy: Users can update their own data
-CREATE POLICY "Users can update own demo data"
-  ON public.demo_private_data
-  FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  // Direct database access - no user_id filtering needed
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('demo_private_data')
+    .insert({
+      title: formData.get('title'),
+      content: formData.get('content'),
+    })
 
--- Policy: Users can delete their own data
-CREATE POLICY "Users can delete own demo data"
-  ON public.demo_private_data
-  FOR DELETE
-  USING (auth.uid() = user_id);
+  return { success: !error, data }
+}
 ```
 
-### 4.3 Testing RLS Policies
+### 4.3 Why No RLS for Single-User?
 
-```sql
--- Test as authenticated user (simulating auth.uid())
-SET request.jwt.claim.sub = 'user-uuid-here';
+**Advantages:**
+- Simpler schema (no user_id columns)
+- Faster queries (no policy evaluation overhead)
+- Easier to reason about (one security layer instead of two)
+- All data belongs to admin user by definition
 
--- Should only return rows where user_id matches
-SELECT * FROM demo_private_data;
-
--- Reset
-RESET request.jwt.claim.sub;
-```
+**Security Measures:**
+- Middleware protects all admin routes
+- Server actions validate session before mutations
+- Encrypted httpOnly cookies prevent tampering
+- Environment-based credentials (not in database)
 
 ---
 

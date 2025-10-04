@@ -541,9 +541,6 @@ npx supabase migration new initial_schema
 
 # Create demo data migration
 npx supabase migration new demo_private_data
-
-# Create RLS policies migration
-npx supabase migration new rls_policies
 ```
 
 ### 9.2 Add Migration SQL
@@ -552,7 +549,8 @@ npx supabase migration new rls_policies
 
 - `supabase/migrations/TIMESTAMP_initial_schema.sql`
 - `supabase/migrations/TIMESTAMP_demo_private_data.sql`
-- `supabase/migrations/TIMESTAMP_rls_policies.sql`
+
+**Note:** No RLS policies needed for single-user design.
 
 ### 9.3 Apply Migrations Locally
 
@@ -797,14 +795,13 @@ In Supabase Dashboard:
 
 Or via SQL:
 
-```sql
--- In Supabase SQL Editor
-INSERT INTO auth.users (email, encrypted_password, email_confirmed_at)
-VALUES (
-  'your@email.com',
-  crypt('your-password', gen_salt('bf')),
-  NOW()
-);
+**Not needed** - Authentication uses iron-session with credentials in environment variables:
+
+```bash
+# In .env.local
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-secure-password
+SESSION_SECRET=your-32-char-random-secret
 ```
 
 ---
@@ -950,12 +947,13 @@ Before proceeding to development:
 - [ ] Database migrations applied (local and cloud)
 - [ ] TypeScript types generated from database
 - [ ] Appwrite project created
-- [ ] Environment variables configured (`.env.local`)
-- [ ] Supabase clients created (server, client, middleware)
+- [ ] Environment variables configured (`.env.local` with ADMIN_USERNAME, ADMIN_PASSWORD, SESSION_SECRET)
+- [ ] Supabase clients created (server, client)
+- [ ] iron-session setup completed (lib/auth/session.ts)
 - [ ] Middleware protecting `/admin` routes
-- [ ] Admin user created in Supabase Auth
+- [ ] Admin credentials configured in environment variables
 - [ ] Dev server running (`npm run dev`)
-- [ ] Test API route working
+- [ ] Test login with username/password
 - [ ] GitHub repository created and pushed
 - [ ] GitHub Actions secrets configured
 - [ ] Vercel project created and deployed

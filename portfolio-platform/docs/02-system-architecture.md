@@ -40,7 +40,6 @@ graph TB
     subgraph External["External Services"]
         subgraph Supabase["Supabase Cloud"]
             SBDB[(PostgreSQL DB)]
-            SBAuth[Auth Service]
             SBFunc[Edge Functions]
             SBReal[Realtime]
             SBStore[Storage]
@@ -238,21 +237,21 @@ Server Actions replace API routes for mutations where appropriate:
 // Example: app/(private)/demo-private/actions.ts
 'use server'
 
+import { isAuthenticated } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function updateDemoData(formData: FormData) {
-  const supabase = createClient()
-
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  const authenticated = await isAuthenticated()
+  if (!authenticated) throw new Error('Unauthorized')
 
   // Business logic
+  const supabase = createClient()
   const result = await supabase
-    .from('demo_data')
+    .from('demo_private_data')
     .update({ ... })
-    .eq('user_id', user.id)
+    .eq('id', formData.get('id'))
 
   // Revalidate cache
   revalidatePath('/admin/demo-private')
@@ -275,50 +274,60 @@ export async function updateDemoData(formData: FormData) {
 
 ### 2.3 Authentication & Authorization
 
-#### 2.3.1 Supabase Auth Integration
+#### 2.3.1 iron-session Integration
 
 **Authentication Flow:**
 
 ```
 1. User visits /admin/* route
-2. Middleware checks for session cookie
+2. Middleware checks for session cookie (iron-session)
 3. If no session → redirect to /login
-4. User submits credentials
-5. Next.js calls Supabase Auth API
-6. Supabase returns JWT + refresh token
-7. Tokens stored in httpOnly cookies
-8. User redirected to /admin
-9. Subsequent requests include cookie
-10. Middleware validates session on each request
+4. User submits username/password
+5. Server action validates against environment variables
+6. iron-session creates encrypted cookie
+7. User redirected to /admin
+8. Subsequent requests include encrypted session cookie
+9. Middleware validates session on each request
 ```
 
 **Implementation:**
 
 ```typescript
-// lib/supabase/server.ts
-import { createServerClient } from '@supabase/ssr'
+// lib/auth/session.ts
+import { getIronSession } from 'iron-session'
 import { cookies } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies()
+export interface SessionData {
+  username: string
+  isLoggedIn: boolean
+}
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
+const sessionOptions = {
+  password: process.env.SESSION_SECRET as string,
+  cookieName: 'portfolio_session',
+  cookieOptions: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  },
+}
+
+export async function getSession() {
+  const cookieStore = await cookies()
+  return getIronSession<SessionData>(cookieStore, sessionOptions)
+}
+
+export async function createSession(username: string) {
+  const session = await getSession()
+  session.username = username
+  session.isLoggedIn = true
+  await session.save()
+}
+
+export async function isAuthenticated() {
+  const session = await getSession()
+  return session.isLoggedIn === true
 }
 ```
 
@@ -328,20 +337,20 @@ export function createClient() {
 
 ```typescript
 // middleware.ts
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/session'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Check if route requires auth
+  // Protect admin routes
   if (pathname.startsWith('/admin')) {
-    const supabase = createServerClient(...)
-    const { data: { session } } = await supabase.auth.getSession()
+    const session = await getSession()
 
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url))
+    if (!session.isLoggedIn) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
     }
   }
 
@@ -349,32 +358,46 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*']
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)']
 }
 ```
 
-#### 2.3.3 Row Level Security (RLS)
+#### 2.3.3 Single-User Application Security
 
-All Supabase tables use RLS policies to enforce data isolation:
+**For single-user design, security is enforced at the application level:**
 
 ```sql
--- Example: Demo private project data
-CREATE TABLE demo_data (
+-- Example: Demo private project data (simplified - no user_id, no RLS)
+CREATE TABLE demo_private_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id),
-  content TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS
-ALTER TABLE demo_data ENABLE ROW LEVEL SECURITY;
+-- No RLS needed - middleware protects routes
+-- All data belongs to the single admin user
+```
 
--- Policy: Users can only access their own data
-CREATE POLICY "Users can CRUD own data"
-  ON demo_data
-  FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+**Server Action Protection:**
+
+```typescript
+// app/(private)/admin/demo-private/actions.ts
+'use server'
+
+import { isAuthenticated } from '@/lib/auth/session'
+
+export async function createDemoData(formData: FormData) {
+  // Check authentication
+  const authenticated = await isAuthenticated()
+  if (!authenticated) {
+    return { success: false, message: 'Unauthorized' }
+  }
+
+  // Business logic
+  // ...
+}
 ```
 
 ---
@@ -676,24 +699,24 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant MW as Next.js Middleware
-    participant Auth as Supabase Auth
+    participant Session as iron-session
     participant Next as Next.js Server
-    participant DB as Supabase DB (RLS)
+    participant DB as Supabase DB
 
     User->>MW: Visit /admin
-    MW->>MW: Check session cookie
-    MW->>Auth: Validate session
+    MW->>Session: Check session cookie
+    MW->>Session: Validate encrypted session
 
     alt No session
-        Auth->>MW: Invalid/Missing
+        Session->>MW: Invalid/Missing
         MW->>User: Redirect to /login
     else Valid session
-        Auth->>MW: Valid session
+        Session->>MW: Valid session (isLoggedIn: true)
         MW->>Next: Allow request
         Next->>Next: Render private page (RSC)
-        Next->>DB: Fetch user-specific data
-        Note over DB: RLS policies applied<br/>auth.uid() = user_id
-        DB->>Next: Return user data only
+        Next->>DB: Fetch data
+        Note over DB: Single-user design<br/>No RLS needed
+        DB->>Next: Return data
         Next->>User: Return protected content
         User->>User: Client-side auth state synced
     end
@@ -704,22 +727,22 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant Client as Client Component
-    participant API as Next.js API Route
-    participant Auth as Supabase Auth
+    participant API as Server Action/API Route
+    participant Session as iron-session
     participant SB as Supabase
     participant AW as Appwrite
     participant Ext as External APIs
 
-    Client->>API: POST /api/demo-private/data
+    Client->>API: POST (Server Action)
 
     rect rgb(255, 240, 240)
-        Note over API,Auth: 1. Authentication
-        API->>Auth: Verify session
+        Note over API,Session: 1. Authentication
+        API->>Session: Verify session
         alt Unauthorized
-            Auth->>API: Invalid session
-            API->>Client: 401 Unauthorized
+            Session->>API: Invalid session
+            API->>Client: Error response
         else Authorized
-            Auth->>API: Valid session
+            Session->>API: Valid session
         end
     end
 
@@ -743,7 +766,7 @@ sequenceDiagram
         Note over API,Client: 3. Response
         API->>API: Normalize data structure
         API->>API: Add metadata
-        API->>Client: Type-safe JSON response
+        API->>Client: Type-safe response
     end
 ```
 
@@ -755,19 +778,19 @@ sequenceDiagram
 
 | Layer | Mechanism | Implementation |
 |-------|-----------|----------------|
-| **Session Management** | httpOnly cookies | Supabase Auth SDK |
-| **Token Storage** | Secure cookies (not localStorage) | Next.js cookie handling |
-| **CSRF Protection** | SameSite cookie attribute | Next.js default |
-| **Password Hashing** | bcrypt | Supabase Auth (managed) |
-| **Rate Limiting** | Supabase Auth built-in | 30 attempts/hour default |
+| **Session Management** | httpOnly cookies with encryption | iron-session |
+| **Session Storage** | Encrypted cookies (not localStorage) | iron-session with AES encryption |
+| **CSRF Protection** | SameSite cookie attribute | Next.js + iron-session default |
+| **Credentials** | Environment variables | ADMIN_USERNAME, ADMIN_PASSWORD |
+| **Session Secret** | Strong random secret | SESSION_SECRET (32+ chars) |
 
 ### 4.2 Authorization Security
 
 | Layer | Mechanism | Implementation |
 |-------|-----------|----------------|
-| **Route Protection** | Middleware auth check | Custom Next.js middleware |
-| **API Protection** | Session validation | Per-route auth check |
-| **Database Security** | Row Level Security (RLS) | Supabase policies |
+| **Route Protection** | Middleware session check | Custom Next.js middleware |
+| **API Protection** | Session validation | isAuthenticated() checks |
+| **Database Security** | Application-level access control | Single-user design, middleware protected |
 | **File Access** | Bucket permissions | Appwrite ACL |
 
 ### 4.3 Data Security
@@ -1027,7 +1050,7 @@ const HeavyChart = dynamic(
 
 - ✅ **Modularity**: Each project self-contained, minimal coupling
 - ✅ **Scalability**: Serverless architecture scales automatically
-- ✅ **Security**: Multi-layer auth, RLS, secure session management
+- ✅ **Security**: Multi-layer auth via iron-session, encrypted session management, middleware protection
 - ✅ **Performance**: Edge caching, static generation, code splitting
 - ✅ **Maintainability**: Type safety, clear structure, documented decisions
 - ✅ **Cost**: Free tier for expected usage

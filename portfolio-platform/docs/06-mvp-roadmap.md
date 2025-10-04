@@ -237,75 +237,73 @@ Before starting Phase 0:
 
 ---
 
-## 4. Phase 2: Authentication System
+## 4. Phase 2: Authentication System (Simplified - Single User)
 
-**Goal**: Implement complete authentication flow with route protection
+**Goal**: Implement simple single-user authentication with iron-session
 
-**Estimated Time**: 2-3 hours
+**Estimated Time**: 1-2 hours (simplified from original 2-3 hours)
 
 ### 4.1 Tasks
 
-#### Task 2.1: Create Middleware ✅
-- [x] Implement `src/middleware.ts` with route protection
-- [x] Add session update logic via `src/lib/supabase/middleware.ts`
+#### Task 2.1: Install iron-session ✅
+- [x] Install `iron-session` package
+- [x] Create `src/lib/auth/session.ts` with session utilities
+- [x] Add environment variables (ADMIN_USERNAME, ADMIN_PASSWORD, SESSION_SECRET)
+
+**Acceptance Criteria**: Session utilities created and configured
+
+#### Task 2.2: Create Login Page ✅
+- [x] Implement `src/app/(public)/login/page.tsx` with username/password form
+- [x] Create `src/app/(public)/login/actions.ts` server action
+- [x] Validate credentials against environment variables
+- [x] Add error handling and loading states
+- [x] Use useActionState for form handling
+
+**Acceptance Criteria**:
+- Login page renders correctly ✅
+- Can log in with username/password ✅
+- Redirects to `/admin` after successful login ✅
+- Shows error for invalid credentials ✅
+
+#### Task 2.3: Create Middleware ✅
+- [x] Implement `src/middleware.ts` with iron-session
+- [x] Protect `/admin` routes
 - [x] Add redirect logic for unauthenticated users
 - [x] Test middleware intercepts `/admin` routes
 
 **Acceptance Criteria**: Accessing `/admin` redirects to `/login` when not authenticated
 
-#### Task 2.2: Create Auth Store (Zustand) ⏸️
-- [ ] Implement `src/stores/auth.store.ts`
-- [ ] Add user state management
-- [ ] Test store updates correctly
-
-**Acceptance Criteria**: Deferred - using Supabase auth state directly for now
-
-#### Task 2.3: Create Login & Signup Pages ✅
-- [x] Implement `src/app/(public)/login/page.tsx` with LoginForm client component
-- [x] Implement `src/app/(public)/signup/page.tsx` with SignupForm client component
-- [x] Add form validation with React Hook Form + Zod
-- [x] Implement login/signup logic with Supabase Auth
-- [x] Add error handling and loading states
-- [x] Style auth pages
-- [x] Add Suspense boundary for useSearchParams
-
-**Acceptance Criteria**:
-- Login page renders correctly ✅
-- Can log in with credentials ✅
-- Redirects to `/admin` after successful login ✅
-- Shows error for invalid credentials ✅
-- Signup creates new user and profile ✅
-
 #### Task 2.4: Create Logout Functionality ✅
-- [x] Create `src/app/api/auth/signout/route.ts`
+- [x] Update `src/app/api/auth/signout/route.ts` to use destroySession()
 - [x] Add logout button in admin sidebar
-- [x] Add logout logic
 - [x] Test logout clears session and redirects
 
 **Acceptance Criteria**: Logout button successfully logs out and redirects to login
 
 #### Task 2.5: Test Authentication Flow ✅
-- [x] Test login with correct credentials → success
+- [x] Test login with correct username/password → success
 - [x] Test login with wrong credentials → error shown
 - [x] Test accessing `/admin` without auth → redirect to login
 - [x] Test accessing `/admin` with auth → access granted
 - [x] Test logout → session cleared
-- [x] Test login redirect parameter works
 
 **Acceptance Criteria**: All auth flows work correctly
 
 ### 4.2 Phase 2 Completion Criteria
 
-- [x] Login page functional
+- [x] Login page functional with username/password
 - [x] Logout functionality working
-- [x] Middleware protecting admin routes
+- [x] Middleware protecting admin routes with iron-session
 - [x] Session persists across page refreshes
 - [x] Can log in and out successfully
+- [x] No signup page (single-user design)
 
 **Deliverables**:
-- Working authentication system
+- Working single-user authentication system
 - Protected `/admin` routes
-- Login/logout UI
+- Login/logout UI (no signup)
+
+**Note:** This phase was simplified from the original multi-user Supabase Auth design to a single-user iron-session approach.
 
 ---
 
