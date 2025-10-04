@@ -1,6 +1,4 @@
 import type { Metadata } from 'next'
-import { Footer } from '@/components/layout/Footer'
-import { Header } from '@/components/layout/Header'
 import { APP_DESCRIPTION, APP_NAME } from '@/lib/constants'
 
 export const metadata: Metadata = {
@@ -13,11 +11,5 @@ export default function PublicLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
-  )
+  return <div className="flex min-h-screen flex-col">{children}</div>
 }
