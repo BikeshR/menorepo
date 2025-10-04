@@ -13,14 +13,14 @@ type DemoData = Tables<'demo_private_data'>
 
 interface DemoDataListProps {
   initialData: DemoData[]
-  userEmail: string
+  username: string
 }
 
 const initialState: DemoDataFormState = {
   success: false,
 }
 
-export function DemoDataList({ initialData, userEmail }: DemoDataListProps) {
+export function DemoDataList({ initialData, username }: DemoDataListProps) {
   const titleId = useId()
   const contentId = useId()
   const [data, setData] = useState<DemoData[]>(initialData)
@@ -99,7 +99,7 @@ export function DemoDataList({ initialData, userEmail }: DemoDataListProps) {
       <Card>
         <CardHeader>
           <CardTitle>Your Demo Data</CardTitle>
-          <CardDescription>Logged in as: {userEmail}</CardDescription>
+          <CardDescription>Logged in as: {username}</CardDescription>
         </CardHeader>
         <CardContent>
           {data.length === 0 ? (

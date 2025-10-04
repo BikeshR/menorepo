@@ -1,3 +1,4 @@
+import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { DemoDataList } from './_components/DemoDataList'
 
@@ -7,14 +8,10 @@ export const metadata = {
 }
 
 export default async function DemoPrivatePage() {
-  const supabase = await createClient()
+  const supabase = createClient()
+  const session = await getSession()
 
-  // Get authenticated user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Fetch demo data for this user
+  // Fetch demo data
   const { data: demoData, error } = await supabase
     .from('demo_private_data')
     .select('*')
@@ -29,11 +26,11 @@ export default async function DemoPrivatePage() {
       <div>
         <h1 className="text-3xl font-bold">Demo Private Project</h1>
         <p className="text-muted-foreground mt-2">
-          A demonstration of full CRUD operations with server actions, React Query, and RLS
+          A demonstration of full CRUD operations with server actions and session-based auth
         </p>
       </div>
 
-      <DemoDataList initialData={demoData || []} userEmail={user?.email || 'Unknown'} />
+      <DemoDataList initialData={demoData || []} username={session.username || 'Unknown'} />
     </div>
   )
 }

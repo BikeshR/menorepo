@@ -1,8 +1,21 @@
-import type { NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
+import { type NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/session'
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  const { pathname } = request.nextUrl
+
+  // Protect admin routes
+  if (pathname.startsWith('/admin')) {
+    const session = await getSession()
+
+    if (!session.isLoggedIn) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {

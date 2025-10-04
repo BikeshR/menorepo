@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { isAuthenticated } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 
 // Validation schemas
@@ -31,6 +32,15 @@ export async function createDemoData(
   formData: FormData
 ): Promise<DemoDataFormState> {
   try {
+    // Check authentication
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return {
+        success: false,
+        message: 'You must be logged in to create demo data',
+      }
+    }
+
     // Parse and validate form data
     const validatedFields = createDemoDataSchema.safeParse({
       title: formData.get('title'),
@@ -45,23 +55,9 @@ export async function createDemoData(
       }
     }
 
-    // Get authenticated user
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return {
-        success: false,
-        message: 'You must be logged in to create demo data',
-      }
-    }
-
     // Insert data
+    const supabase = createClient()
     const { error: insertError } = await supabase.from('demo_private_data').insert({
-      user_id: user.id,
       title: validatedFields.data.title,
       content: validatedFields.data.content,
     })
@@ -92,6 +88,15 @@ export async function createDemoData(
 
 export async function deleteDemoData(id: string): Promise<{ success: boolean; message: string }> {
   try {
+    // Check authentication
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return {
+        success: false,
+        message: 'You must be logged in to delete demo data',
+      }
+    }
+
     // Validate ID
     const validatedFields = deleteDemoDataSchema.safeParse({ id })
 
@@ -102,21 +107,8 @@ export async function deleteDemoData(id: string): Promise<{ success: boolean; me
       }
     }
 
-    // Get authenticated user
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return {
-        success: false,
-        message: 'You must be logged in to delete demo data',
-      }
-    }
-
-    // Delete data (RLS ensures user can only delete their own data)
+    // Delete data
+    const supabase = createClient()
     const { error: deleteError } = await supabase
       .from('demo_private_data')
       .delete()
