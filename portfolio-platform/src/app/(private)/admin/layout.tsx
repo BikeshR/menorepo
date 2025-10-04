@@ -1,6 +1,6 @@
 'use client'
 
-import { FolderKanban, Home, LogOut, Menu, TrendingUp, User, X } from 'lucide-react'
+import { Beaker, FolderKanban, Home, LogOut, Menu, TrendingUp, User, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -75,6 +75,12 @@ export default function AdminLayout({
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <TrendingUp className="size-4" />
                 Investments
+              </Button>
+            </Link>
+            <Link href="/admin/demo-private" onClick={closeSidebar}>
+              <Button variant="ghost" className="w-full justify-start gap-2">
+                <Beaker className="size-4" />
+                Demo CRUD
               </Button>
             </Link>
           </nav>

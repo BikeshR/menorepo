@@ -13,6 +13,7 @@ const projects = [
     techStack: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS', 'Supabase'],
     githubUrl: 'https://github.com',
     liveUrl: 'https://example.com',
+    detailUrl: '/projects/portfolio-platform',
     status: 'published',
   },
   {
@@ -105,7 +106,14 @@ export default function ProjectsPage() {
               </div>
 
               {/* Links */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {'detailUrl' in project && project.detailUrl && (
+                  <Link href={project.detailUrl}>
+                    <Button variant="default" size="sm" className="w-full">
+                      View Details
+                    </Button>
+                  </Link>
+                )}
                 {project.githubUrl && (
                   <Link href={project.githubUrl} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm">
@@ -116,7 +124,7 @@ export default function ProjectsPage() {
                 )}
                 {project.liveUrl && (
                   <Link href={project.liveUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="default" size="sm">
+                    <Button variant="outline" size="sm">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Live Demo
                     </Button>
