@@ -3,6 +3,7 @@ import { BenchmarkComparison } from './_components/BenchmarkComparison'
 import { DiversificationMetrics } from './_components/DiversificationMetrics'
 import { InitialSync } from './_components/InitialSync'
 import { PerformanceChart } from './_components/PerformanceChart'
+import { PortfolioNews } from './_components/PortfolioNews'
 import { PortfolioOverview } from './_components/PortfolioOverview'
 import { TopPerformers } from './_components/TopPerformers'
 import { TransactionHistory } from './_components/TransactionHistory'
@@ -10,6 +11,7 @@ import {
   calculatePortfolioMetrics,
   getBenchmarkComparisonData,
   getPortfolioHistory,
+  getPortfolioNews,
   getPortfolioSummary,
   getTransactionHistory,
 } from './actions'
@@ -49,6 +51,9 @@ export default async function PortfolioPage() {
 
   // Fetch transaction history
   const transactions = await getTransactionHistory(100)
+
+  // Fetch portfolio news
+  const newsArticles = await getPortfolioNews(10)
 
   // Detect currency from positions
   const currencies = portfolioData.positions.map((p) => p.currency).filter(Boolean)
@@ -114,6 +119,9 @@ export default async function PortfolioPage() {
           cryptoPositions={portfolioData.cryptoPositions}
         />
       )}
+
+      {/* Portfolio News */}
+      {newsArticles && newsArticles.length > 0 && <PortfolioNews articles={newsArticles} />}
 
       {/* Transaction History */}
       <TransactionHistory initialTransactions={transactions || []} />

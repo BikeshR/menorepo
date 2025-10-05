@@ -1662,3 +1662,65 @@ export async function getPositionDetails(ticker: string) {
     return null
   }
 }
+
+/**
+ * Get portfolio news from holdings
+ *
+ * Fetches news articles for top holdings using Alpha Vantage News Sentiment API
+ *
+ * @param limit Maximum number of articles to return (default 10)
+ * @returns News articles with sentiment analysis
+ */
+export async function getPortfolioNews(limit = 10) {
+  try {
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return null
+    }
+
+    const supabase = createServiceClient()
+
+    // Get portfolio
+    const { data: portfolio } = await supabase
+      .from('portfolios')
+      .select('id')
+      .order('created_at')
+      .limit(1)
+      .single()
+
+    if (!portfolio) {
+      return null
+    }
+
+    // Get top holdings by market value
+    const { data: positions } = await supabase
+      .from('stocks')
+      .select('ticker, market_value')
+      .eq('portfolio_id', portfolio.id)
+      .order('market_value', { ascending: false })
+      .limit(5)
+
+    if (!positions || positions.length === 0) {
+      return []
+    }
+
+    // Extract ticker symbols and clean them
+    const tickers = positions
+      .map((p) => parseTrading212Ticker(p.ticker).symbol)
+      .filter(Boolean)
+      .join(',')
+
+    // Fetch news from Alpha Vantage
+    const alphaVantage = createAlphaVantageClient()
+    const newsData = await alphaVantage.getNewsSentiment({
+      tickers,
+      limit,
+      sort: 'LATEST',
+    })
+
+    return newsData.feed || []
+  } catch (error) {
+    console.error('Error fetching portfolio news:', error)
+    return []
+  }
+}

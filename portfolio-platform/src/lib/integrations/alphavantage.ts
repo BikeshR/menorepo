@@ -70,6 +70,41 @@ export interface TimeSeriesDaily {
 }
 
 /**
+ * News Sentiment response from Alpha Vantage
+ * Contains news articles with sentiment analysis
+ */
+export interface NewsSentiment {
+  items: string
+  sentiment_score_definition: string
+  relevance_score_definition: string
+  feed: NewsArticle[]
+}
+
+export interface NewsArticle {
+  title: string
+  url: string
+  time_published: string
+  authors: string[]
+  summary: string
+  banner_image: string | null
+  source: string
+  category_within_source: string
+  source_domain: string
+  topics: Array<{
+    topic: string
+    relevance_score: string
+  }>
+  overall_sentiment_score: number
+  overall_sentiment_label: string
+  ticker_sentiment: Array<{
+    ticker: string
+    relevance_score: string
+    ticker_sentiment_score: string
+    ticker_sentiment_label: string
+  }>
+}
+
+/**
  * Alpha Vantage API Error
  */
 export class AlphaVantageError extends Error {
@@ -180,6 +215,40 @@ export class AlphaVantageClient {
       symbol,
       outputsize: outputSize,
     })
+  }
+
+  /**
+   * Fetch news sentiment data for a ticker or topic
+   *
+   * @param tickers Stock ticker symbols (e.g., 'AAPL' or 'AAPL,GOOGL')
+   * @param topics Optional topics to filter (e.g., 'technology', 'earnings')
+   * @param timeFrom Optional start time in YYYYMMDDTHHMM format
+   * @param timeTo Optional end time in YYYYMMDDTHHMM format
+   * @param limit Optional result limit (default 50, max 1000)
+   * @returns News articles with sentiment analysis
+   *
+   * Rate limit: Part of 25 requests/day, 5 requests/minute limit
+   */
+  async getNewsSentiment(params: {
+    tickers?: string
+    topics?: string
+    timeFrom?: string
+    timeTo?: string
+    limit?: number
+    sort?: 'LATEST' | 'EARLIEST' | 'RELEVANCE'
+  }): Promise<NewsSentiment> {
+    const queryParams: Record<string, string> = {
+      function: 'NEWS_SENTIMENT',
+    }
+
+    if (params.tickers) queryParams.tickers = params.tickers
+    if (params.topics) queryParams.topics = params.topics
+    if (params.timeFrom) queryParams.time_from = params.timeFrom
+    if (params.timeTo) queryParams.time_to = params.timeTo
+    if (params.limit) queryParams.limit = params.limit.toString()
+    if (params.sort) queryParams.sort = params.sort
+
+    return this.request<NewsSentiment>(queryParams)
   }
 
   /**
