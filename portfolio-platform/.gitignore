@@ -44,4 +44,5 @@ next-env.d.ts
 # Supabase
 supabase/.branches
 supabase/.temp
-supabase/functions/**/*.ts
+# Note: We need to commit function index.ts files for deployment
+# supabase/functions/**/*.ts
