@@ -1556,3 +1556,109 @@ export async function getTransactionHistory(limit = 100) {
     return null
   }
 }
+
+/**
+ * Get position details by ticker
+ *
+ * Fetches stock/crypto position details including fundamentals from Alpha Vantage
+ *
+ * @param ticker Position ticker symbol
+ * @returns Position details with fundamentals
+ */
+export async function getPositionDetails(ticker: string) {
+  try {
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return null
+    }
+
+    const supabase = createServiceClient()
+
+    // Get portfolio
+    const { data: portfolio } = await supabase
+      .from('portfolios')
+      .select('id')
+      .order('created_at')
+      .limit(1)
+      .single()
+
+    if (!portfolio) {
+      return null
+    }
+
+    // Try to find in stocks table first
+    const { data: stock } = await supabase
+      .from('stocks')
+      .select('*')
+      .eq('portfolio_id', portfolio.id)
+      .eq('ticker', ticker)
+      .single()
+
+    if (stock) {
+      // Fetch fundamentals from Alpha Vantage
+      let fundamentals = null
+      try {
+        const alphaVantage = createAlphaVantageClient()
+        const cleanTicker = parseTrading212Ticker(ticker).symbol
+        fundamentals = await alphaVantage.getCompanyOverview(cleanTicker)
+      } catch (error) {
+        console.error(`Failed to fetch fundamentals for ${ticker}:`, error)
+      }
+
+      // Fetch position history
+      const { data: history } = await supabase
+        .from('stock_history')
+        .select('*')
+        .eq('stock_id', stock.id)
+        .order('snapshot_date', { ascending: true })
+        .limit(90) // Last 90 days
+
+      // Fetch transactions for this position
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('portfolio_id', portfolio.id)
+        .eq('ticker', ticker)
+        .order('executed_at', { ascending: false })
+
+      return {
+        type: 'stock' as const,
+        position: stock,
+        fundamentals,
+        history: history || [],
+        transactions: transactions || [],
+      }
+    }
+
+    // Try crypto table
+    const { data: crypto } = await supabase
+      .from('crypto')
+      .select('*')
+      .eq('portfolio_id', portfolio.id)
+      .eq('symbol', ticker)
+      .single()
+
+    if (crypto) {
+      // Fetch crypto history
+      const { data: history } = await supabase
+        .from('crypto_history')
+        .select('*')
+        .eq('crypto_id', crypto.id)
+        .order('snapshot_date', { ascending: true })
+        .limit(90)
+
+      return {
+        type: 'crypto' as const,
+        position: crypto,
+        fundamentals: null, // No fundamentals for crypto
+        history: history || [],
+        transactions: [], // Crypto transactions not implemented yet
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error fetching position details:', error)
+    return null
+  }
+}

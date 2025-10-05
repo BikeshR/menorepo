@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowDown, ArrowUp } from 'lucide-react'
+import Link from 'next/link'
 
 type Position = {
   ticker: string
@@ -66,7 +67,11 @@ export function TopPerformers({ positions, cryptoPositions }: TopPerformersProps
         </div>
         <div className="space-y-3">
           {topGainers.map((holding) => (
-            <div key={holding.symbol} className="flex items-center justify-between">
+            <Link
+              key={holding.symbol}
+              href={`/admin/portfolio/${encodeURIComponent(holding.symbol)}`}
+              className="flex items-center justify-between hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+            >
               <div className="flex-1">
                 <p className="font-medium">{holding.symbol}</p>
                 <p className="text-sm text-muted-foreground truncate">{holding.name}</p>
@@ -82,7 +87,7 @@ export function TopPerformers({ positions, cryptoPositions }: TopPerformersProps
                   })}
                 </p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -95,7 +100,11 @@ export function TopPerformers({ positions, cryptoPositions }: TopPerformersProps
         </div>
         <div className="space-y-3">
           {topLosers.map((holding) => (
-            <div key={holding.symbol} className="flex items-center justify-between">
+            <Link
+              key={holding.symbol}
+              href={`/admin/portfolio/${encodeURIComponent(holding.symbol)}`}
+              className="flex items-center justify-between hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+            >
               <div className="flex-1">
                 <p className="font-medium">{holding.symbol}</p>
                 <p className="text-sm text-muted-foreground truncate">{holding.name}</p>
@@ -111,7 +120,7 @@ export function TopPerformers({ positions, cryptoPositions }: TopPerformersProps
                   })}
                 </p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
