@@ -102,6 +102,180 @@ export type Database = {
           },
         ]
       }
+      crypto: {
+        Row: {
+          asset_code: string
+          average_cost: number | null
+          created_at: string
+          current_price: number | null
+          gain_loss: number | null
+          gain_loss_pct: number | null
+          id: string
+          last_synced_at: string | null
+          market_value: number | null
+          name: string | null
+          portfolio_id: string
+          quantity: number
+          symbol: string
+          updated_at: string
+        }
+        Insert: {
+          asset_code: string
+          average_cost?: number | null
+          created_at?: string
+          current_price?: number | null
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          last_synced_at?: string | null
+          market_value?: number | null
+          name?: string | null
+          portfolio_id: string
+          quantity: number
+          symbol: string
+          updated_at?: string
+        }
+        Update: {
+          asset_code?: string
+          average_cost?: number | null
+          created_at?: string
+          current_price?: number | null
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          last_synced_at?: string | null
+          market_value?: number | null
+          name?: string | null
+          portfolio_id?: string
+          quantity?: number
+          symbol?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'crypto_portfolio_id_fkey'
+            columns: ['portfolio_id']
+            isOneToOne: false
+            referencedRelation: 'portfolios'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      crypto_history: {
+        Row: {
+          created_at: string
+          crypto_id: string
+          gain_loss: number | null
+          gain_loss_pct: number | null
+          id: string
+          market_value: number
+          price: number
+          quantity: number
+          snapshot_date: string
+        }
+        Insert: {
+          created_at?: string
+          crypto_id: string
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          market_value: number
+          price: number
+          quantity: number
+          snapshot_date: string
+        }
+        Update: {
+          created_at?: string
+          crypto_id?: string
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          market_value?: number
+          price?: number
+          quantity?: number
+          snapshot_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'crypto_history_crypto_id_fkey'
+            columns: ['crypto_id']
+            isOneToOne: false
+            referencedRelation: 'crypto'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      portfolio_snapshots: {
+        Row: {
+          cash_balance: number | null
+          created_at: string
+          id: string
+          portfolio_id: string
+          snapshot_date: string
+          snapshot_type: string
+          total_cost_basis: number | null
+          total_gain_loss: number | null
+          total_return_pct: number | null
+          total_value: number
+        }
+        Insert: {
+          cash_balance?: number | null
+          created_at?: string
+          id?: string
+          portfolio_id: string
+          snapshot_date: string
+          snapshot_type?: string
+          total_cost_basis?: number | null
+          total_gain_loss?: number | null
+          total_return_pct?: number | null
+          total_value: number
+        }
+        Update: {
+          cash_balance?: number | null
+          created_at?: string
+          id?: string
+          portfolio_id?: string
+          snapshot_date?: string
+          snapshot_type?: string
+          total_cost_basis?: number | null
+          total_gain_loss?: number | null
+          total_return_pct?: number | null
+          total_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'portfolio_snapshots_portfolio_id_fkey'
+            columns: ['portfolio_id']
+            isOneToOne: false
+            referencedRelation: 'portfolios'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      portfolios: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -301,6 +475,189 @@ export type Database = {
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      stock_history: {
+        Row: {
+          created_at: string
+          gain_loss: number | null
+          gain_loss_pct: number | null
+          id: string
+          market_value: number
+          price: number
+          quantity: number
+          snapshot_date: string
+          stock_id: string
+        }
+        Insert: {
+          created_at?: string
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          market_value: number
+          price: number
+          quantity: number
+          snapshot_date: string
+          stock_id: string
+        }
+        Update: {
+          created_at?: string
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          market_value?: number
+          price?: number
+          quantity?: number
+          snapshot_date?: string
+          stock_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'stock_history_stock_id_fkey'
+            columns: ['stock_id']
+            isOneToOne: false
+            referencedRelation: 'stocks'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      stocks: {
+        Row: {
+          asset_type: string
+          average_cost: number | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          current_price: number | null
+          custom_group: string | null
+          custom_tags: string[] | null
+          exchange: string | null
+          gain_loss: number | null
+          gain_loss_pct: number | null
+          id: string
+          industry: string | null
+          initial_fill_date: string | null
+          isin: string | null
+          last_synced_at: string | null
+          market_value: number | null
+          name: string
+          portfolio_id: string
+          quantity: number
+          region: string | null
+          sector: string | null
+          ticker: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          average_cost?: number | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          current_price?: number | null
+          custom_group?: string | null
+          custom_tags?: string[] | null
+          exchange?: string | null
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          industry?: string | null
+          initial_fill_date?: string | null
+          isin?: string | null
+          last_synced_at?: string | null
+          market_value?: number | null
+          name: string
+          portfolio_id: string
+          quantity: number
+          region?: string | null
+          sector?: string | null
+          ticker: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          average_cost?: number | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          current_price?: number | null
+          custom_group?: string | null
+          custom_tags?: string[] | null
+          exchange?: string | null
+          gain_loss?: number | null
+          gain_loss_pct?: number | null
+          id?: string
+          industry?: string | null
+          initial_fill_date?: string | null
+          isin?: string | null
+          last_synced_at?: string | null
+          market_value?: number | null
+          name?: string
+          portfolio_id?: string
+          quantity?: number
+          region?: string | null
+          sector?: string | null
+          ticker?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'stocks_portfolio_id_fkey'
+            columns: ['portfolio_id']
+            isOneToOne: false
+            referencedRelation: 'portfolios'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      sync_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          portfolio_id: string
+          records_failed: number | null
+          records_synced: number | null
+          source: string
+          started_at: string
+          status: string
+          sync_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          portfolio_id: string
+          records_failed?: number | null
+          records_synced?: number | null
+          source: string
+          started_at?: string
+          status: string
+          sync_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          portfolio_id?: string
+          records_failed?: number | null
+          records_synced?: number | null
+          source?: string
+          started_at?: string
+          status?: string
+          sync_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'sync_logs_portfolio_id_fkey'
+            columns: ['portfolio_id']
+            isOneToOne: false
+            referencedRelation: 'portfolios'
             referencedColumns: ['id']
           },
         ]

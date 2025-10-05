@@ -71,10 +71,10 @@ export default function AdminLayout({
                 Projects
               </Button>
             </Link>
-            <Link href="/admin/investments" onClick={closeSidebar}>
+            <Link href="/admin/portfolio" onClick={closeSidebar}>
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <TrendingUp className="size-4" />
-                Investments
+                Portfolio
               </Button>
             </Link>
             <Link href="/admin/demo-private" onClick={closeSidebar}>

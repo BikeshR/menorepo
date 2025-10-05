@@ -7,6 +7,9 @@ export const metadata = {
   description: 'Demo CRUD project with Supabase and React Query',
 }
 
+// This page requires authentication and uses cookies
+export const dynamic = 'force-dynamic'
+
 export default async function DemoPrivatePage() {
   const supabase = createClient()
   const session = await getSession()

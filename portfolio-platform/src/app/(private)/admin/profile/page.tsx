@@ -1,6 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getSession } from '@/lib/auth/session'
 
+// This page requires authentication and uses cookies
+export const dynamic = 'force-dynamic'
+
 export default async function ProfilePage() {
   const session = await getSession()
 
