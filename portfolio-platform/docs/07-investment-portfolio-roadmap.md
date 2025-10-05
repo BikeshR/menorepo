@@ -160,77 +160,94 @@
 
 ---
 
-### Phase 2B: Advanced Financial Metrics (Week 6-7) - PLANNED
+### Phase 2B: Advanced Financial Metrics (Week 6-7) ✅ COMPLETED
 **Deep Analysis & Risk Metrics**
 
-#### Planned Features:
-1. **Performance Metrics (Advanced)**
-   - Time-Weighted Return (TWR)
-   - Internal Rate of Return (IRR) - requires cash flow tracking
-   - Benchmark comparison (S&P 500, MSCI World)
-   - Beta calculation vs. S&P 500 and MSCI World
+#### Completed Features:
+1. **Benchmark Comparison**
+   - ✅ S&P 500 benchmark data integration (Alpha Vantage)
+   - ✅ Normalized performance comparison chart
+   - ✅ Beta calculation vs S&P 500
+   - ✅ Dual-axis line chart (portfolio vs benchmark)
 
 2. **Risk Metrics**
-   - Portfolio volatility (standard deviation)
-   - Sharpe ratio
-   - Value at Risk (VaR) - 95% confidence
-   - Correlation matrix (holdings vs. holdings)
+   - ✅ Portfolio volatility (annualized standard deviation)
+   - ✅ Sharpe ratio (risk-adjusted return)
+   - ✅ Daily returns calculation
+   - ✅ Covariance and correlation with S&P 500
 
-3. **Industry-Level Classification**
-   - Sub-industry breakdown (from GICS)
-   - Industry performance comparison
-   - Waterfall chart for attribution
+3. **Financial Calculations**
+   - ✅ Total return over period
+   - ✅ Average daily return
+   - ✅ Portfolio variance calculation
+
+4. **Data Infrastructure**
+   - ✅ `benchmark_data` table for S&P 500 caching
+   - ✅ `syncBenchmarkData()` server action
+   - ✅ `calculatePortfolioMetrics()` with statistical analysis
+   - ✅ Educational tooltips explaining metrics
 
 #### Deliverables:
-- [ ] TWR/IRR calculations
-- [ ] Benchmark integration (S&P 500, MSCI World)
-- [ ] Risk metrics (volatility, Sharpe, beta, VaR)
-- [ ] Industry-level analysis
-- [ ] Advanced visualizations (waterfall, heatmap)
+- ✅ S&P 500 benchmark integration
+- ✅ Risk metrics (volatility, Sharpe, beta)
+- ✅ BenchmarkComparison component with visualizations
+- ✅ Database schema for market data
 
 #### Success Criteria:
-- Can compare portfolio performance to benchmarks
-- Risk metrics accurately calculated
-- Industry attribution working
+- ✅ Portfolio performance compared to S&P 500
+- ✅ Risk metrics accurately calculated
+- ✅ Visual comparison chart with normalized data
+- ✅ Users understand metrics via tooltips
+
+#### Future Enhancements (Phase 2B+):
+- [ ] Time-Weighted Return (TWR)
+- [ ] Internal Rate of Return (IRR) - requires transaction history
+- [ ] MSCI World benchmark
+- [ ] Value at Risk (VaR) - 95% confidence
+- [ ] Correlation matrix (holdings vs. holdings)
+- [ ] Industry-level classification and attribution
 
 ---
 
-### Phase 2C: Market Data & Research (Week 8-9)
-**External Data Integration**
+### Phase 2C: Transaction History & Data Foundation (Week 8-9) ✅ PARTIALLY COMPLETED
+**Transaction Tracking for IRR Calculation**
 
-#### Must-Have Features:
-1. **Alpha Vantage Integration**
-   - Real-time (15-min delayed) price data
-   - Fundamental data (P/E, P/B, dividend yield)
-   - Company overview data
+#### Completed Features:
+1. **Transaction History**
+   - ✅ `transactions` database table with full schema
+   - ✅ `syncTransactionHistory()` server action
+   - ✅ Trading212 orders API integration with pagination
+   - ✅ Automatic instrument metadata fetching
+   - ✅ Transaction history UI component with sync button
+   - ✅ Duplicate prevention via upsert on external_id
+   - ✅ Support for 200+ historical transactions
 
-2. **News & Research**
-   - News aggregation for holdings
-   - Analyst ratings (if available from Alpha Vantage)
-   - Price targets (if available)
+2. **Data Infrastructure**
+   - ✅ Transaction filtering (executed orders only)
+   - ✅ Asset type classification (stock/ETF)
+   - ✅ Currency and fee tracking
+   - ✅ Row-level security policies
 
-3. **Watchlist**
-   - Add tickers to watchlist
-   - View watchlist performance
-   - Compare watchlist vs. portfolio
+3. **UI Components**
+   - ✅ Transaction history table with buy/sell indicators
+   - ✅ Date formatting and currency symbols
+   - ✅ Real-time sync with loading states
+   - ✅ Empty state handling
 
-4. **Transaction History**
-   - Import transactions from Trading212/Kraken
-   - Manual transaction entry (backup)
-   - Cash flow tracking for accurate IRR
-
-#### Deliverables:
-- ✅ Alpha Vantage API integration
-- ✅ Fundamental data display
-- ✅ News aggregation
-- ✅ Watchlist functionality
-- ✅ Transaction history tracking
+#### Future Enhancements (Phase 2C+):
+- [ ] Kraken crypto transaction history sync
+- [ ] Manual transaction entry form
+- [ ] Transaction editing/deletion
+- [ ] IRR (Internal Rate of Return) calculation
+- [ ] News aggregation for holdings
+- [ ] Watchlist functionality
+- [ ] Enhanced fundamental data display (P/E, P/B, dividend yield)
 
 #### Success Criteria:
-- Market data supplements Trading212/Kraken data
-- News shows for each holding
-- Watchlist tracks potential investments
-- Transaction history enables accurate IRR
+- ✅ Can import historical transactions from Trading212
+- ✅ Transaction data stored for future IRR calculation
+- ✅ UI shows complete transaction history
+- [ ] IRR calculation working (deferred to next phase)
 
 ---
 

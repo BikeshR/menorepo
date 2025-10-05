@@ -1338,3 +1338,221 @@ export async function getBenchmarkComparisonData(days = 30): Promise<{
     }
   }
 }
+
+/**
+ * Sync transaction history from Trading212
+ *
+ * Fetches executed orders from Trading212 and stores them in the transactions table
+ * Supports pagination to fetch all historical transactions
+ *
+ * @param maxTransactions Maximum number of transactions to fetch (default: 200)
+ * @returns Success status and number of transactions synced
+ */
+export async function syncTransactionHistory(maxTransactions = 200): Promise<{
+  success: boolean
+  message: string
+  data?: {
+    transactionsSynced: number
+    oldestTransaction: string | null
+  }
+  error?: string
+}> {
+  try {
+    // Check authentication
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return {
+        success: false,
+        message: 'Unauthorized - please log in',
+        error: 'Not authenticated',
+      }
+    }
+
+    const supabase = createServiceClient()
+
+    // Get portfolio
+    const { data: portfolio } = await supabase
+      .from('portfolios')
+      .select('id')
+      .order('created_at')
+      .limit(1)
+      .single()
+
+    if (!portfolio) {
+      return {
+        success: false,
+        message: 'No portfolio found',
+        error: 'Portfolio not found',
+      }
+    }
+
+    // Create Trading212 client
+    const trading212 = createTrading212Client()
+
+    // Fetch orders with pagination
+    const allOrders = []
+    let cursor: string | undefined
+    let hasMore = true
+
+    while (hasMore && allOrders.length < maxTransactions) {
+      const remaining = maxTransactions - allOrders.length
+      const limit = Math.min(remaining, 50) // Trading212 limit per page
+
+      const response = await trading212.getOrders(limit, cursor)
+
+      // Filter for executed orders only
+      const executedOrders = response.items.filter((order) => order.status === 'EXECUTED')
+      allOrders.push(...executedOrders)
+
+      if (response.nextPagePath && allOrders.length < maxTransactions) {
+        // Extract cursor from nextPagePath
+        const url = new URL(response.nextPagePath, 'https://dummy.com')
+        cursor = url.searchParams.get('cursor') || undefined
+      } else {
+        hasMore = false
+      }
+    }
+
+    if (allOrders.length === 0) {
+      return {
+        success: true,
+        message: 'No transactions found',
+        data: {
+          transactionsSynced: 0,
+          oldestTransaction: null,
+        },
+      }
+    }
+
+    // Get instrument metadata to determine asset types
+    // Fetch all instruments once for efficiency
+    const instrumentMap = new Map<string, { name: string; type: 'stock' | 'etf' }>()
+
+    try {
+      const instruments = await trading212.getInstruments()
+      for (const instrument of instruments) {
+        instrumentMap.set(instrument.ticker, {
+          name: instrument.name,
+          type: instrument.type === 'ETF' ? 'etf' : 'stock',
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch instruments metadata:', error)
+      // Continue without instrument metadata - we'll use defaults
+    }
+
+    // Convert orders to transactions
+    const transactions = allOrders.map((order) => {
+      const instrument = instrumentMap.get(order.ticker) || { name: order.ticker, type: 'stock' as const }
+      const totalValue = order.quantity * (order.filledQuantity > 0 ? order.value / order.filledQuantity : order.value)
+
+      return {
+        portfolio_id: portfolio.id,
+        external_id: order.id.toString(),
+        ticker: order.ticker,
+        asset_name: instrument.name,
+        asset_type: instrument.type,
+        transaction_type: order.type === 'MARKET' || order.type === 'LIMIT' ? 'buy' : 'sell',
+        quantity: order.filledQuantity,
+        price: order.filledQuantity > 0 ? order.value / order.filledQuantity : 0,
+        total_value: totalValue,
+        fee: 0, // Trading212 doesn't provide fee information in orders API
+        currency: 'GBP', // Default to GBP, would need instrument metadata for accurate currency
+        executed_at: order.dateExecuted || order.dateCreated,
+        source: 'trading212' as const,
+      }
+    })
+
+    // Insert transactions (upsert to avoid duplicates)
+    const { error, count } = await supabase
+      .from('transactions')
+      .upsert(transactions, {
+        onConflict: 'source,external_id',
+        count: 'exact',
+      })
+
+    if (error) {
+      console.error('Failed to insert transactions:', error)
+      return {
+        success: false,
+        message: 'Database error while storing transactions',
+        error: error.message,
+      }
+    }
+
+    const oldestTransaction = transactions.length > 0
+      ? transactions.reduce((oldest, t) =>
+          new Date(t.executed_at) < new Date(oldest.executed_at) ? t : oldest
+        ).executed_at
+      : null
+
+    return {
+      success: true,
+      message: `Successfully synced ${count || 0} transactions`,
+      data: {
+        transactionsSynced: count || 0,
+        oldestTransaction,
+      },
+    }
+  } catch (error) {
+    console.error('Error syncing transaction history:', error)
+
+    if (error instanceof Trading212Error) {
+      return {
+        success: false,
+        message: 'Trading212 API error',
+        error: error.message,
+      }
+    }
+
+    return {
+      success: false,
+      message: 'Failed to sync transaction history',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
+ * Get transaction history
+ *
+ * Fetches all transactions sorted by execution date
+ *
+ * @param limit Number of transactions to fetch (default: 100)
+ * @returns List of transactions
+ */
+export async function getTransactionHistory(limit = 100) {
+  try {
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return null
+    }
+
+    const supabase = createServiceClient()
+
+    // Get portfolio
+    const { data: portfolio } = await supabase
+      .from('portfolios')
+      .select('id')
+      .order('created_at')
+      .limit(1)
+      .single()
+
+    if (!portfolio) {
+      return null
+    }
+
+    // Fetch transactions
+    const { data: transactions } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('portfolio_id', portfolio.id)
+      .order('executed_at', { ascending: false })
+      .limit(limit)
+
+    return transactions
+  } catch (error) {
+    console.error('Error fetching transaction history:', error)
+    return null
+  }
+}

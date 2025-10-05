@@ -5,11 +5,13 @@ import { InitialSync } from './_components/InitialSync'
 import { PerformanceChart } from './_components/PerformanceChart'
 import { PortfolioOverview } from './_components/PortfolioOverview'
 import { TopPerformers } from './_components/TopPerformers'
+import { TransactionHistory } from './_components/TransactionHistory'
 import {
   calculatePortfolioMetrics,
   getBenchmarkComparisonData,
   getPortfolioHistory,
   getPortfolioSummary,
+  getTransactionHistory,
 } from './actions'
 
 export const metadata = {
@@ -44,6 +46,9 @@ export default async function PortfolioPage() {
   // Fetch benchmark comparison data
   const metricsResult = await calculatePortfolioMetrics(30)
   const comparisonDataResult = await getBenchmarkComparisonData(30)
+
+  // Fetch transaction history
+  const transactions = await getTransactionHistory(100)
 
   // Detect currency from positions
   const currencies = portfolioData.positions.map((p) => p.currency).filter(Boolean)
@@ -108,6 +113,9 @@ export default async function PortfolioPage() {
           cryptoPositions={portfolioData.cryptoPositions}
         />
       )}
+
+      {/* Transaction History */}
+      <TransactionHistory initialTransactions={transactions || []} />
     </div>
   )
 }

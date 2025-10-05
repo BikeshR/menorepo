@@ -1,0 +1,111 @@
+-- Transactions Table for Trade History
+-- Stores executed buy/sell orders from Trading212 and Kraken for IRR calculation
+
+-- ============================================
+-- TRANSACTIONS TABLE
+-- ============================================
+CREATE TABLE public.transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  portfolio_id UUID NOT NULL REFERENCES public.portfolios(id) ON DELETE CASCADE,
+
+  -- Transaction identification
+  external_id TEXT, -- Order ID from Trading212/Kraken
+  ticker TEXT NOT NULL, -- Stock/crypto symbol
+  asset_name TEXT, -- Human-readable name
+  asset_type TEXT NOT NULL CHECK (asset_type IN ('stock', 'etf', 'crypto')),
+
+  -- Transaction details
+  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('buy', 'sell')),
+  quantity NUMERIC(15,6) NOT NULL CHECK (quantity > 0),
+  price NUMERIC(12,4) NOT NULL CHECK (price >= 0), -- Price per unit
+  total_value NUMERIC(15,2) NOT NULL, -- quantity * price
+
+  -- Fees and costs
+  fee NUMERIC(12,4) DEFAULT 0, -- Transaction fee
+  currency TEXT NOT NULL, -- e.g., 'USD', 'GBP', 'EUR'
+
+  -- Timing
+  executed_at TIMESTAMPTZ NOT NULL, -- When the order was filled
+
+  -- Data source
+  source TEXT NOT NULL CHECK (source IN ('trading212', 'kraken', 'manual')),
+
+  -- Metadata
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Prevent duplicate imports from APIs
+  UNIQUE(source, external_id)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_transactions_portfolio_id ON public.transactions(portfolio_id);
+CREATE INDEX idx_transactions_ticker ON public.transactions(ticker);
+CREATE INDEX idx_transactions_executed_at ON public.transactions(executed_at DESC);
+CREATE INDEX idx_transactions_portfolio_ticker ON public.transactions(portfolio_id, ticker, executed_at DESC);
+CREATE INDEX idx_transactions_source ON public.transactions(source);
+
+-- Comments
+COMMENT ON TABLE public.transactions IS 'Historical buy/sell transactions for IRR and cash flow tracking';
+COMMENT ON COLUMN public.transactions.external_id IS 'Order ID from external API (Trading212/Kraken)';
+COMMENT ON COLUMN public.transactions.transaction_type IS 'Buy or sell transaction';
+COMMENT ON COLUMN public.transactions.executed_at IS 'Timestamp when the trade was executed';
+COMMENT ON COLUMN public.transactions.total_value IS 'Total transaction value (quantity × price)';
+COMMENT ON COLUMN public.transactions.fee IS 'Transaction fee charged by broker';
+
+-- Trigger for updated_at
+CREATE TRIGGER update_transactions_updated_at
+  BEFORE UPDATE ON public.transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- ROW LEVEL SECURITY (RLS)
+-- ============================================
+
+-- Enable RLS
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+
+-- Allow all authenticated users to read transactions (via portfolio ownership)
+CREATE POLICY "Users can view own transactions"
+  ON public.transactions FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.portfolios
+      WHERE portfolios.id = transactions.portfolio_id
+      AND portfolios.user_id = auth.uid()
+    )
+  );
+
+-- Allow inserts via portfolio ownership
+CREATE POLICY "Users can insert own transactions"
+  ON public.transactions FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.portfolios
+      WHERE portfolios.id = transactions.portfolio_id
+      AND portfolios.user_id = auth.uid()
+    )
+  );
+
+-- Allow updates via portfolio ownership
+CREATE POLICY "Users can update own transactions"
+  ON public.transactions FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.portfolios
+      WHERE portfolios.id = transactions.portfolio_id
+      AND portfolios.user_id = auth.uid()
+    )
+  );
+
+-- Allow deletes via portfolio ownership
+CREATE POLICY "Users can delete own transactions"
+  ON public.transactions FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.portfolios
+      WHERE portfolios.id = transactions.portfolio_id
+      AND portfolios.user_id = auth.uid()
+    )
+  );

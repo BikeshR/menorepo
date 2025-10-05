@@ -103,6 +103,71 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          asset_name: string | null
+          asset_type: string
+          created_at: string
+          currency: string
+          executed_at: string
+          external_id: string | null
+          fee: number | null
+          id: string
+          portfolio_id: string
+          price: number
+          quantity: number
+          source: string
+          ticker: string
+          total_value: number
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          asset_name?: string | null
+          asset_type: string
+          created_at?: string
+          currency: string
+          executed_at: string
+          external_id?: string | null
+          fee?: number | null
+          id?: string
+          portfolio_id: string
+          price: number
+          quantity: number
+          source: string
+          ticker: string
+          total_value: number
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          asset_name?: string | null
+          asset_type?: string
+          created_at?: string
+          currency?: string
+          executed_at?: string
+          external_id?: string | null
+          fee?: number | null
+          id?: string
+          portfolio_id?: string
+          price?: number
+          quantity?: number
+          source?: string
+          ticker?: string
+          total_value?: number
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'transactions_portfolio_id_fkey'
+            columns: ['portfolio_id']
+            isOneToOne: false
+            referencedRelation: 'portfolios'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       investments: {
         Row: {
           average_cost: number
@@ -709,66 +774,6 @@ export type Database = {
             columns: ['portfolio_id']
             isOneToOne: false
             referencedRelation: 'portfolios'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      transactions: {
-        Row: {
-          created_at: string
-          fees: number
-          id: string
-          investment_id: string | null
-          notes: string | null
-          price: number
-          quantity: number
-          symbol: string
-          total_amount: number
-          transaction_date: string
-          type: Database['public']['Enums']['transaction_type']
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          fees?: number
-          id?: string
-          investment_id?: string | null
-          notes?: string | null
-          price: number
-          quantity: number
-          symbol: string
-          total_amount: number
-          transaction_date?: string
-          type: Database['public']['Enums']['transaction_type']
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          fees?: number
-          id?: string
-          investment_id?: string | null
-          notes?: string | null
-          price?: number
-          quantity?: number
-          symbol?: string
-          total_amount?: number
-          transaction_date?: string
-          type?: Database['public']['Enums']['transaction_type']
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'transactions_investment_id_fkey'
-            columns: ['investment_id']
-            isOneToOne: false
-            referencedRelation: 'investments'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'transactions_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
         ]
