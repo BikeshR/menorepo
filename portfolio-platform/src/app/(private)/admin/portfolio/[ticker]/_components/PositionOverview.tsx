@@ -1,4 +1,5 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
+import { calculatePositionIRR } from '@/lib/utils/irr'
 
 type StockPosition = {
   ticker: string
@@ -26,12 +27,20 @@ type CryptoPosition = {
   gain_loss_pct: number | null
 }
 
+type Transaction = {
+  id: string
+  transaction_type: string
+  total_value: number
+  executed_at: string
+}
+
 interface PositionOverviewProps {
   position: StockPosition | CryptoPosition
   type: 'stock' | 'crypto'
+  transactions?: Transaction[]
 }
 
-export function PositionOverview({ position, type }: PositionOverviewProps) {
+export function PositionOverview({ position, type, transactions = [] }: PositionOverviewProps) {
   const isStock = type === 'stock'
   const stockPosition = isStock ? (position as StockPosition) : null
 
@@ -45,6 +54,11 @@ export function PositionOverview({ position, type }: PositionOverviewProps) {
   const currencySymbol = currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : '$'
 
   const isProfit = gainLoss >= 0
+
+  // Calculate position IRR if transactions available
+  const positionIRR =
+    transactions.length > 0 ? calculatePositionIRR(transactions, marketValue) : null
+  const irrDisplay = positionIRR !== null ? `${(positionIRR * 100).toFixed(2)}%` : 'N/A'
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -98,6 +112,30 @@ export function PositionOverview({ position, type }: PositionOverviewProps) {
           {gainLossPct.toFixed(2)}%
         </p>
       </div>
+
+      {/* IRR */}
+      {transactions.length > 0 && (
+        <div className="border rounded-lg p-4 bg-card">
+          <p className="text-sm text-muted-foreground">
+            IRR
+            <span className="ml-1 text-xs">(Annualized)</span>
+          </p>
+          <p
+            className={`text-2xl font-bold ${
+              positionIRR !== null && positionIRR >= 0
+                ? 'text-green-600 dark:text-green-400'
+                : positionIRR !== null
+                  ? 'text-red-600 dark:text-red-400'
+                  : ''
+            }`}
+          >
+            {irrDisplay}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            From {transactions.length} transaction{transactions.length > 1 ? 's' : ''}
+          </p>
+        </div>
+      )}
 
       {/* Stock-specific metadata */}
       {isStock && stockPosition && (

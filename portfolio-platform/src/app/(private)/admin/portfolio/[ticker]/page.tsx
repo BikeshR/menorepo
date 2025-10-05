@@ -48,7 +48,11 @@ export default async function PositionPage({ params }: PositionPageProps) {
       </div>
 
       {/* Position Overview */}
-      <PositionOverview position={position} type={positionData.type} />
+      <PositionOverview
+        position={position}
+        type={positionData.type}
+        transactions={positionData.transactions}
+      />
 
       {/* Fundamental Metrics (stocks only) */}
       {isStock && positionData.fundamentals && (

@@ -3,6 +3,7 @@
 import { RefreshCw, Sparkles, TrendingDown, TrendingUp } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
+import { calculatePortfolioIRR } from '@/lib/utils/irr'
 import { enrichStockSectorData, syncKrakenPortfolio, syncTradingPortfolio } from '../actions'
 import { AllocationTreemap } from './AllocationTreemap'
 import { CryptoTable } from './CryptoTable'
@@ -68,6 +69,13 @@ type SyncLog = {
   error_message: string | null
 } | null
 
+type Transaction = {
+  id: string
+  transaction_type: string
+  total_value: number
+  executed_at: string
+}
+
 interface PortfolioOverviewProps {
   portfolio: Portfolio
   latestSnapshot: Snapshot
@@ -75,6 +83,7 @@ interface PortfolioOverviewProps {
   cryptoPositions: CryptoPosition[]
   latestSync: SyncLog
   latestCryptoSync: SyncLog
+  transactions?: Transaction[]
 }
 
 export function PortfolioOverview({
@@ -82,6 +91,7 @@ export function PortfolioOverview({
   positions,
   cryptoPositions,
   latestSync,
+  transactions = [],
 }: PortfolioOverviewProps) {
   const [isStocksPending, startStocksTransition] = useTransition()
   const [isCryptoPending, startCryptoTransition] = useTransition()
@@ -136,6 +146,11 @@ export function PortfolioOverview({
   const currencies = positions.map((p) => p.currency).filter(Boolean)
   const primaryCurrency = currencies.length > 0 ? currencies[0] : 'GBP'
   const currencySymbol = primaryCurrency === 'GBP' ? '£' : primaryCurrency === 'EUR' ? '€' : '$'
+
+  // Calculate portfolio IRR if transactions available
+  const portfolioIRR = transactions.length > 0 ? calculatePortfolioIRR(transactions, totalValue) : null
+  const irrDisplay =
+    portfolioIRR !== null ? `${(portfolioIRR * 100).toFixed(2)}%` : 'N/A'
 
   return (
     <div className="space-y-6">
@@ -204,7 +219,7 @@ export function PortfolioOverview({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Value */}
         <div className="p-6 border rounded-lg bg-card">
           <p className="text-sm text-muted-foreground mb-1">Total Value</p>
@@ -268,6 +283,30 @@ export function PortfolioOverview({
             {positions.filter((p) => p.asset_type === 'stock').length} Stocks,{' '}
             {positions.filter((p) => p.asset_type === 'etf').length} ETFs, {cryptoPositions.length}{' '}
             Crypto
+          </p>
+        </div>
+
+        {/* IRR */}
+        <div className="p-6 border rounded-lg bg-card">
+          <p className="text-sm text-muted-foreground mb-1">
+            IRR
+            <span className="ml-1 text-xs">(Annualized)</span>
+          </p>
+          <p
+            className={`text-3xl font-bold ${
+              portfolioIRR !== null && portfolioIRR >= 0
+                ? 'text-green-600 dark:text-green-400'
+                : portfolioIRR !== null
+                  ? 'text-red-600 dark:text-red-400'
+                  : ''
+            }`}
+          >
+            {irrDisplay}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {transactions.length > 0
+              ? `From ${transactions.length} transactions`
+              : 'No transactions yet'}
           </p>
         </div>
       </div>

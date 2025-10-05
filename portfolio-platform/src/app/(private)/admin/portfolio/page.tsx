@@ -71,6 +71,7 @@ export default async function PortfolioPage() {
         cryptoPositions={portfolioData.cryptoPositions}
         latestSync={portfolioData.latestSync}
         latestCryptoSync={portfolioData.latestCryptoSync}
+        transactions={transactions || []}
       />
 
       <PerformanceChart snapshots={historicalData || []} currencySymbol={currencySymbol} />
