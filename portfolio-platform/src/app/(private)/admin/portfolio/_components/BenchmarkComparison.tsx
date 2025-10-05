@@ -10,6 +10,9 @@ interface BenchmarkComparisonProps {
     averageReturn: number
     totalReturn: number
     sharpeRatio: number
+    var95: number
+    var99: number
+    cvar95: number
   }
   portfolioData: Array<{
     date: string
@@ -85,7 +88,7 @@ export function BenchmarkComparison({
       <h3 className="text-lg font-semibold mb-4">Benchmark Comparison (vs S&P 500)</h3>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">Beta</p>
           <p className="text-2xl font-bold">
@@ -130,6 +133,36 @@ export function BenchmarkComparison({
             </p>
           </div>
           <p className="text-xs text-muted-foreground mt-1">Period return</p>
+        </div>
+      </div>
+
+      {/* Risk Metrics - VaR */}
+      <div className="mb-6">
+        <h4 className="text-sm font-semibold mb-3">Risk Metrics (Value at Risk)</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-muted-foreground">VaR (95%)</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {metrics.var95.toFixed(2)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Daily loss threshold</p>
+          </div>
+
+          <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-muted-foreground">VaR (99%)</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {metrics.var99.toFixed(2)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Extreme loss threshold</p>
+          </div>
+
+          <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-muted-foreground">CVaR (95%)</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {metrics.cvar95.toFixed(2)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Expected shortfall</p>
+          </div>
         </div>
       </div>
 
@@ -188,6 +221,18 @@ export function BenchmarkComparison({
           </li>
           <li>
             <strong>Volatility:</strong> Annualized standard deviation of returns. Lower means more stable.
+          </li>
+          <li>
+            <strong>VaR (95%):</strong> Maximum expected daily loss that won't be exceeded 95% of the time.
+            There's a 5% chance of losing more than this on any given day.
+          </li>
+          <li>
+            <strong>VaR (99%):</strong> Maximum expected daily loss that won't be exceeded 99% of the time.
+            This represents extreme market conditions.
+          </li>
+          <li>
+            <strong>CVaR (Expected Shortfall):</strong> Average loss when VaR threshold is breached.
+            This gives you a better idea of potential losses in worst-case scenarios.
           </li>
         </ul>
       </div>

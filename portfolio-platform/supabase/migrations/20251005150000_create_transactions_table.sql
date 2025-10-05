@@ -4,7 +4,7 @@
 -- ============================================
 -- TRANSACTIONS TABLE
 -- ============================================
-CREATE TABLE public.transactions (
+CREATE TABLE IF NOT EXISTS public.transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   portfolio_id UUID NOT NULL REFERENCES public.portfolios(id) ON DELETE CASCADE,
 
@@ -39,11 +39,11 @@ CREATE TABLE public.transactions (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_transactions_portfolio_id ON public.transactions(portfolio_id);
-CREATE INDEX idx_transactions_ticker ON public.transactions(ticker);
-CREATE INDEX idx_transactions_executed_at ON public.transactions(executed_at DESC);
-CREATE INDEX idx_transactions_portfolio_ticker ON public.transactions(portfolio_id, ticker, executed_at DESC);
-CREATE INDEX idx_transactions_source ON public.transactions(source);
+CREATE INDEX IF NOT EXISTS idx_transactions_portfolio_id ON public.transactions(portfolio_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_ticker ON public.transactions(ticker);
+CREATE INDEX IF NOT EXISTS idx_transactions_executed_at ON public.transactions(executed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_portfolio_ticker ON public.transactions(portfolio_id, ticker, executed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_source ON public.transactions(source);
 
 -- Comments
 COMMENT ON TABLE public.transactions IS 'Historical buy/sell transactions for IRR and cash flow tracking';
@@ -54,10 +54,18 @@ COMMENT ON COLUMN public.transactions.total_value IS 'Total transaction value (q
 COMMENT ON COLUMN public.transactions.fee IS 'Transaction fee charged by broker';
 
 -- Trigger for updated_at
-CREATE TRIGGER update_transactions_updated_at
-  BEFORE UPDATE ON public.transactions
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_transactions_updated_at'
+  ) THEN
+    CREATE TRIGGER update_transactions_updated_at
+      BEFORE UPDATE ON public.transactions
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END
+$$;
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -66,46 +74,18 @@ CREATE TRIGGER update_transactions_updated_at
 -- Enable RLS
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
--- Allow all authenticated users to read transactions (via portfolio ownership)
-CREATE POLICY "Users can view own transactions"
-  ON public.transactions FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.portfolios
-      WHERE portfolios.id = transactions.portfolio_id
-      AND portfolios.user_id = auth.uid()
-    )
-  );
-
--- Allow inserts via portfolio ownership
-CREATE POLICY "Users can insert own transactions"
-  ON public.transactions FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.portfolios
-      WHERE portfolios.id = transactions.portfolio_id
-      AND portfolios.user_id = auth.uid()
-    )
-  );
-
--- Allow updates via portfolio ownership
-CREATE POLICY "Users can update own transactions"
-  ON public.transactions FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.portfolios
-      WHERE portfolios.id = transactions.portfolio_id
-      AND portfolios.user_id = auth.uid()
-    )
-  );
-
--- Allow deletes via portfolio ownership
-CREATE POLICY "Users can delete own transactions"
-  ON public.transactions FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.portfolios
-      WHERE portfolios.id = transactions.portfolio_id
-      AND portfolios.user_id = auth.uid()
-    )
-  );
+-- Single-user system: Allow all authenticated users to access transactions
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Allow all for authenticated users' AND tablename = 'transactions'
+  ) THEN
+    CREATE POLICY "Allow all for authenticated users"
+      ON public.transactions
+      FOR ALL
+      TO authenticated
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END
+$$;

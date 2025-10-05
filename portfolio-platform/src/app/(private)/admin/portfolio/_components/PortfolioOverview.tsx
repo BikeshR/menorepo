@@ -4,6 +4,7 @@ import { RefreshCw, Sparkles, TrendingDown, TrendingUp } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { calculatePortfolioIRR } from '@/lib/utils/irr'
+import { calculateTWR } from '@/lib/utils/twr'
 import { enrichStockSectorData, syncKrakenPortfolio, syncTradingPortfolio } from '../actions'
 import { AllocationTreemap } from './AllocationTreemap'
 import { CryptoTable } from './CryptoTable'
@@ -76,6 +77,12 @@ type Transaction = {
   executed_at: string
 }
 
+type HistoricalSnapshot = {
+  id: string
+  snapshot_date: string
+  total_value: number
+}
+
 interface PortfolioOverviewProps {
   portfolio: Portfolio
   latestSnapshot: Snapshot
@@ -84,6 +91,7 @@ interface PortfolioOverviewProps {
   latestSync: SyncLog
   latestCryptoSync: SyncLog
   transactions?: Transaction[]
+  historicalSnapshots?: HistoricalSnapshot[]
 }
 
 export function PortfolioOverview({
@@ -92,6 +100,7 @@ export function PortfolioOverview({
   cryptoPositions,
   latestSync,
   transactions = [],
+  historicalSnapshots = [],
 }: PortfolioOverviewProps) {
   const [isStocksPending, startStocksTransition] = useTransition()
   const [isCryptoPending, startCryptoTransition] = useTransition()
@@ -151,6 +160,17 @@ export function PortfolioOverview({
   const portfolioIRR = transactions.length > 0 ? calculatePortfolioIRR(transactions, totalValue) : null
   const irrDisplay =
     portfolioIRR !== null ? `${(portfolioIRR * 100).toFixed(2)}%` : 'N/A'
+
+  // Calculate portfolio TWR from historical snapshots
+  const portfolioTWR = historicalSnapshots.length >= 2
+    ? calculateTWR(
+        historicalSnapshots.map(s => ({
+          date: new Date(s.snapshot_date),
+          value: s.total_value
+        }))
+      )
+    : null
+  const twrDisplay = portfolioTWR !== null ? `${(portfolioTWR * 100).toFixed(2)}%` : 'N/A'
 
   return (
     <div className="space-y-6">
@@ -219,7 +239,7 @@ export function PortfolioOverview({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Total Value */}
         <div className="p-6 border rounded-lg bg-card">
           <p className="text-sm text-muted-foreground mb-1">Total Value</p>
@@ -307,6 +327,30 @@ export function PortfolioOverview({
             {transactions.length > 0
               ? `From ${transactions.length} transactions`
               : 'No transactions yet'}
+          </p>
+        </div>
+
+        {/* TWR */}
+        <div className="p-6 border rounded-lg bg-card">
+          <p className="text-sm text-muted-foreground mb-1">
+            TWR
+            <span className="ml-1 text-xs">(Annualized)</span>
+          </p>
+          <p
+            className={`text-3xl font-bold ${
+              portfolioTWR !== null && portfolioTWR >= 0
+                ? 'text-green-600 dark:text-green-400'
+                : portfolioTWR !== null
+                  ? 'text-red-600 dark:text-red-400'
+                  : ''
+            }`}
+          >
+            {twrDisplay}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {historicalSnapshots.length > 0
+              ? `From ${historicalSnapshots.length} snapshots`
+              : 'No historical data'}
           </p>
         </div>
       </div>
