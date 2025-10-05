@@ -120,10 +120,50 @@
 
 ---
 
-### Phase 2A: Advanced Analytics (Week 5-6)
+### Phase 2A: Portfolio Analytics & Insights (Week 5) ✅ COMPLETED
+**Visual Analytics & Diversification Analysis**
+
+#### Completed Features:
+1. **Allocation Analysis**
+   - ✅ Asset Type breakdown (Stocks vs ETFs vs Crypto) - Donut chart
+   - ✅ Sector allocation visualization - Donut chart
+   - ✅ Geographic/Region allocation - Donut chart
+   - ✅ Interactive charts with percentage labels and tooltips
+
+2. **Performance Analysis**
+   - ✅ Top 5 Gainers table with % returns and absolute gains
+   - ✅ Top 5 Losers table with % returns and absolute losses
+   - ✅ Combined view across stocks, ETFs, and crypto
+
+3. **Diversification & Risk Metrics**
+   - ✅ Diversification Score (0-100 rating)
+   - ✅ Concentration warnings (>30% single holding, >50% single sector)
+   - ✅ Portfolio composition metrics (total holdings, largest position %)
+   - ✅ Visual risk indicators with color-coded warnings
+
+4. **Dashboard Enhancement**
+   - ✅ Reusable chart components (DonutChart)
+   - ✅ Responsive grid layout
+   - ✅ Color-coded visualizations (green for gains, red for losses)
+
+#### Deliverables:
+- ✅ 3 allocation donut charts (Asset Type, Sector, Region)
+- ✅ Top Performers component (gainers & losers)
+- ✅ Diversification metrics with warnings
+- ✅ All components mobile-responsive
+
+#### Success Criteria:
+- ✅ Visual breakdown of portfolio composition
+- ✅ Easy identification of best/worst performers
+- ✅ Concentration risk clearly displayed
+- ✅ All charts render correctly on mobile
+
+---
+
+### Phase 2B: Advanced Financial Metrics (Week 6-7) - PLANNED
 **Deep Analysis & Risk Metrics**
 
-#### Must-Have Features:
+#### Planned Features:
 1. **Performance Metrics (Advanced)**
    - Time-Weighted Return (TWR)
    - Internal Rate of Return (IRR) - requires cash flow tracking
@@ -141,27 +181,21 @@
    - Industry performance comparison
    - Waterfall chart for attribution
 
-4. **Dashboard Enhancement**
-   - Tabbed sections (Overview, Analysis, Performance, Risk)
-   - Hero chart: Overall gain/loss line with TWR/IRR
-   - Mobile-responsive design (mobile-first)
-
 #### Deliverables:
-- ✅ TWR/IRR calculations
-- ✅ Benchmark integration (S&P 500, MSCI World)
-- ✅ Risk metrics (volatility, Sharpe, beta, VaR)
-- ✅ Industry-level analysis
-- ✅ Advanced visualizations (waterfall, heatmap)
+- [ ] TWR/IRR calculations
+- [ ] Benchmark integration (S&P 500, MSCI World)
+- [ ] Risk metrics (volatility, Sharpe, beta, VaR)
+- [ ] Industry-level analysis
+- [ ] Advanced visualizations (waterfall, heatmap)
 
 #### Success Criteria:
 - Can compare portfolio performance to benchmarks
 - Risk metrics accurately calculated
 - Industry attribution working
-- Dashboard fully responsive on mobile
 
 ---
 
-### Phase 2B: Market Data & Research (Week 7-8)
+### Phase 2C: Market Data & Research (Week 8-9)
 **External Data Integration**
 
 #### Must-Have Features:
@@ -1060,12 +1094,13 @@ This roadmap provides a **phased approach** to building a comprehensive investme
 - ✅ Mobile-first: Responsive design throughout
 
 **Estimated Timeline**:
-- **Phase 1A (MVP)**: 2 weeks → Usable portfolio tracker
-- **Phase 1B (Core)**: 2 weeks → Historical data + analytics
-- **Phase 2A (Advanced)**: 2 weeks → Risk metrics + benchmarking
-- **Phase 2B (Market Data)**: 2 weeks → Research + transactions
-- **Phase 3 (Automation)**: 4 weeks → AI + automation
+- **Phase 1A (MVP)**: ✅ COMPLETED → Usable portfolio tracker
+- **Phase 1B (Core)**: ✅ COMPLETED → Historical data + analytics
+- **Phase 2A (Analytics)**: ✅ COMPLETED → Visual analytics + diversification
+- **Phase 2B (Advanced Metrics)**: NEXT → Risk metrics + benchmarking
+- **Phase 2C (Market Data)**: PLANNED → Research + transactions
+- **Phase 3 (Automation)**: PLANNED → AI + automation
 
-**Total**: 12 weeks to full-featured platform
+**Progress**: 3/6 phases completed
 
 Ready to start with **Phase 1A - Week 1: Trading212 Integration**? 🚀

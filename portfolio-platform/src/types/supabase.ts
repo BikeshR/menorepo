@@ -52,6 +52,57 @@ export type Database = {
         }
         Relationships: []
       }
+      benchmark_data: {
+        Row: {
+          adjusted_close: number
+          benchmark_name: string
+          close: number
+          created_at: string
+          daily_return: number | null
+          date: string
+          high: number
+          id: string
+          low: number
+          open: number
+          source: string
+          symbol: string
+          updated_at: string
+          volume: number
+        }
+        Insert: {
+          adjusted_close: number
+          benchmark_name?: string
+          close: number
+          created_at?: string
+          daily_return?: number | null
+          date: string
+          high: number
+          id?: string
+          low: number
+          open: number
+          source?: string
+          symbol?: string
+          updated_at?: string
+          volume: number
+        }
+        Update: {
+          adjusted_close?: number
+          benchmark_name?: string
+          close?: number
+          created_at?: string
+          daily_return?: number | null
+          date?: string
+          high?: number
+          id?: string
+          low?: number
+          open?: number
+          source?: string
+          symbol?: string
+          updated_at?: string
+          volume?: number
+        }
+        Relationships: []
+      }
       investments: {
         Row: {
           average_cost: number

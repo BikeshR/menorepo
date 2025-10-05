@@ -978,3 +978,363 @@ export async function syncKrakenPortfolio(): Promise<SyncPortfolioResult> {
     }
   }
 }
+
+/**
+ * Sync S&P 500 benchmark data from Alpha Vantage
+ *
+ * Fetches historical S&P 500 (SPY) data and stores it in the database
+ * for portfolio comparison and beta calculation
+ *
+ * @param daysToSync Number of days to sync (default: 100, max: 100 for compact API)
+ * @returns Success status and number of records synced
+ */
+export async function syncBenchmarkData(daysToSync = 100): Promise<{
+  success: boolean
+  message: string
+  data?: {
+    recordsSynced: number
+    latestDate: string
+  }
+  error?: string
+}> {
+  try {
+    // Create Alpha Vantage client
+    const alphaVantage = createAlphaVantageClient()
+
+    // Fetch SPY (S&P 500 ETF) time series data
+    const timeSeriesData = await alphaVantage.getTimeSeriesDaily('SPY', 'compact')
+
+    if (!timeSeriesData['Time Series (Daily)']) {
+      return {
+        success: false,
+        message: 'No time series data returned from Alpha Vantage',
+        error: 'Empty response',
+      }
+    }
+
+    const timeSeries = timeSeriesData['Time Series (Daily)']
+    const dates = Object.keys(timeSeries).slice(0, daysToSync).sort()
+
+    if (dates.length === 0) {
+      return {
+        success: false,
+        message: 'No data available to sync',
+        error: 'Empty time series',
+      }
+    }
+
+    // Prepare data for insertion with daily returns
+    const benchmarkRecords = []
+    let previousClose: number | null = null
+
+    for (const date of dates) {
+      const data = timeSeries[date]
+      const adjustedClose = Number.parseFloat(data['5. adjusted close'])
+
+      // Calculate daily return
+      let dailyReturn: number | null = null
+      if (previousClose !== null) {
+        dailyReturn = ((adjustedClose - previousClose) / previousClose) * 100
+      }
+
+      benchmarkRecords.push({
+        symbol: 'SPY',
+        benchmark_name: 'S&P 500',
+        date,
+        open: Number.parseFloat(data['1. open']),
+        high: Number.parseFloat(data['2. high']),
+        low: Number.parseFloat(data['3. low']),
+        close: Number.parseFloat(data['4. close']),
+        adjusted_close: adjustedClose,
+        volume: Number.parseInt(data['6. volume'], 10),
+        daily_return: dailyReturn,
+        source: 'alpha_vantage',
+      })
+
+      previousClose = adjustedClose
+    }
+
+    // Insert/upsert into database using service role (bypass RLS)
+    const supabase = createServiceClient()
+    const { error } = await supabase.from('benchmark_data').upsert(benchmarkRecords, {
+      onConflict: 'symbol,date',
+    })
+
+    if (error) {
+      console.error('Failed to insert benchmark data:', error)
+      return {
+        success: false,
+        message: 'Database error while storing benchmark data',
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+      message: `Successfully synced ${benchmarkRecords.length} days of S&P 500 data`,
+      data: {
+        recordsSynced: benchmarkRecords.length,
+        latestDate: dates[dates.length - 1],
+      },
+    }
+  } catch (error) {
+    console.error('Error syncing benchmark data:', error)
+    return {
+      success: false,
+      message: 'Failed to sync benchmark data',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
+ * Calculate portfolio financial metrics (returns, volatility, beta)
+ *
+ * Analyzes portfolio performance against S&P 500 benchmark
+ *
+ * @param days Number of days to analyze (default: 30)
+ * @returns Portfolio metrics including daily returns, volatility, and beta
+ */
+export async function calculatePortfolioMetrics(days = 30): Promise<{
+  success: boolean
+  data?: {
+    portfolioReturns: number[]
+    benchmarkReturns: number[]
+    volatility: number // Annualized volatility (%)
+    beta: number // Portfolio beta vs S&P 500
+    averageReturn: number // Average daily return (%)
+    totalReturn: number // Total return over period (%)
+    sharpeRatio: number // Sharpe ratio (assuming 4% risk-free rate)
+  }
+  error?: string
+}> {
+  try {
+    const supabase = createServiceClient()
+
+    // Get portfolio (assuming single portfolio for single user)
+    const { data: portfolio } = await supabase
+      .from('portfolios')
+      .select('id')
+      .order('created_at')
+      .limit(1)
+      .single()
+
+    if (!portfolio) {
+      return {
+        success: false,
+        error: 'No portfolio found',
+      }
+    }
+
+    // Fetch portfolio snapshots for the specified period
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+
+    const { data: snapshots } = await supabase
+      .from('portfolio_snapshots')
+      .select('snapshot_date, total_value')
+      .eq('portfolio_id', portfolio.id)
+      .gte('snapshot_date', startDate.toISOString().split('T')[0])
+      .lte('snapshot_date', endDate.toISOString().split('T')[0])
+      .order('snapshot_date', { ascending: true })
+
+    if (!snapshots || snapshots.length < 2) {
+      return {
+        success: false,
+        error: 'Insufficient portfolio data. Need at least 2 snapshots.',
+      }
+    }
+
+    // Fetch benchmark data for the same period
+    const { data: benchmarkData } = await supabase
+      .from('benchmark_data')
+      .select('date, adjusted_close, daily_return')
+      .eq('symbol', 'SPY')
+      .gte('date', startDate.toISOString().split('T')[0])
+      .lte('date', endDate.toISOString().split('T')[0])
+      .order('date', { ascending: true })
+
+    if (!benchmarkData || benchmarkData.length < 2) {
+      return {
+        success: false,
+        error: 'Insufficient benchmark data. Run syncBenchmarkData first.',
+      }
+    }
+
+    // Calculate portfolio daily returns
+    const portfolioReturns: number[] = []
+    for (let i = 1; i < snapshots.length; i++) {
+      const prevValue = snapshots[i - 1].total_value
+      const currValue = snapshots[i].total_value
+      const dailyReturn = ((currValue - prevValue) / prevValue) * 100
+      portfolioReturns.push(dailyReturn)
+    }
+
+    // Extract benchmark returns (already calculated in syncBenchmarkData)
+    const benchmarkReturns = benchmarkData
+      .filter((d) => d.daily_return !== null)
+      .map((d) => d.daily_return as number)
+
+    // Align arrays (take minimum length)
+    const minLength = Math.min(portfolioReturns.length, benchmarkReturns.length)
+    const alignedPortfolioReturns = portfolioReturns.slice(-minLength)
+    const alignedBenchmarkReturns = benchmarkReturns.slice(-minLength)
+
+    // Calculate average returns
+    const avgPortfolioReturn =
+      alignedPortfolioReturns.reduce((sum, r) => sum + r, 0) / alignedPortfolioReturns.length
+
+    const avgBenchmarkReturn =
+      alignedBenchmarkReturns.reduce((sum, r) => sum + r, 0) / alignedBenchmarkReturns.length
+
+    // Calculate volatility (standard deviation of returns, annualized)
+    const portfolioVariance =
+      alignedPortfolioReturns.reduce((sum, r) => sum + (r - avgPortfolioReturn) ** 2, 0) /
+      (alignedPortfolioReturns.length - 1)
+    const portfolioStdDev = Math.sqrt(portfolioVariance)
+    const annualizedVolatility = portfolioStdDev * Math.sqrt(252) // 252 trading days
+
+    // Calculate beta (covariance / variance of market)
+    const covariance =
+      alignedPortfolioReturns.reduce(
+        (sum, r, i) =>
+          sum + (r - avgPortfolioReturn) * (alignedBenchmarkReturns[i] - avgBenchmarkReturn),
+        0
+      ) /
+      (alignedPortfolioReturns.length - 1)
+
+    const benchmarkVariance =
+      alignedBenchmarkReturns.reduce((sum, r) => sum + (r - avgBenchmarkReturn) ** 2, 0) /
+      (alignedBenchmarkReturns.length - 1)
+
+    const beta = covariance / benchmarkVariance
+
+    // Calculate total return over period
+    const initialValue = snapshots[0].total_value
+    const finalValue = snapshots[snapshots.length - 1].total_value
+    const totalReturn = ((finalValue - initialValue) / initialValue) * 100
+
+    // Calculate Sharpe ratio (assuming 4% annual risk-free rate)
+    const riskFreeRate = 4 / 252 // Daily risk-free rate
+    const excessReturn = avgPortfolioReturn - riskFreeRate
+    const sharpeRatio = (excessReturn / portfolioStdDev) * Math.sqrt(252) // Annualized
+
+    return {
+      success: true,
+      data: {
+        portfolioReturns: alignedPortfolioReturns,
+        benchmarkReturns: alignedBenchmarkReturns,
+        volatility: annualizedVolatility,
+        beta,
+        averageReturn: avgPortfolioReturn,
+        totalReturn,
+        sharpeRatio,
+      },
+    }
+  } catch (error) {
+    console.error('Error calculating portfolio metrics:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
+ * Get benchmark comparison data for chart
+ *
+ * Fetches portfolio snapshots and benchmark data for the same period
+ *
+ * @param days Number of days to fetch (default: 30)
+ * @returns Combined data for benchmark comparison chart
+ */
+export async function getBenchmarkComparisonData(days = 30): Promise<{
+  success: boolean
+  data?: Array<{
+    date: string
+    portfolioValue: number
+    benchmarkValue: number
+  }>
+  error?: string
+}> {
+  try {
+    const supabase = createServiceClient()
+
+    // Get portfolio
+    const { data: portfolio } = await supabase
+      .from('portfolios')
+      .select('id')
+      .order('created_at')
+      .limit(1)
+      .single()
+
+    if (!portfolio) {
+      return {
+        success: false,
+        error: 'No portfolio found',
+      }
+    }
+
+    // Fetch portfolio snapshots
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+
+    const { data: snapshots } = await supabase
+      .from('portfolio_snapshots')
+      .select('snapshot_date, total_value')
+      .eq('portfolio_id', portfolio.id)
+      .gte('snapshot_date', startDate.toISOString().split('T')[0])
+      .lte('snapshot_date', endDate.toISOString().split('T')[0])
+      .order('snapshot_date', { ascending: true })
+
+    if (!snapshots || snapshots.length === 0) {
+      return {
+        success: false,
+        error: 'No portfolio snapshots found',
+      }
+    }
+
+    // Fetch benchmark data
+    const { data: benchmarkData } = await supabase
+      .from('benchmark_data')
+      .select('date, adjusted_close')
+      .eq('symbol', 'SPY')
+      .gte('date', startDate.toISOString().split('T')[0])
+      .lte('date', endDate.toISOString().split('T')[0])
+      .order('date', { ascending: true })
+
+    if (!benchmarkData || benchmarkData.length === 0) {
+      return {
+        success: false,
+        error: 'No benchmark data found',
+      }
+    }
+
+    // Create a map of benchmark data by date
+    const benchmarkMap = new Map(
+      benchmarkData.map((d) => [d.date, d.adjusted_close])
+    )
+
+    // Combine data (only include dates where we have both portfolio and benchmark data)
+    const combinedData = snapshots
+      .filter((s) => benchmarkMap.has(s.snapshot_date))
+      .map((s) => ({
+        date: s.snapshot_date,
+        portfolioValue: s.total_value,
+        benchmarkValue: benchmarkMap.get(s.snapshot_date)!,
+      }))
+
+    return {
+      success: true,
+      data: combinedData,
+    }
+  } catch (error) {
+    console.error('Error fetching benchmark comparison data:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}

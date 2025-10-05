@@ -43,6 +43,33 @@ export interface CompanyOverview {
 }
 
 /**
+ * Time Series Daily response from Alpha Vantage
+ * Contains historical OHLCV data
+ */
+export interface TimeSeriesDaily {
+  'Meta Data': {
+    '1. Information': string
+    '2. Symbol': string
+    '3. Last Refreshed': string
+    '4. Output Size': string
+    '5. Time Zone': string
+  }
+  'Time Series (Daily)': Record<
+    string, // Date in YYYY-MM-DD format
+    {
+      '1. open': string
+      '2. high': string
+      '3. low': string
+      '4. close': string
+      '5. adjusted close': string
+      '6. volume': string
+      '7. dividend amount': string
+      '8. split coefficient': string
+    }
+  >
+}
+
+/**
  * Alpha Vantage API Error
  */
 export class AlphaVantageError extends Error {
@@ -132,6 +159,26 @@ export class AlphaVantageClient {
     return this.request<CompanyOverview>({
       function: 'OVERVIEW',
       symbol,
+    })
+  }
+
+  /**
+   * Fetch daily time series data (OHLCV) with adjusted close prices
+   *
+   * @param symbol Stock ticker symbol (e.g., 'SPY' for S&P 500)
+   * @param outputSize 'compact' (100 days) or 'full' (20+ years)
+   * @returns Time series data with daily OHLCV and adjusted close
+   *
+   * Rate limit: Part of 25 requests/day, 5 requests/minute limit
+   */
+  async getTimeSeriesDaily(
+    symbol: string,
+    outputSize: 'compact' | 'full' = 'compact'
+  ): Promise<TimeSeriesDaily> {
+    return this.request<TimeSeriesDaily>({
+      function: 'TIME_SERIES_DAILY_ADJUSTED',
+      symbol,
+      outputsize: outputSize,
     })
   }
 

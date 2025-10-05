@@ -1,7 +1,16 @@
+import { AllocationCharts } from './_components/AllocationCharts'
+import { BenchmarkComparison } from './_components/BenchmarkComparison'
+import { DiversificationMetrics } from './_components/DiversificationMetrics'
 import { InitialSync } from './_components/InitialSync'
 import { PerformanceChart } from './_components/PerformanceChart'
 import { PortfolioOverview } from './_components/PortfolioOverview'
-import { getPortfolioHistory, getPortfolioSummary } from './actions'
+import { TopPerformers } from './_components/TopPerformers'
+import {
+  calculatePortfolioMetrics,
+  getBenchmarkComparisonData,
+  getPortfolioHistory,
+  getPortfolioSummary,
+} from './actions'
 
 export const metadata = {
   title: 'Investment Portfolio',
@@ -32,6 +41,10 @@ export default async function PortfolioPage() {
   // Fetch historical data for performance chart
   const historicalData = await getPortfolioHistory(30)
 
+  // Fetch benchmark comparison data
+  const metricsResult = await calculatePortfolioMetrics(30)
+  const comparisonDataResult = await getBenchmarkComparisonData(30)
+
   // Detect currency from positions
   const currencies = portfolioData.positions.map((p) => p.currency).filter(Boolean)
   const primaryCurrency = currencies.length > 0 ? currencies[0] : 'GBP'
@@ -56,6 +69,45 @@ export default async function PortfolioPage() {
       />
 
       <PerformanceChart snapshots={historicalData || []} currencySymbol={currencySymbol} />
+
+      {/* Benchmark Comparison */}
+      {metricsResult.success && comparisonDataResult.success && comparisonDataResult.data && (
+        <BenchmarkComparison
+          metrics={metricsResult.data!}
+          portfolioData={comparisonDataResult.data}
+          currencySymbol={currencySymbol}
+        />
+      )}
+
+      {/* Allocation Charts */}
+      {(portfolioData.positions.length > 0 || portfolioData.cryptoPositions.length > 0) && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">Portfolio Allocation</h2>
+          <AllocationCharts
+            positions={portfolioData.positions}
+            cryptoPositions={portfolioData.cryptoPositions}
+          />
+        </div>
+      )}
+
+      {/* Top Performers */}
+      {(portfolioData.positions.length > 0 || portfolioData.cryptoPositions.length > 0) && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">Performance Leaders</h2>
+          <TopPerformers
+            positions={portfolioData.positions}
+            cryptoPositions={portfolioData.cryptoPositions}
+          />
+        </div>
+      )}
+
+      {/* Diversification Metrics */}
+      {(portfolioData.positions.length > 0 || portfolioData.cryptoPositions.length > 0) && (
+        <DiversificationMetrics
+          positions={portfolioData.positions}
+          cryptoPositions={portfolioData.cryptoPositions}
+        />
+      )}
     </div>
   )
 }
