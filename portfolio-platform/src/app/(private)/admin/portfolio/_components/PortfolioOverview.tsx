@@ -157,19 +157,20 @@ export function PortfolioOverview({
   const currencySymbol = primaryCurrency === 'GBP' ? '£' : primaryCurrency === 'EUR' ? '€' : '$'
 
   // Calculate portfolio IRR if transactions available
-  const portfolioIRR = transactions.length > 0 ? calculatePortfolioIRR(transactions, totalValue) : null
-  const irrDisplay =
-    portfolioIRR !== null ? `${(portfolioIRR * 100).toFixed(2)}%` : 'N/A'
+  const portfolioIRR =
+    transactions.length > 0 ? calculatePortfolioIRR(transactions, totalValue) : null
+  const irrDisplay = portfolioIRR !== null ? `${(portfolioIRR * 100).toFixed(2)}%` : 'N/A'
 
   // Calculate portfolio TWR from historical snapshots
-  const portfolioTWR = historicalSnapshots.length >= 2
-    ? calculateTWR(
-        historicalSnapshots.map(s => ({
-          date: new Date(s.snapshot_date),
-          value: s.total_value
-        }))
-      )
-    : null
+  const portfolioTWR =
+    historicalSnapshots.length >= 2
+      ? calculateTWR(
+          historicalSnapshots.map((s) => ({
+            date: new Date(s.snapshot_date),
+            value: s.total_value,
+          }))
+        )
+      : null
   const twrDisplay = portfolioTWR !== null ? `${(portfolioTWR * 100).toFixed(2)}%` : 'N/A'
 
   return (

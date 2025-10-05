@@ -66,9 +66,9 @@ export function PortfolioNews({ articles }: PortfolioNewsProps) {
     <div className="border rounded-lg p-6 bg-card">
       <h2 className="text-xl font-semibold mb-4">Portfolio News</h2>
       <div className="space-y-4">
-        {articles.map((article, index) => (
+        {articles.map((article) => (
           <a
-            key={index}
+            key={article.url}
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
@@ -77,14 +77,10 @@ export function PortfolioNews({ articles }: PortfolioNewsProps) {
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 {/* Title */}
-                <h3 className="font-semibold mb-1 line-clamp-2 hover:underline">
-                  {article.title}
-                </h3>
+                <h3 className="font-semibold mb-1 line-clamp-2 hover:underline">{article.title}</h3>
 
                 {/* Summary */}
-                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {article.summary}
-                </p>
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{article.summary}</p>
 
                 {/* Metadata */}
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -109,9 +105,9 @@ export function PortfolioNews({ articles }: PortfolioNewsProps) {
                 {/* Related Tickers */}
                 {article.ticker_sentiment && article.ticker_sentiment.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {article.ticker_sentiment.slice(0, 3).map((ts, i) => (
+                    {article.ticker_sentiment.slice(0, 3).map((ts) => (
                       <span
-                        key={i}
+                        key={ts.ticker}
                         className="px-2 py-0.5 bg-muted rounded text-xs font-medium"
                       >
                         {ts.ticker}

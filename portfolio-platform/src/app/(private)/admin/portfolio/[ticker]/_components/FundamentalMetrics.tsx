@@ -64,7 +64,9 @@ export function FundamentalMetrics({ fundamentals }: FundamentalMetricsProps) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="border rounded-lg p-4 bg-muted/50">
           <p className="text-sm text-muted-foreground">Market Cap</p>
-          <p className="text-lg font-bold">{formatLargeNumber(fundamentals.MarketCapitalization)}</p>
+          <p className="text-lg font-bold">
+            {formatLargeNumber(fundamentals.MarketCapitalization)}
+          </p>
         </div>
 
         <div className="border rounded-lg p-4 bg-muted/50">
@@ -74,7 +76,9 @@ export function FundamentalMetrics({ fundamentals }: FundamentalMetricsProps) {
 
         <div className="border rounded-lg p-4 bg-muted/50">
           <p className="text-sm text-muted-foreground">P/B Ratio</p>
-          <p className="text-lg font-bold">{formatRatio(fundamentals.PriceToBookRatio as string | null)}</p>
+          <p className="text-lg font-bold">
+            {formatRatio(fundamentals.PriceToBookRatio as string | null)}
+          </p>
         </div>
 
         <div className="border rounded-lg p-4 bg-muted/50">

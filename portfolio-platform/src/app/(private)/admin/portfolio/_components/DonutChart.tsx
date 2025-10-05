@@ -12,6 +12,35 @@ interface DonutChartProps {
   showPercentage?: boolean
 }
 
+const CustomTooltip = ({
+  active,
+  payload,
+  total,
+}: {
+  active?: boolean
+  payload?: Array<{ payload: { name: string; value: number } }>
+  total: number
+}) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    const percentage = ((data.value / total) * 100).toFixed(1)
+    return (
+      <div className="bg-background border rounded-lg shadow-lg p-3">
+        <p className="font-semibold">{data.name}</p>
+        <p className="text-sm text-muted-foreground">
+          £
+          {data.value.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </p>
+        <p className="text-sm font-medium">{percentage}%</p>
+      </div>
+    )
+  }
+  return null
+}
+
 export function DonutChart({ data, title, showPercentage = true }: DonutChartProps) {
   const total = data.reduce((sum, entry) => sum + entry.value, 0)
 
@@ -29,7 +58,14 @@ export function DonutChart({ data, title, showPercentage = true }: DonutChartPro
     )
   }
 
-  const renderCustomLabel = (props: { cx?: string | number; cy?: string | number; midAngle?: number; innerRadius?: number; outerRadius?: number; percent?: number }) => {
+  const renderCustomLabel = (props: {
+    cx?: string | number
+    cy?: string | number
+    midAngle?: number
+    innerRadius?: number
+    outerRadius?: number
+    percent?: number
+  }) => {
     const cx = typeof props.cx === 'number' ? props.cx : 0
     const cy = typeof props.cy === 'number' ? props.cy : 0
     const { midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 } = props
@@ -54,23 +90,6 @@ export function DonutChart({ data, title, showPercentage = true }: DonutChartPro
     )
   }
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number } }> }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      const percentage = ((data.value / total) * 100).toFixed(1)
-      return (
-        <div className="bg-background border rounded-lg shadow-lg p-3">
-          <p className="font-semibold">{data.name}</p>
-          <p className="text-sm text-muted-foreground">
-            £{data.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-          <p className="text-sm font-medium">{percentage}%</p>
-        </div>
-      )
-    }
-    return null
-  }
-
   return (
     <div className="border rounded-lg p-6 bg-card">
       <h3 className="text-lg font-semibold mb-4">{title}</h3>
@@ -88,11 +107,11 @@ export function DonutChart({ data, title, showPercentage = true }: DonutChartPro
             dataKey="value"
             paddingAngle={2}
           >
-            {filteredData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+            {filteredData.map((entry) => (
+              <Cell key={entry.name} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip total={total} />} />
           <Legend
             verticalAlign="bottom"
             height={36}

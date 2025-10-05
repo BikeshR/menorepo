@@ -46,9 +46,7 @@ export function PositionTransactions({ transactions }: PositionTransactionsProps
         </div>
         <div className="border rounded-lg p-3 bg-muted/50">
           <p className="text-sm text-muted-foreground">Total Sold</p>
-          <p className="text-lg font-bold text-red-600 dark:text-red-400">
-            {totalSold.toFixed(2)}
-          </p>
+          <p className="text-lg font-bold text-red-600 dark:text-red-400">{totalSold.toFixed(2)}</p>
         </div>
         <div className="border rounded-lg p-3 bg-muted/50">
           <p className="text-sm text-muted-foreground">Total Invested</p>
@@ -101,10 +99,12 @@ export function PositionTransactions({ transactions }: PositionTransactionsProps
                   </td>
                   <td className="py-2 px-3 text-right text-sm">{tx.quantity.toFixed(2)}</td>
                   <td className="py-2 px-3 text-right text-sm">
-                    {currencySymbol}{tx.price.toFixed(2)}
+                    {currencySymbol}
+                    {tx.price.toFixed(2)}
                   </td>
                   <td className="py-2 px-3 text-right text-sm font-medium">
-                    {currencySymbol}{tx.total_value.toFixed(2)}
+                    {currencySymbol}
+                    {tx.total_value.toFixed(2)}
                   </td>
                 </tr>
               )

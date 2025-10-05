@@ -1,8 +1,8 @@
 'use server'
 
-import { createServiceClient } from '@/lib/supabase/server'
-import { isAuthenticated } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { isAuthenticated } from '@/lib/auth/session'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export type WatchlistItem = {
   id: string
@@ -127,7 +127,7 @@ export async function updateWatchlistItem(
   updates: {
     notes?: string
     target_price?: number
-  },
+  }
 ) {
   try {
     const authenticated = await isAuthenticated()

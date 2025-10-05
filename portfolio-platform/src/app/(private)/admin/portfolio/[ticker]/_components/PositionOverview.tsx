@@ -67,14 +67,22 @@ export function PositionOverview({ position, type, transactions = [] }: Position
         <p className="text-sm text-muted-foreground">Market Value</p>
         <p className="text-2xl font-bold">
           {currencySymbol}
-          {marketValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {marketValue.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </p>
       </div>
 
       {/* Quantity */}
       <div className="border rounded-lg p-4 bg-card">
         <p className="text-sm text-muted-foreground">Quantity</p>
-        <p className="text-2xl font-bold">{position.quantity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</p>
+        <p className="text-2xl font-bold">
+          {position.quantity.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 6,
+          })}
+        </p>
         <p className="text-xs text-muted-foreground mt-1">shares</p>
       </div>
 
@@ -83,10 +91,14 @@ export function PositionOverview({ position, type, transactions = [] }: Position
         <p className="text-sm text-muted-foreground">Current Price</p>
         <p className="text-2xl font-bold">
           {currencySymbol}
-          {currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {currentPrice.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          Avg: {currencySymbol}{averageCost.toFixed(2)}
+          Avg: {currencySymbol}
+          {averageCost.toFixed(2)}
         </p>
       </div>
 
@@ -104,10 +116,15 @@ export function PositionOverview({ position, type, transactions = [] }: Position
           >
             {gainLoss >= 0 ? '+' : ''}
             {currencySymbol}
-            {Math.abs(gainLoss).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {Math.abs(gainLoss).toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </p>
         </div>
-        <p className={`text-sm font-medium ${isProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        <p
+          className={`text-sm font-medium ${isProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+        >
           {gainLossPct >= 0 ? '+' : ''}
           {gainLossPct.toFixed(2)}%
         </p>

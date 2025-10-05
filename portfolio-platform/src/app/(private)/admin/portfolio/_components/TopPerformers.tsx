@@ -81,7 +81,8 @@ export function TopPerformers({ positions, cryptoPositions }: TopPerformersProps
                   +{holding.gainLossPct.toFixed(2)}%
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  £{Math.abs(holding.gainLoss).toLocaleString('en-US', {
+                  £
+                  {Math.abs(holding.gainLoss).toLocaleString('en-US', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -114,7 +115,8 @@ export function TopPerformers({ positions, cryptoPositions }: TopPerformersProps
                   {holding.gainLossPct.toFixed(2)}%
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  £{Math.abs(holding.gainLoss).toLocaleString('en-US', {
+                  £
+                  {Math.abs(holding.gainLoss).toLocaleString('en-US', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}

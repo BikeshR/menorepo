@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
 import { Plus, X } from 'lucide-react'
+import { useId, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { addManualTransaction } from '../actions'
 
@@ -9,6 +9,7 @@ export function ManualTransactionForm() {
   const [isPending, startTransition] = useTransition()
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const formId = useId()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -74,12 +75,12 @@ export function ManualTransactionForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="ticker" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-ticker`} className="block text-sm font-medium mb-1">
               Ticker *
             </label>
             <input
               type="text"
-              id="ticker"
+              id={`${formId}-ticker`}
               name="ticker"
               required
               placeholder="AAPL"
@@ -89,12 +90,12 @@ export function ManualTransactionForm() {
           </div>
 
           <div>
-            <label htmlFor="asset_name" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-asset_name`} className="block text-sm font-medium mb-1">
               Asset Name *
             </label>
             <input
               type="text"
-              id="asset_name"
+              id={`${formId}-asset_name`}
               name="asset_name"
               required
               placeholder="Apple Inc."
@@ -104,11 +105,11 @@ export function ManualTransactionForm() {
           </div>
 
           <div>
-            <label htmlFor="asset_type" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-asset_type`} className="block text-sm font-medium mb-1">
               Asset Type *
             </label>
             <select
-              id="asset_type"
+              id={`${formId}-asset_type`}
               name="asset_type"
               required
               className="w-full px-3 py-2 border rounded-md bg-background"
@@ -123,11 +124,14 @@ export function ManualTransactionForm() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="transaction_type" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor={`${formId}-transaction_type`}
+              className="block text-sm font-medium mb-1"
+            >
               Transaction Type *
             </label>
             <select
-              id="transaction_type"
+              id={`${formId}-transaction_type`}
               name="transaction_type"
               required
               className="w-full px-3 py-2 border rounded-md bg-background"
@@ -139,12 +143,12 @@ export function ManualTransactionForm() {
           </div>
 
           <div>
-            <label htmlFor="quantity" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-quantity`} className="block text-sm font-medium mb-1">
               Quantity *
             </label>
             <input
               type="number"
-              id="quantity"
+              id={`${formId}-quantity`}
               name="quantity"
               required
               step="0.000001"
@@ -155,12 +159,12 @@ export function ManualTransactionForm() {
           </div>
 
           <div>
-            <label htmlFor="price" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-price`} className="block text-sm font-medium mb-1">
               Price per Unit *
             </label>
             <input
               type="number"
-              id="price"
+              id={`${formId}-price`}
               name="price"
               required
               step="0.01"
@@ -173,11 +177,11 @@ export function ManualTransactionForm() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="currency" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-currency`} className="block text-sm font-medium mb-1">
               Currency *
             </label>
             <select
-              id="currency"
+              id={`${formId}-currency`}
               name="currency"
               required
               className="w-full px-3 py-2 border rounded-md bg-background"
@@ -190,12 +194,12 @@ export function ManualTransactionForm() {
           </div>
 
           <div>
-            <label htmlFor="fee" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-fee`} className="block text-sm font-medium mb-1">
               Fee (Optional)
             </label>
             <input
               type="number"
-              id="fee"
+              id={`${formId}-fee`}
               name="fee"
               step="0.01"
               placeholder="0.00"
@@ -205,12 +209,12 @@ export function ManualTransactionForm() {
           </div>
 
           <div>
-            <label htmlFor="executed_at" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-executed_at`} className="block text-sm font-medium mb-1">
               Execution Date *
             </label>
             <input
               type="datetime-local"
-              id="executed_at"
+              id={`${formId}-executed_at`}
               name="executed_at"
               required
               className="w-full px-3 py-2 border rounded-md bg-background"
@@ -220,7 +224,12 @@ export function ManualTransactionForm() {
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsOpen(false)}
+            disabled={isPending}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isPending}>

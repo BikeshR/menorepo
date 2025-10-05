@@ -12,10 +12,7 @@
  * @param confidenceLevel Confidence level (e.g., 0.95 for 95%)
  * @returns VaR as a negative number (representing potential loss)
  */
-export function calculateHistoricalVaR(
-  returns: number[],
-  confidenceLevel = 0.95
-): number | null {
+export function calculateHistoricalVaR(returns: number[], confidenceLevel = 0.95): number | null {
   if (returns.length === 0) {
     return null
   }
@@ -37,18 +34,14 @@ export function calculateHistoricalVaR(
  * @param confidenceLevel Confidence level (e.g., 0.95 for 95%)
  * @returns VaR as a negative number (representing potential loss)
  */
-export function calculateParametricVaR(
-  returns: number[],
-  confidenceLevel = 0.95
-): number | null {
+export function calculateParametricVaR(returns: number[], confidenceLevel = 0.95): number | null {
   if (returns.length === 0) {
     return null
   }
 
   // Calculate mean and standard deviation
   const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length
-  const variance =
-    returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length
+  const variance = returns.reduce((sum, r) => sum + (r - mean) ** 2, 0) / returns.length
   const stdDev = Math.sqrt(variance)
 
   // Z-score for confidence level
@@ -117,7 +110,7 @@ export function calculatePortfolioVaR(
 function getZScore(confidenceLevel: number): number {
   // Common z-scores for confidence levels
   const zScores: { [key: number]: number } = {
-    0.90: 1.282,
+    0.9: 1.282,
     0.95: 1.645,
     0.99: 2.326,
   }
@@ -133,10 +126,7 @@ function getZScore(confidenceLevel: number): number {
  * @param confidenceLevel Confidence level (e.g., 0.95 for 95%)
  * @returns CVaR as a negative number
  */
-export function calculateCVaR(
-  returns: number[],
-  confidenceLevel = 0.95
-): number | null {
+export function calculateCVaR(returns: number[], confidenceLevel = 0.95): number | null {
   if (returns.length === 0) {
     return null
   }

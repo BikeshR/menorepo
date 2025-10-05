@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getPortfolioIndustryBreakdown } from '../actions'
 import { RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { getPortfolioIndustryBreakdown } from '../actions'
 
 type IndustryData = {
   industry: string
@@ -18,7 +18,7 @@ export function IndustryBreakdown() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadIndustries = async () => {
+  const loadIndustries = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
@@ -35,11 +35,11 @@ export function IndustryBreakdown() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadIndustries()
-  }, [])
+  }, [loadIndustries])
 
   if (isLoading) {
     return (
@@ -152,8 +152,8 @@ export function IndustryBreakdown() {
             <strong>Total Industries:</strong> {industries.length}
           </p>
           <p>
-            <strong>Top Industry:</strong> {industries[0].industry} ({industries[0].allocation.toFixed(1)}%
-            of portfolio)
+            <strong>Top Industry:</strong> {industries[0].industry} (
+            {industries[0].allocation.toFixed(1)}% of portfolio)
           </p>
           <p>
             <strong>Diversification:</strong>{' '}

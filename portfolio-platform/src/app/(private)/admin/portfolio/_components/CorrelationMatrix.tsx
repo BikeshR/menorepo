@@ -1,16 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getPortfolioCorrelationMatrix } from '../actions'
-import { getCorrelationColor, getCorrelationStrength } from '@/lib/utils/correlation'
 import { RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { getCorrelationColor, getCorrelationStrength } from '@/lib/utils/correlation'
+import { getPortfolioCorrelationMatrix } from '../actions'
 
 export function CorrelationMatrix() {
   const [matrix, setMatrix] = useState<{ labels: string[]; matrix: number[][] } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadMatrix = async () => {
+  const loadMatrix = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
@@ -27,11 +27,11 @@ export function CorrelationMatrix() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadMatrix()
-  }, [])
+  }, [loadMatrix])
 
   if (isLoading) {
     return (
@@ -146,11 +146,12 @@ export function CorrelationMatrix() {
           </div>
           <div>
             <p className="text-muted-foreground mb-1">
-              <strong>Diversification:</strong> Lower correlations (closer to 0 or negative) indicate better
-              diversification
+              <strong>Diversification:</strong> Lower correlations (closer to 0 or negative)
+              indicate better diversification
             </p>
             <p className="text-muted-foreground">
-              <strong>Risk:</strong> High positive correlations (0.7+) may indicate concentration risk
+              <strong>Risk:</strong> High positive correlations (0.7+) may indicate concentration
+              risk
             </p>
           </div>
         </div>

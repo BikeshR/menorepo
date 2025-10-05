@@ -1,8 +1,13 @@
 'use client'
 
-import { ArrowDownRight, ArrowUpRight, RefreshCw, Edit, Trash2, Check, X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Check, Edit, RefreshCw, Trash2, X } from 'lucide-react'
 import { useState, useTransition } from 'react'
-import { syncTransactionHistory, syncKrakenTransactionHistory, updateTransaction, deleteTransaction } from '../actions'
+import {
+  deleteTransaction,
+  syncKrakenTransactionHistory,
+  syncTransactionHistory,
+  updateTransaction,
+} from '../actions'
 import { ManualTransactionForm } from './ManualTransactionForm'
 
 type Transaction = {
@@ -73,7 +78,9 @@ export function TransactionHistory({ initialTransactions }: TransactionHistoryPr
         setSyncMessage(`Error: ${result.error}`)
       }
     } catch (error) {
-      setSyncMessage(`Failed to sync Kraken: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setSyncMessage(
+        `Failed to sync Kraken: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     } finally {
       setIsKrakenSyncing(false)
     }
@@ -155,14 +162,18 @@ export function TransactionHistory({ initialTransactions }: TransactionHistoryPr
           </div>
 
           {syncMessage && (
-            <div className={`mb-4 p-3 rounded-lg ${syncMessage.startsWith('Error') ? 'bg-red-50 dark:bg-red-950 text-red-900 dark:text-red-100' : 'bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-100'}`}>
+            <div
+              className={`mb-4 p-3 rounded-lg ${syncMessage.startsWith('Error') ? 'bg-red-50 dark:bg-red-950 text-red-900 dark:text-red-100' : 'bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-100'}`}
+            >
               {syncMessage}
             </div>
           )}
 
           <div className="text-center py-12 text-muted-foreground">
             <p className="mb-4">No transaction history found</p>
-            <p className="text-sm">Click "Sync Transactions" to import your trading history from Trading212</p>
+            <p className="text-sm">
+              Click "Sync Transactions" to import your trading history from Trading212
+            </p>
           </div>
         </div>
       </div>
@@ -200,172 +211,176 @@ export function TransactionHistory({ initialTransactions }: TransactionHistoryPr
           </div>
         </div>
 
-      {syncMessage && (
-        <div className={`mb-4 p-3 rounded-lg ${syncMessage.startsWith('Error') ? 'bg-red-50 dark:bg-red-950 text-red-900 dark:text-red-100' : 'bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-100'}`}>
-          {syncMessage}
-        </div>
-      )}
+        {syncMessage && (
+          <div
+            className={`mb-4 p-3 rounded-lg ${syncMessage.startsWith('Error') ? 'bg-red-50 dark:bg-red-950 text-red-900 dark:text-red-100' : 'bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-100'}`}
+          >
+            {syncMessage}
+          </div>
+        )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-3 px-4 text-sm font-semibold">Date</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Type</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold">Asset</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold">Quantity</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold">Price</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold">Fee</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold">Total</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((tx) => {
-              const isBuy = tx.transaction_type === 'buy'
-              const date = new Date(tx.executed_at)
-              const isEditing = editingId === tx.id
-              const canEdit = tx.source === 'manual' // Only allow editing manual transactions
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-3 px-4 text-sm font-semibold">Date</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold">Type</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold">Asset</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold">Quantity</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold">Price</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold">Fee</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold">Total</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((tx) => {
+                const isBuy = tx.transaction_type === 'buy'
+                const date = new Date(tx.executed_at)
+                const isEditing = editingId === tx.id
+                const canEdit = tx.source === 'manual' // Only allow editing manual transactions
 
-              return (
-                <tr key={tx.id} className="border-b hover:bg-muted/50">
-                  <td className="py-3 px-4 text-sm">
-                    {date.toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      {isBuy ? (
-                        <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                return (
+                  <tr key={tx.id} className="border-b hover:bg-muted/50">
+                    <td className="py-3 px-4 text-sm">
+                      {date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        {isBuy ? (
+                          <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        )}
+                        <span
+                          className={`text-sm font-medium ${isBuy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                        >
+                          {isBuy ? 'BUY' : 'SELL'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div>
+                        <p className="text-sm font-medium">{tx.ticker}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {tx.asset_name || 'Unknown'}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.000001"
+                          value={editValues.quantity}
+                          onChange={(e) =>
+                            setEditValues({ ...editValues, quantity: e.target.value })
+                          }
+                          className="w-24 px-2 py-1 border rounded text-sm bg-background text-right"
+                          disabled={isPending}
+                        />
                       ) : (
-                        <ArrowDownRight className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        tx.quantity.toFixed(6)
                       )}
-                      <span
-                        className={`text-sm font-medium ${isBuy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
-                      >
-                        {isBuy ? 'BUY' : 'SELL'}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editValues.price}
+                          onChange={(e) => setEditValues({ ...editValues, price: e.target.value })}
+                          className="w-24 px-2 py-1 border rounded text-sm bg-background text-right"
+                          disabled={isPending}
+                        />
+                      ) : (
+                        <>
+                          {tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : '$'}
+                          {tx.price.toFixed(2)}
+                        </>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editValues.fee}
+                          onChange={(e) => setEditValues({ ...editValues, fee: e.target.value })}
+                          className="w-20 px-2 py-1 border rounded text-sm bg-background text-right"
+                          disabled={isPending}
+                        />
+                      ) : (
+                        <>
+                          {tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : '$'}
+                          {(tx.fee || 0).toFixed(2)}
+                        </>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="text-sm font-medium">
+                        {tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : '$'}
+                        {tx.total_value.toFixed(2)}
                       </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div>
-                      <p className="text-sm font-medium">{tx.ticker}</p>
-                      <p className="text-xs text-muted-foreground">{tx.asset_name || 'Unknown'}</p>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-right text-sm">
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.000001"
-                        value={editValues.quantity}
-                        onChange={(e) => setEditValues({ ...editValues, quantity: e.target.value })}
-                        className="w-24 px-2 py-1 border rounded text-sm bg-background text-right"
-                        disabled={isPending}
-                      />
-                    ) : (
-                      tx.quantity.toFixed(6)
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right text-sm">
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editValues.price}
-                        onChange={(e) => setEditValues({ ...editValues, price: e.target.value })}
-                        className="w-24 px-2 py-1 border rounded text-sm bg-background text-right"
-                        disabled={isPending}
-                      />
-                    ) : (
-                      <>
-                        {tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : '$'}
-                        {tx.price.toFixed(2)}
-                      </>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right text-sm">
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editValues.fee}
-                        onChange={(e) => setEditValues({ ...editValues, fee: e.target.value })}
-                        className="w-20 px-2 py-1 border rounded text-sm bg-background text-right"
-                        disabled={isPending}
-                      />
-                    ) : (
-                      <>
-                        {tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : '$'}
-                        {(tx.fee || 0).toFixed(2)}
-                      </>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="text-sm font-medium">
-                      {tx.currency === 'GBP' ? '£' : tx.currency === 'EUR' ? '€' : '$'}
-                      {tx.total_value.toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    {isEditing ? (
-                      <div className="flex justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleSaveEdit(tx.id)}
-                          disabled={isPending}
-                          className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded disabled:opacity-50"
-                        >
-                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelEdit}
-                          disabled={isPending}
-                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded disabled:opacity-50"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex justify-end gap-1">
-                        {canEdit && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleEdit(tx)}
-                              disabled={isPending}
-                              className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded disabled:opacity-50"
-                            >
-                              <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(tx.id)}
-                              disabled={isPending}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded disabled:opacity-50"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
-                            </button>
-                          </>
-                        )}
-                        {!canEdit && (
-                          <span className="text-xs text-muted-foreground">
-                            {tx.source}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {isEditing ? (
+                        <div className="flex justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEdit(tx.id)}
+                            disabled={isPending}
+                            className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded disabled:opacity-50"
+                          >
+                            <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            disabled={isPending}
+                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded disabled:opacity-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end gap-1">
+                          {canEdit && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleEdit(tx)}
+                                disabled={isPending}
+                                className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded disabled:opacity-50"
+                              >
+                                <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(tx.id)}
+                                disabled={isPending}
+                                className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded disabled:opacity-50"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+                              </button>
+                            </>
+                          )}
+                          {!canEdit && (
+                            <span className="text-xs text-muted-foreground">{tx.source}</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

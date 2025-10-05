@@ -43,7 +43,8 @@ export default async function PositionPage({ params }: PositionPageProps) {
       <div>
         <h1 className="text-3xl font-bold">{position.name || decodedTicker}</h1>
         <p className="text-muted-foreground mt-1">
-          {decodedTicker} · {isStock ? (position as any).asset_type?.toUpperCase() : 'Crypto'}
+          {decodedTicker} ·{' '}
+          {isStock && 'asset_type' in position ? position.asset_type?.toUpperCase() : 'Crypto'}
         </p>
       </div>
 

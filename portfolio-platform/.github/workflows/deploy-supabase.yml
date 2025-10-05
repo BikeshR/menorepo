@@ -1,0 +1,113 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/deploy-supabase.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-migrations:
+    name: Deploy Database Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase Project
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Push Database Migrations
+        run: |
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  deploy-functions:
+    name: Deploy Edge Functions
+    runs-on: ubuntu-latest
+    needs: deploy-migrations
+
+    strategy:
+      matrix:
+        function:
+          - daily-portfolio-sync
+          - calculate-metrics
+          - update-benchmark-data
+          - ai-portfolio-insights
+          - check-price-alerts
+          - check-milestones
+          - detect-anomalies
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Edge Function - ${{ matrix.function }}
+        run: |
+          supabase functions deploy ${{ matrix.function }} \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Set Function Secrets
+        run: |
+          # Set environment variables for the function
+          supabase secrets set \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} \
+            TRADING212_API_KEY=${{ secrets.TRADING212_API_KEY }} \
+            KRAKEN_API_KEY=${{ secrets.KRAKEN_API_KEY }} \
+            KRAKEN_API_SECRET=${{ secrets.KRAKEN_API_SECRET }} \
+            ALPHAVANTAGE_API_KEY=${{ secrets.ALPHAVANTAGE_API_KEY }} \
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy-functions
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: List Deployed Functions
+        run: |
+          supabase functions list \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Test Health Check
+        run: |
+          curl -f -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/daily-portfolio-sync" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"test": true}' || echo "Health check endpoint not ready yet"
+        continue-on-error: true

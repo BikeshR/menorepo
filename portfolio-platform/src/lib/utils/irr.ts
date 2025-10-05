@@ -9,7 +9,7 @@
 export function calculateIRR(
   cashFlows: Array<{ date: Date; amount: number }>,
   maxIterations = 100,
-  tolerance = 1e-6,
+  tolerance = 1e-6
 ): number | null {
   if (cashFlows.length < 2) {
     return null
@@ -83,7 +83,7 @@ export function calculatePositionIRR(
     total_value: number
     executed_at: string
   }>,
-  currentValue: number,
+  currentValue: number
 ): number | null {
   if (transactions.length === 0) {
     return null
@@ -118,7 +118,7 @@ export function calculatePortfolioIRR(
     total_value: number
     executed_at: string
   }>,
-  currentPortfolioValue: number,
+  currentPortfolioValue: number
 ): number | null {
   if (transactions.length === 0) {
     return null

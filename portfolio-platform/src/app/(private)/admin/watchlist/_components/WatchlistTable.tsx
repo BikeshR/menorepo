@@ -1,7 +1,7 @@
 'use client'
 
+import { Check, Edit, Trash2, X } from 'lucide-react'
 import { useState, useTransition } from 'react'
-import { Trash2, Edit, X, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { removeFromWatchlist, updateWatchlistItem, type WatchlistItem } from '../actions'
 
@@ -49,8 +49,8 @@ export function WatchlistTable({ initialWatchlist }: WatchlistTableProps) {
                   notes: editNotes,
                   target_price: editTargetPrice ? Number.parseFloat(editTargetPrice) : null,
                 }
-              : item,
-          ),
+              : item
+          )
         )
         setEditingId(null)
       }
@@ -67,7 +67,9 @@ export function WatchlistTable({ initialWatchlist }: WatchlistTableProps) {
     return (
       <div className="border border-dashed rounded-lg p-12 text-center">
         <h3 className="text-lg font-semibold mb-2">No items in watchlist</h3>
-        <p className="text-muted-foreground">Add stocks, ETFs, or crypto to track potential investments</p>
+        <p className="text-muted-foreground">
+          Add stocks, ETFs, or crypto to track potential investments
+        </p>
       </div>
     )
   }
@@ -150,7 +152,12 @@ export function WatchlistTable({ initialWatchlist }: WatchlistTableProps) {
                       >
                         <Check className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={handleCancelEdit} disabled={isPending}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCancelEdit}
+                        disabled={isPending}
+                      >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>

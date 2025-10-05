@@ -1,7 +1,16 @@
 'use client'
 
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 interface BenchmarkComparisonProps {
   metrics: {
@@ -22,11 +31,39 @@ interface BenchmarkComparisonProps {
   currencySymbol?: string
 }
 
-export function BenchmarkComparison({
-  metrics,
-  portfolioData,
-  currencySymbol = '£',
-}: BenchmarkComparisonProps) {
+const CustomTooltip = ({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: Array<{
+    name: string
+    value: number
+    color: string
+    payload: {
+      date: string
+      portfolio: number
+      benchmark: number
+    }
+  }>
+}) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-background border rounded-lg shadow-lg p-3">
+        <p className="text-sm font-semibold mb-1">{payload[0]?.payload?.date}</p>
+        {payload.map((entry) => (
+          <p key={entry.name} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: {entry.value >= 0 ? '+' : ''}
+            {entry.value.toFixed(2)}%
+          </p>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
+export function BenchmarkComparison({ metrics, portfolioData }: BenchmarkComparisonProps) {
   // Normalize data to percentage change from first value
   const normalizedData = portfolioData.map((d, i) => {
     if (i === 0) {
@@ -38,11 +75,9 @@ export function BenchmarkComparison({
     }
 
     const portfolioChange =
-      ((d.portfolioValue - portfolioData[0].portfolioValue) / portfolioData[0].portfolioValue) *
-      100
+      ((d.portfolioValue - portfolioData[0].portfolioValue) / portfolioData[0].portfolioValue) * 100
     const benchmarkChange =
-      ((d.benchmarkValue - portfolioData[0].benchmarkValue) / portfolioData[0].benchmarkValue) *
-      100
+      ((d.benchmarkValue - portfolioData[0].benchmarkValue) / portfolioData[0].benchmarkValue) * 100
 
     return {
       date: d.date,
@@ -50,38 +85,6 @@ export function BenchmarkComparison({
       benchmark: benchmarkChange,
     }
   })
-
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean
-    payload?: Array<{
-      name: string
-      value: number
-      color: string
-      payload: {
-        date: string
-        portfolio: number
-        benchmark: number
-      }
-    }>
-  }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-background border rounded-lg shadow-lg p-3">
-          <p className="text-sm font-semibold mb-1">{payload[0]?.payload?.date}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value >= 0 ? '+' : ''}
-              {entry.value.toFixed(2)}%
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
 
   return (
     <div className="border rounded-lg p-6 bg-card">
@@ -91,11 +94,13 @@ export function BenchmarkComparison({
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">Beta</p>
-          <p className="text-2xl font-bold">
-            {metrics.beta.toFixed(2)}
-          </p>
+          <p className="text-2xl font-bold">{metrics.beta.toFixed(2)}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {metrics.beta > 1 ? 'More volatile' : metrics.beta < 1 ? 'Less volatile' : 'Same volatility'}
+            {metrics.beta > 1
+              ? 'More volatile'
+              : metrics.beta < 1
+                ? 'Less volatile'
+                : 'Same volatility'}
           </p>
         </div>
 
@@ -178,10 +183,7 @@ export function BenchmarkComparison({
               return `${date.getMonth() + 1}/${date.getDate()}`
             }}
           />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            tickFormatter={(value) => `${value.toFixed(0)}%`}
-          />
+          <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value.toFixed(0)}%`} />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
           <Line
@@ -216,19 +218,20 @@ export function BenchmarkComparison({
                 : 'Your portfolio moves in sync with the market.'}
           </li>
           <li>
-            <strong>Sharpe Ratio:</strong> Risk-adjusted return (higher is better). Above 1 is good, above
-            2 is excellent.
+            <strong>Sharpe Ratio:</strong> Risk-adjusted return (higher is better). Above 1 is good,
+            above 2 is excellent.
           </li>
           <li>
-            <strong>Volatility:</strong> Annualized standard deviation of returns. Lower means more stable.
+            <strong>Volatility:</strong> Annualized standard deviation of returns. Lower means more
+            stable.
           </li>
           <li>
-            <strong>VaR (95%):</strong> Maximum expected daily loss that won't be exceeded 95% of the time.
-            There's a 5% chance of losing more than this on any given day.
+            <strong>VaR (95%):</strong> Maximum expected daily loss that won't be exceeded 95% of
+            the time. There's a 5% chance of losing more than this on any given day.
           </li>
           <li>
-            <strong>VaR (99%):</strong> Maximum expected daily loss that won't be exceeded 99% of the time.
-            This represents extreme market conditions.
+            <strong>VaR (99%):</strong> Maximum expected daily loss that won't be exceeded 99% of
+            the time. This represents extreme market conditions.
           </li>
           <li>
             <strong>CVaR (Expected Shortfall):</strong> Average loss when VaR threshold is breached.

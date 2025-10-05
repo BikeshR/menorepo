@@ -83,13 +83,16 @@ export default async function PortfolioPage() {
       <PerformanceChart snapshots={historicalData || []} currencySymbol={currencySymbol} />
 
       {/* Benchmark Comparison */}
-      {metricsResult.success && comparisonDataResult.success && comparisonDataResult.data && (
-        <BenchmarkComparison
-          metrics={metricsResult.data!}
-          portfolioData={comparisonDataResult.data}
-          currencySymbol={currencySymbol}
-        />
-      )}
+      {metricsResult.success &&
+        metricsResult.data &&
+        comparisonDataResult.success &&
+        comparisonDataResult.data && (
+          <BenchmarkComparison
+            metrics={metricsResult.data}
+            portfolioData={comparisonDataResult.data}
+            currencySymbol={currencySymbol}
+          />
+        )}
 
       {/* Allocation Charts */}
       {(portfolioData.positions.length > 0 || portfolioData.cryptoPositions.length > 0) && (

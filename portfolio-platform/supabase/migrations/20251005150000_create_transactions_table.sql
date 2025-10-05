@@ -4,7 +4,10 @@
 -- ============================================
 -- TRANSACTIONS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.transactions (
+-- Drop old transactions table if it exists (from initial schema)
+DROP TABLE IF EXISTS public.transactions CASCADE;
+
+CREATE TABLE public.transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   portfolio_id UUID NOT NULL REFERENCES public.portfolios(id) ON DELETE CASCADE,
 
@@ -64,8 +67,7 @@ BEGIN
       FOR EACH ROW
       EXECUTE FUNCTION update_updated_at_column();
   END IF;
-END
-$$;
+END $$;
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -87,5 +89,4 @@ BEGIN
       USING (true)
       WITH CHECK (true);
   END IF;
-END
-$$;
+END $$;

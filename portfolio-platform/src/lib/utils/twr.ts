@@ -14,9 +14,7 @@
  * @param snapshots Array of portfolio values with dates
  * @returns TWR as decimal (e.g., 0.15 = 15%), or null if calculation fails
  */
-export function calculateTWR(
-  snapshots: Array<{ date: Date; value: number }>,
-): number | null {
+export function calculateTWR(snapshots: Array<{ date: Date; value: number }>): number | null {
   if (snapshots.length < 2) {
     return null
   }
@@ -42,7 +40,7 @@ export function calculateTWR(
   }
 
   // TWR = (Ending Value / Beginning Value)^(1/years) - 1
-  const twr = Math.pow(lastValue / firstValue, 1 / years) - 1
+  const twr = (lastValue / firstValue) ** (1 / years) - 1
 
   return twr
 }
@@ -59,7 +57,7 @@ export function calculateTWR(
  */
 export function calculateTWRWithCashFlows(
   snapshots: Array<{ date: Date; value: number }>,
-  cashFlows: Array<{ date: Date; amount: number }>,
+  cashFlows: Array<{ date: Date; amount: number }>
 ): number | null {
   if (snapshots.length < 2) {
     return null
@@ -78,7 +76,7 @@ export function calculateTWRWithCashFlows(
     const cashFlowDate = sortedCashFlows[i].date.getTime()
 
     // Find snapshots around this cash flow
-    let startValue = sortedSnapshots[currentSnapshotIndex].value
+    const startValue = sortedSnapshots[currentSnapshotIndex].value
     let endValue = startValue
 
     // Find the snapshot after the cash flow
@@ -157,5 +155,5 @@ export function annualizeReturn(returnRate: number, years: number): number {
     return returnRate
   }
 
-  return Math.pow(1 + returnRate, 1 / years) - 1
+  return (1 + returnRate) ** (1 / years) - 1
 }

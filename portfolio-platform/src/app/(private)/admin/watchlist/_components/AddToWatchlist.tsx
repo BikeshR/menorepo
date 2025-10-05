@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
+import { useId, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { addToWatchlist } from '../actions'
 
@@ -9,6 +9,7 @@ export function AddToWatchlist() {
   const [isPending, startTransition] = useTransition()
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const formId = useId()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -79,12 +80,12 @@ export function AddToWatchlist() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="ticker" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-ticker`} className="block text-sm font-medium mb-1">
               Ticker *
             </label>
             <input
               type="text"
-              id="ticker"
+              id={`${formId}-ticker`}
               name="ticker"
               required
               placeholder="AAPL"
@@ -94,12 +95,12 @@ export function AddToWatchlist() {
           </div>
 
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-name`} className="block text-sm font-medium mb-1">
               Name *
             </label>
             <input
               type="text"
-              id="name"
+              id={`${formId}-name`}
               name="name"
               required
               placeholder="Apple Inc."
@@ -109,11 +110,11 @@ export function AddToWatchlist() {
           </div>
 
           <div>
-            <label htmlFor="asset_type" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-asset_type`} className="block text-sm font-medium mb-1">
               Asset Type *
             </label>
             <select
-              id="asset_type"
+              id={`${formId}-asset_type`}
               name="asset_type"
               required
               className="w-full px-3 py-2 border rounded-md bg-background"
@@ -126,12 +127,12 @@ export function AddToWatchlist() {
           </div>
 
           <div>
-            <label htmlFor="target_price" className="block text-sm font-medium mb-1">
+            <label htmlFor={`${formId}-target_price`} className="block text-sm font-medium mb-1">
               Target Price (Optional)
             </label>
             <input
               type="number"
-              id="target_price"
+              id={`${formId}-target_price`}
               name="target_price"
               step="0.01"
               placeholder="150.00"
@@ -142,11 +143,11 @@ export function AddToWatchlist() {
         </div>
 
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium mb-1">
+          <label htmlFor={`${formId}-notes`} className="block text-sm font-medium mb-1">
             Notes (Optional)
           </label>
           <textarea
-            id="notes"
+            id={`${formId}-notes`}
             name="notes"
             rows={3}
             placeholder="Why are you watching this asset?"
@@ -156,7 +157,12 @@ export function AddToWatchlist() {
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsOpen(false)}
+            disabled={isPending}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isPending}>

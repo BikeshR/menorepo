@@ -43,7 +43,8 @@ export function DiversificationMetrics({
   const sectorTotals: Record<string, number> = {}
   for (const position of positions) {
     if (position.sector) {
-      sectorTotals[position.sector] = (sectorTotals[position.sector] || 0) + (position.market_value || 0)
+      sectorTotals[position.sector] =
+        (sectorTotals[position.sector] || 0) + (position.market_value || 0)
     }
   }
 
@@ -60,9 +61,23 @@ export function DiversificationMetrics({
 
   // Determine risk level
   const getRiskLevel = (score: number) => {
-    if (score >= 70) return { label: 'Well Diversified', color: 'text-green-600 dark:text-green-400', icon: CheckCircle2 }
-    if (score >= 50) return { label: 'Moderately Diversified', color: 'text-blue-600 dark:text-blue-400', icon: Info }
-    return { label: 'Concentrated Portfolio', color: 'text-amber-600 dark:text-amber-400', icon: AlertTriangle }
+    if (score >= 70)
+      return {
+        label: 'Well Diversified',
+        color: 'text-green-600 dark:text-green-400',
+        icon: CheckCircle2,
+      }
+    if (score >= 50)
+      return {
+        label: 'Moderately Diversified',
+        color: 'text-blue-600 dark:text-blue-400',
+        icon: Info,
+      }
+    return {
+      label: 'Concentrated Portfolio',
+      color: 'text-amber-600 dark:text-amber-400',
+      icon: AlertTriangle,
+    }
   }
 
   const riskLevel = getRiskLevel(diversificationScore)
@@ -71,13 +86,19 @@ export function DiversificationMetrics({
   // Warnings
   const warnings: string[] = []
   if (largestHoldingPct > 30) {
-    warnings.push(`Largest holding (${largestHolding.symbol}) represents ${largestHoldingPct.toFixed(1)}% of portfolio`)
+    warnings.push(
+      `Largest holding (${largestHolding.symbol}) represents ${largestHoldingPct.toFixed(1)}% of portfolio`
+    )
   }
   if (largestSectorPct > 50 && largestSector) {
-    warnings.push(`${largestSector[0]} sector represents ${largestSectorPct.toFixed(1)}% of portfolio`)
+    warnings.push(
+      `${largestSector[0]} sector represents ${largestSectorPct.toFixed(1)}% of portfolio`
+    )
   }
   if (numHoldings < 10) {
-    warnings.push(`Portfolio contains only ${numHoldings} holdings - consider adding more for diversification`)
+    warnings.push(
+      `Portfolio contains only ${numHoldings} holdings - consider adding more for diversification`
+    )
   }
 
   return (
@@ -125,8 +146,11 @@ export function DiversificationMetrics({
       {/* Warnings */}
       {warnings.length > 0 && (
         <div className="mt-4 space-y-2">
-          {warnings.map((warning, index) => (
-            <div key={index} className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+          {warnings.map((warning) => (
+            <div
+              key={warning}
+              className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg"
+            >
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-amber-900 dark:text-amber-100">{warning}</p>
             </div>

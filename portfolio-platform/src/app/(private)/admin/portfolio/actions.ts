@@ -19,8 +19,8 @@ import {
   Trading212Error,
 } from '@/lib/integrations/trading212'
 import { createServiceClient } from '@/lib/supabase/server'
-import { calculateHistoricalVaR, calculateCVaR } from '@/lib/utils/var'
 import { calculateCorrelationMatrix } from '@/lib/utils/correlation'
+import { calculateCVaR, calculateHistoricalVaR } from '@/lib/utils/var'
 
 export type SyncPortfolioResult = {
   success: boolean
@@ -1347,9 +1347,7 @@ export async function getBenchmarkComparisonData(
     }
 
     // Create a map of benchmark data by date
-    const benchmarkMap = new Map(
-      benchmarkData.map((d) => [d.date, d.adjusted_close])
-    )
+    const benchmarkMap = new Map(benchmarkData.map((d) => [d.date, d.adjusted_close]))
 
     // Combine data (only include dates where we have both portfolio and benchmark data)
     const combinedData = snapshots
@@ -1357,7 +1355,7 @@ export async function getBenchmarkComparisonData(
       .map((s) => ({
         date: s.snapshot_date,
         portfolioValue: s.total_value,
-        benchmarkValue: benchmarkMap.get(s.snapshot_date)!,
+        benchmarkValue: benchmarkMap.get(s.snapshot_date) ?? 0,
       }))
 
     return {
@@ -1477,8 +1475,13 @@ export async function syncTransactionHistory(maxTransactions = 200): Promise<{
 
     // Convert orders to transactions
     const transactions = allOrders.map((order) => {
-      const instrument = instrumentMap.get(order.ticker) || { name: order.ticker, type: 'stock' as const }
-      const totalValue = order.quantity * (order.filledQuantity > 0 ? order.value / order.filledQuantity : order.value)
+      const instrument = instrumentMap.get(order.ticker) || {
+        name: order.ticker,
+        type: 'stock' as const,
+      }
+      const totalValue =
+        order.quantity *
+        (order.filledQuantity > 0 ? order.value / order.filledQuantity : order.value)
 
       return {
         portfolio_id: portfolio.id,
@@ -1498,12 +1501,10 @@ export async function syncTransactionHistory(maxTransactions = 200): Promise<{
     })
 
     // Insert transactions (upsert to avoid duplicates)
-    const { error, count } = await supabase
-      .from('transactions')
-      .upsert(transactions, {
-        onConflict: 'source,external_id',
-        count: 'exact',
-      })
+    const { error, count } = await supabase.from('transactions').upsert(transactions, {
+      onConflict: 'source,external_id',
+      count: 'exact',
+    })
 
     if (error) {
       console.error('Failed to insert transactions:', error)
@@ -1514,11 +1515,12 @@ export async function syncTransactionHistory(maxTransactions = 200): Promise<{
       }
     }
 
-    const oldestTransaction = transactions.length > 0
-      ? transactions.reduce((oldest, t) =>
-          new Date(t.executed_at) < new Date(oldest.executed_at) ? t : oldest
-        ).executed_at
-      : null
+    const oldestTransaction =
+      transactions.length > 0
+        ? transactions.reduce((oldest, t) =>
+            new Date(t.executed_at) < new Date(oldest.executed_at) ? t : oldest
+          ).executed_at
+        : null
 
     return {
       success: true,
@@ -1671,7 +1673,7 @@ export async function updateTransaction(
     price?: number
     fee?: number
     executed_at?: string
-  },
+  }
 ) {
   try {
     const authenticated = await isAuthenticated()
@@ -1682,7 +1684,7 @@ export async function updateTransaction(
     const supabase = createServiceClient()
 
     // Calculate new total value if quantity or price changed
-    let updateData: any = { ...updates }
+    const updateData: Record<string, unknown> = { ...updates }
     if (updates.quantity !== undefined || updates.price !== undefined) {
       // Get current transaction to calculate total
       const { data: transaction } = await supabase
@@ -1851,12 +1853,10 @@ export async function syncKrakenTransactionHistory(maxTransactions = 100): Promi
     }
 
     // Insert transactions into database (upsert to avoid duplicates)
-    const { count, error } = await supabase
-      .from('transactions')
-      .upsert(transactions, {
-        onConflict: 'source,external_id',
-        count: 'exact',
-      })
+    const { count, error } = await supabase.from('transactions').upsert(transactions, {
+      onConflict: 'source,external_id',
+      count: 'exact',
+    })
 
     if (error) {
       console.error('Failed to insert Kraken transactions:', error)
@@ -2106,9 +2106,9 @@ export async function getPortfolioCorrelationMatrix(days = 90): Promise<{
     // Get current positions (top holdings by value)
     const { data: positions } = await supabase
       .from('stocks')
-      .select('ticker, current_value, current_price')
+      .select('ticker, market_value, current_price')
       .eq('portfolio_id', portfolio.id)
-      .order('current_value', { ascending: false })
+      .order('market_value', { ascending: false })
       .limit(10) // Top 10 holdings
 
     if (!positions || positions.length < 2) {
@@ -2234,7 +2234,7 @@ export async function getPortfolioIndustryBreakdown(): Promise<{
     // Get all stock positions with sector/industry data
     const { data: positions } = await supabase
       .from('stocks')
-      .select('ticker, current_value, sector, industry')
+      .select('ticker, market_value, sector, industry')
       .eq('portfolio_id', portfolio.id)
 
     if (!positions || positions.length === 0) {
@@ -2245,7 +2245,7 @@ export async function getPortfolioIndustryBreakdown(): Promise<{
     }
 
     // Calculate total portfolio value
-    const totalValue = positions.reduce((sum, p) => sum + p.current_value, 0)
+    const totalValue = positions.reduce((sum, p) => sum + (p.market_value || 0), 0)
 
     // Group by industry
     const industryMap = new Map<
@@ -2271,9 +2271,11 @@ export async function getPortfolioIndustryBreakdown(): Promise<{
         })
       }
 
-      const entry = industryMap.get(industry)!
-      entry.value += position.current_value
-      entry.tickers.push(position.ticker)
+      const entry = industryMap.get(industry)
+      if (entry) {
+        entry.value += position.market_value || 0
+        entry.tickers.push(position.ticker)
+      }
     }
 
     // Convert to array and calculate allocations
