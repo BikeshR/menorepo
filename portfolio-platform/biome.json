@@ -10,7 +10,6 @@
   },
   "formatter": {
     "enabled": true,
-    "formatWithErrors": false,
     "indentStyle": "space",
     "indentWidth": 2,
     "lineWidth": 100,
@@ -21,79 +20,29 @@
     "rules": {
       "recommended": true,
       "complexity": {
-        "useArrowFunction": "error",
-        "noForEach": "warn",
-        "useFlatMap": "warn"
-      },
-      "correctness": {
-        "noUnusedVariables": "error",
-        "noUnusedImports": "error",
-        "useExhaustiveDependencies": "warn",
-        "useHookAtTopLevel": "error"
-      },
-      "style": {
-        "noNegationElse": "warn",
-        "useBlockStatements": "off",
-        "useCollapsedElseIf": "warn",
-        "useConsistentArrayType": {
-          "level": "error",
-          "options": {
-            "syntax": "shorthand"
-          }
-        },
-        "useFilenamingConvention": {
-          "level": "error",
-          "options": {
-            "requireAscii": true,
-            "filenameCases": ["kebab-case", "PascalCase"]
-          }
-        },
-        "useForOf": "warn",
-        "useShorthandFunctionType": "error",
-        "useSingleVarDeclarator": "error",
-        "useTemplate": "error"
+        "useArrowFunction": "error"
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noDoubleEquals": "error",
-        "noConsole": {
-          "level": "warn",
-          "options": {
-            "allow": ["error", "warn"]
-          }
-        },
-        "noDebugger": "error",
-        "noArrayIndexKey": "warn"
+        "noDoubleEquals": "error"
       },
-      "performance": {
-        "noAccumulatingSpread": "warn",
-        "noDelete": "error"
-      },
-      "nursery": {
-        "useSortedClasses": "off"
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error"
       }
     }
   },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
-      "trailingCommas": "es5",
       "semicolons": "asNeeded",
-      "arrowParentheses": "always",
-      "quoteProperties": "asNeeded",
-      "bracketSameLine": false,
-      "bracketSpacing": true
-    }
-  },
-  "json": {
-    "formatter": {
-      "enabled": true,
-      "indentWidth": 2
+      "trailingCommas": "es5",
+      "arrowParentheses": "always"
     }
   },
   "overrides": [
     {
-      "includes": ["*.css", "**/*.css"],
+      "includes": ["**/*.css"],
       "linter": {
         "enabled": false
       }
@@ -101,7 +50,14 @@
     {
       "includes": ["supabase/functions/**/*.ts"],
       "linter": {
-        "enabled": false
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off"
+          }
+        }
       }
     },
     {
@@ -110,31 +66,7 @@
         "rules": {
           "suspicious": {
             "noExplicitAny": "off",
-            "noThenProperty": "off",
-            "noConsole": "off"
-          },
-          "performance": {
-            "noDelete": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["**/*.config.ts", "**/*.config.js", "**/vitest.setup.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "useFilenamingConvention": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["src/core/logger/**/*.ts"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noConsole": "off"
+            "noThenProperty": "off"
           }
         }
       }
