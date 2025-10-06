@@ -23,7 +23,7 @@ interface PositionsTableProps {
 }
 
 // Currency symbol mapping
-const getCurrencySymbol = (currency: string | null): string => {
+function getCurrencySymbol(currency: string | null): string {
   const symbols: Record<string, string> = {
     USD: '$',
     GBP: '£',

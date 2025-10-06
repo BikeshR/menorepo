@@ -4,12 +4,13 @@ import { AppError } from '@/core/errors/app-error'
 import { BaseRepository } from '../base.repository'
 
 // Mock Supabase client
-const createMockSupabase = () =>
-  ({
+function createMockSupabase() {
+  return {
     from: vi.fn(),
     auth: {},
     storage: {},
-  }) as unknown as SupabaseClient
+  } as unknown as SupabaseClient
+}
 
 // Test repository implementation
 class TestRepository extends BaseRepository<{ id: string; name: string }> {

@@ -37,7 +37,7 @@ describe('PortfolioRepository', () => {
 
   beforeEach(() => {
     // Create a proper chainable mock
-    const createChainableMock = (response: any) => {
+    function createChainableMock(response: any) {
       const mock: any = {
         from: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),

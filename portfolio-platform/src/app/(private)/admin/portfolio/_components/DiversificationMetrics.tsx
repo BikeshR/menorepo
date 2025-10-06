@@ -60,7 +60,7 @@ export function DiversificationMetrics({
   const diversificationScore = Math.round(holdingsScore + concentrationScore + sectorScore)
 
   // Determine risk level
-  const getRiskLevel = (score: number) => {
+  function getRiskLevel(score: number) {
     if (score >= 70)
       return {
         label: 'Well Diversified',

@@ -110,7 +110,7 @@ export function PortfolioOverview({
     message?: string
   } | null>(null)
 
-  const handleStocksSync = () => {
+  function handleStocksSync() {
     setSyncResult(null)
     startStocksTransition(async () => {
       const result = await syncTradingPortfolio()
@@ -118,7 +118,7 @@ export function PortfolioOverview({
     })
   }
 
-  const handleCryptoSync = () => {
+  function handleCryptoSync() {
     setSyncResult(null)
     startCryptoTransition(async () => {
       const result = await syncKrakenPortfolio()
@@ -126,7 +126,7 @@ export function PortfolioOverview({
     })
   }
 
-  const handleEnrichSectors = () => {
+  function handleEnrichSectors() {
     setSyncResult(null)
     startEnrichTransition(async () => {
       const result = await enrichStockSectorData(5)

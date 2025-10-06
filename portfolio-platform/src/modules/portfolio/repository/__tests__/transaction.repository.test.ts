@@ -50,7 +50,7 @@ describe('TransactionRepository', () => {
   beforeEach(() => {
     // Create a proper chainable mock
     // The key is that the chain is thenable (can be awaited)
-    const createChainableMock = (response: any) => {
+    function createChainableMock(response: any) {
       const mock: any = {
         from: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),

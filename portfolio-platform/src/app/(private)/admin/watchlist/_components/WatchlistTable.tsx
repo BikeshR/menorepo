@@ -16,7 +16,7 @@ export function WatchlistTable({ initialWatchlist }: WatchlistTableProps) {
   const [editTargetPrice, setEditTargetPrice] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  const handleDelete = (id: string) => {
+  function handleDelete(id: string) {
     if (!confirm('Remove this item from your watchlist?')) return
 
     startTransition(async () => {
@@ -27,13 +27,13 @@ export function WatchlistTable({ initialWatchlist }: WatchlistTableProps) {
     })
   }
 
-  const handleEdit = (item: WatchlistItem) => {
+  function handleEdit(item: WatchlistItem) {
     setEditingId(item.id)
     setEditNotes(item.notes || '')
     setEditTargetPrice(item.target_price?.toString() || '')
   }
 
-  const handleSaveEdit = (id: string) => {
+  function handleSaveEdit(id: string) {
     startTransition(async () => {
       const result = await updateWatchlistItem(id, {
         notes: editNotes,
@@ -57,7 +57,7 @@ export function WatchlistTable({ initialWatchlist }: WatchlistTableProps) {
     })
   }
 
-  const handleCancelEdit = () => {
+  function handleCancelEdit() {
     setEditingId(null)
     setEditNotes('')
     setEditTargetPrice('')

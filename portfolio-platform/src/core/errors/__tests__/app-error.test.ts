@@ -207,7 +207,7 @@ describe('AppError', () => {
 
   describe('Error handling patterns', () => {
     it('should work with try-catch', () => {
-      const throwError = () => {
+      function throwError() {
         throw AppError.notFound('User')
       }
 
@@ -224,11 +224,11 @@ describe('AppError', () => {
     })
 
     it('should preserve stack trace when re-throwing', () => {
-      const innerFunction = () => {
+      function innerFunction() {
         throw AppError.internal('Inner error')
       }
 
-      const outerFunction = () => {
+      function outerFunction() {
         try {
           innerFunction()
         } catch (error) {

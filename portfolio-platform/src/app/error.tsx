@@ -16,7 +16,7 @@ export default function ErrorBoundary({
     console.error('Application error:', error)
   }, [error])
 
-  const handleGoHome = () => {
+  function handleGoHome() {
     window.location.href = '/'
   }
 

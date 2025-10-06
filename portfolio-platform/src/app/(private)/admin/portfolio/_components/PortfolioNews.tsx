@@ -10,7 +10,7 @@ export function PortfolioNews({ articles }: PortfolioNewsProps) {
     return null
   }
 
-  const formatDate = (dateString: string) => {
+  function formatDate(dateString: string) {
     // Alpha Vantage format: YYYYMMDDTHHMMSS
     const year = dateString.slice(0, 4)
     const month = dateString.slice(4, 6)
@@ -40,7 +40,7 @@ export function PortfolioNews({ articles }: PortfolioNewsProps) {
     })
   }
 
-  const getSentimentColor = (sentiment: string) => {
+  function getSentimentColor(sentiment: string) {
     const lower = sentiment.toLowerCase()
     if (lower.includes('bullish') || lower.includes('positive')) {
       return 'text-green-600 dark:text-green-400'
@@ -51,7 +51,7 @@ export function PortfolioNews({ articles }: PortfolioNewsProps) {
     return 'text-muted-foreground'
   }
 
-  const getSentimentIcon = (sentiment: string) => {
+  function getSentimentIcon(sentiment: string) {
     const lower = sentiment.toLowerCase()
     if (lower.includes('bullish') || lower.includes('positive')) {
       return <TrendingUp className="h-3 w-3" />

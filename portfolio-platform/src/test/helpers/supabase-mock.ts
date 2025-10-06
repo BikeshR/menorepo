@@ -29,7 +29,7 @@ export function createMockSupabaseClient() {
   // Create the query mock that will be returned by all chain methods
   let queryMock: any
 
-  const createQueryMock = (response: any) => {
+  function createQueryMock(response: any) {
     const mock = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),

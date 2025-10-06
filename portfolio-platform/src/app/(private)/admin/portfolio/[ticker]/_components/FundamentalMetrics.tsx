@@ -5,7 +5,7 @@ interface FundamentalMetricsProps {
 }
 
 export function FundamentalMetrics({ fundamentals }: FundamentalMetricsProps) {
-  const formatLargeNumber = (value: string | null) => {
+  function formatLargeNumber(value: string | null) {
     if (!value) return 'N/A'
     const num = Number.parseFloat(value)
     if (Number.isNaN(num)) return 'N/A'
@@ -16,14 +16,14 @@ export function FundamentalMetrics({ fundamentals }: FundamentalMetricsProps) {
     return `$${num.toLocaleString()}`
   }
 
-  const formatPercent = (value: string | null) => {
+  function formatPercent(value: string | null) {
     if (!value) return 'N/A'
     const num = Number.parseFloat(value)
     if (Number.isNaN(num)) return 'N/A'
     return `${(num * 100).toFixed(2)}%`
   }
 
-  const formatRatio = (value: string | null) => {
+  function formatRatio(value: string | null) {
     if (!value) return 'N/A'
     const num = Number.parseFloat(value)
     if (Number.isNaN(num)) return 'N/A'

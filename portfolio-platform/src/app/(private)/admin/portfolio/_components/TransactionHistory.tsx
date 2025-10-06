@@ -86,7 +86,7 @@ export function TransactionHistory({ initialTransactions }: TransactionHistoryPr
     }
   }
 
-  const handleEdit = (tx: Transaction) => {
+  function handleEdit(tx: Transaction) {
     setEditingId(tx.id)
     setEditValues({
       quantity: tx.quantity.toString(),
@@ -95,7 +95,7 @@ export function TransactionHistory({ initialTransactions }: TransactionHistoryPr
     })
   }
 
-  const handleSaveEdit = (id: string) => {
+  function handleSaveEdit(id: string) {
     startTransition(async () => {
       const result = await updateTransaction(id, {
         quantity: Number.parseFloat(editValues.quantity),
@@ -112,7 +112,7 @@ export function TransactionHistory({ initialTransactions }: TransactionHistoryPr
     })
   }
 
-  const handleDelete = (id: string) => {
+  function handleDelete(id: string) {
     if (!confirm('Delete this transaction?')) return
 
     startTransition(async () => {
@@ -127,7 +127,7 @@ export function TransactionHistory({ initialTransactions }: TransactionHistoryPr
     })
   }
 
-  const handleCancelEdit = () => {
+  function handleCancelEdit() {
     setEditingId(null)
     setEditValues({ quantity: '', price: '', fee: '' })
   }

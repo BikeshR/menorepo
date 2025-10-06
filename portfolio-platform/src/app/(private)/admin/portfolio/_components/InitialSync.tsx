@@ -22,7 +22,7 @@ export function InitialSync() {
     }
   } | null>(null)
 
-  const handleSync = () => {
+  function handleSync() {
     setSyncResult(null)
     setConnectionResult(null)
     startTransition(async () => {

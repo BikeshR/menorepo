@@ -19,9 +19,6 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "complexity": {
-        "useArrowFunction": "error"
-      },
       "suspicious": {
         "noExplicitAny": "error",
         "noDoubleEquals": "error"

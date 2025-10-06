@@ -12,7 +12,7 @@ export default function AdminLayout({
 }>) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const closeSidebar = () => {
+  function closeSidebar() {
     setSidebarOpen(false)
   }
 
