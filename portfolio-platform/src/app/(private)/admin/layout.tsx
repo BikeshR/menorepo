@@ -1,6 +1,6 @@
 'use client'
 
-import { FolderKanban, Home, LogOut, Menu, Star, TrendingUp, User, X } from 'lucide-react'
+import { BarChart3, Home, LogOut, Menu, TrendingUp, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -59,28 +59,16 @@ export default function AdminLayout({
                 Dashboard
               </Button>
             </Link>
-            <Link href="/admin/profile" onClick={closeSidebar}>
-              <Button variant="ghost" className="w-full justify-start gap-2">
-                <User className="size-4" />
-                Profile
-              </Button>
-            </Link>
-            <Link href="/admin/projects" onClick={closeSidebar}>
-              <Button variant="ghost" className="w-full justify-start gap-2">
-                <FolderKanban className="size-4" />
-                Projects
-              </Button>
-            </Link>
             <Link href="/admin/portfolio" onClick={closeSidebar}>
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <TrendingUp className="size-4" />
                 Portfolio
               </Button>
             </Link>
-            <Link href="/admin/watchlist" onClick={closeSidebar}>
+            <Link href="/admin/analytics" onClick={closeSidebar}>
               <Button variant="ghost" className="w-full justify-start gap-2">
-                <Star className="size-4" />
-                Watchlist
+                <BarChart3 className="size-4" />
+                Analytics
               </Button>
             </Link>
           </nav>
