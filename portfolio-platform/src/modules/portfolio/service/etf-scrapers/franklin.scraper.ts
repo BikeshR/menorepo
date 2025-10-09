@@ -4,10 +4,13 @@
  * Fetches data from Franklin Templeton monthly holdings pages
  */
 
-import * as cheerio from 'cheerio'
+// Removed cheerio dependency
+// import * as cheerio from 'cheerio'
 import type { ETFBreakdownData } from '../../types'
 
 export async function scrapeFranklinETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+  throw new Error('cheerio dependency removed - scraping disabled')
+  /*
   try {
     console.log(`[Franklin] Fetching data for ${ticker} (${isin})...`)
 
@@ -141,4 +144,5 @@ export async function scrapeFranklinETF(ticker: string, isin: string): Promise<E
     console.error(`[Franklin] Failed to scrape ${ticker}:`, error)
     throw error
   }
+  */
 }

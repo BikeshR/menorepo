@@ -5,10 +5,13 @@
  * Uses Playwright to handle JavaScript-rendered pages
  */
 
-import { chromium } from 'playwright'
+// Removed playwright dependency
+// import { chromium } from 'playwright'
 import type { ETFBreakdownData } from '../../types'
 
 export async function scrapeJustETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+  throw new Error('playwright dependency removed - scraping disabled')
+  /*
   const browser = await chromium.launch({
     headless: true,
     args: ['--disable-blink-features=AutomationControlled'],
@@ -326,4 +329,5 @@ export async function scrapeJustETF(ticker: string, isin: string): Promise<ETFBr
   } finally {
     await browser.close()
   }
+  */
 }

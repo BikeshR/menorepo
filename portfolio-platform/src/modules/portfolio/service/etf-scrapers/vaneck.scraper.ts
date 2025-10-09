@@ -5,10 +5,13 @@
  * Most data available on factsheet pages
  */
 
-import * as cheerio from 'cheerio'
+// Removed cheerio dependency
+// import * as cheerio from 'cheerio'
 import type { ETFBreakdownData } from '../../types'
 
 export async function scrapeVanEckETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+  throw new Error('cheerio dependency removed - scraping disabled')
+  /*
   try {
     console.log(`[VanEck] Fetching data for ${ticker} (${isin})...`)
 
@@ -152,4 +155,5 @@ export async function scrapeVanEckETF(ticker: string, isin: string): Promise<ETF
     console.error(`[VanEck] Failed to scrape ${ticker}:`, error)
     throw error
   }
+  */
 }

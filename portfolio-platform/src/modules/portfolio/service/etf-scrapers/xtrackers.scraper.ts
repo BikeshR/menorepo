@@ -5,12 +5,15 @@
  * API: https://etf.dws.com/api/pdp/en-gb/export/etf/{ISIN}/Securities
  */
 
-import * as XLSX from 'xlsx'
+// Removed xlsx dependency
+// import * as XLSX from 'xlsx'
 import type { ETFBreakdownData } from '../../types'
 
 const BASE_URL = 'https://etf.dws.com/api/pdp/en-gb/export/etf'
 
 export async function scrapeXtrackersETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+  throw new Error('xlsx dependency removed - scraping disabled')
+  /*
   try {
     console.log(`[Xtrackers] Fetching data for ${ticker} (${isin})...`)
 
@@ -193,6 +196,7 @@ export async function scrapeXtrackersETF(ticker: string, isin: string): Promise<
     console.error(`[Xtrackers] Failed to scrape ${ticker}:`, error)
     throw error
   }
+  */
 }
 
 function determineAssetType(
