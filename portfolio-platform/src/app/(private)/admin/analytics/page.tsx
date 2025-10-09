@@ -1,10 +1,9 @@
 import { BarChart3 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 import { calculatePortfolioMetrics, getPortfolioCorrelationMatrix } from '../portfolio/actions'
-import { AssetAllocationChart } from './_components/AssetAllocationChart'
-import { GeographicBreakdownChart } from './_components/GeographicBreakdownChart'
+import { ETFDataManager } from './_components/ETFDataManager'
 import { IndustryBreakdownTable } from './_components/IndustryBreakdownTable'
 import { RiskMetricsCard } from './_components/RiskMetricsCard'
-import { SectorBreakdownChart } from './_components/SectorBreakdownChart'
 import { TaxTrackingCard } from './_components/TaxTrackingCard'
 import { TopHoldingsTable } from './_components/TopHoldingsTable'
 import { getPortfolioAnalytics, getTaxTrackingData } from './actions'
@@ -17,6 +16,17 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function AnalyticsPage() {
+  // Get portfolio ID first
+  const supabase = await createClient()
+  const { data: portfolio } = await supabase
+    .from('portfolios')
+    .select('id')
+    .order('created_at')
+    .limit(1)
+    .single()
+
+  const portfolioId = portfolio?.id
+
   // Fetch all analytics data
   const [analyticsResult, taxDataResult, metricsResult, correlationResult] = await Promise.all([
     getPortfolioAnalytics(),
@@ -100,21 +110,8 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Diversification Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SectorBreakdownChart data={analytics.sectorBreakdown} />
-        <GeographicBreakdownChart data={analytics.geographicBreakdown} />
-      </div>
-
-      {/* Asset Allocation & Top Holdings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <AssetAllocationChart data={analytics.assetAllocation} />
-        </div>
-        <div className="lg:col-span-2">
-          <TopHoldingsTable data={analytics.topHoldings} />
-        </div>
-      </div>
+      {/* Top Holdings */}
+      <TopHoldingsTable data={analytics.topHoldings} />
 
       {/* Industry Breakdown */}
       <IndustryBreakdownTable data={analytics.industryBreakdown} />
@@ -180,6 +177,9 @@ export default async function AnalyticsPage() {
           </p>
         </div>
       )}
+
+      {/* ETF Data Management */}
+      {portfolioId && <ETFDataManager portfolioId={portfolioId} />}
 
       {/* Tax Tracking */}
       <TaxTrackingCard data={taxData || null} />

@@ -21,25 +21,25 @@ export type Stock = {
   portfolio_id: string
   ticker: string
   name: string
-  asset_type: 'stock' | 'etf' | 'crypto'
+  asset_type: string
   isin: string | null
-  currency: string
+  currency: string | null
   quantity: number
-  average_cost: number
-  current_price: number
-  gain_loss: number
-  gain_loss_pct: number
+  average_cost: number | null
+  current_price: number | null
+  gain_loss: number | null
+  gain_loss_pct: number | null
   exchange: string | null
   country: string | null
   region: string | null
   initial_fill_date: string | null
-  last_synced_at: string
+  last_synced_at: string | null
+  market_value: number | null
+  custom_group: string | null
+  custom_tags: string[] | null
   // Fundamentals (enriched data)
   sector: string | null
   industry: string | null
-  market_cap: number | null
-  pe_ratio: number | null
-  dividend_yield: number | null
   created_at: string
   updated_at: string
 }
@@ -118,9 +118,6 @@ export type UpdateStockDto = Partial<
     | 'gain_loss_pct'
     | 'sector'
     | 'industry'
-    | 'market_cap'
-    | 'pe_ratio'
-    | 'dividend_yield'
     | 'last_synced_at'
   >
 >
@@ -331,6 +328,108 @@ export type EnrichmentSummary = {
   tickersFailed: number
   errors: Array<{ ticker: string; error: string }>
 }
+
+// ============================================================================
+// ETF Breakdown Types
+// ============================================================================
+
+export type ETFMetadata = {
+  id: string
+  ticker: string
+  isin: string | null
+  name: string
+  provider: string | null
+  total_assets_usd: number | null
+  ter_pct: number | null
+  data_source: string | null
+  last_scraped_at: string | null
+  scrape_status: string | null
+  scrape_error: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ETFHolding = {
+  id: string
+  etf_ticker: string
+  holding_ticker: string | null
+  holding_name: string
+  holding_isin: string | null
+  weight_pct: number
+  shares: number | null
+  market_value_usd: number | null
+  asset_type: 'stock' | 'bond' | 'cash' | 'commodity' | 'other' | null
+  country: string | null
+  sector: string | null
+  industry: string | null
+  last_updated_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type ETFCountryBreakdown = {
+  id: string
+  etf_ticker: string
+  country: string
+  weight_pct: number
+  last_updated_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type ETFSectorBreakdown = {
+  id: string
+  etf_ticker: string
+  sector: string
+  industry_group: string | null
+  weight_pct: number
+  last_updated_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type ETFAssetAllocation = {
+  id: string
+  etf_ticker: string
+  asset_class: 'stocks' | 'bonds' | 'cash' | 'commodities' | 'real_estate' | 'other'
+  weight_pct: number
+  last_updated_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type CustomRegion = {
+  id: string
+  name: string
+  description: string | null
+  countries: string[]
+  created_at: string
+  updated_at: string
+}
+
+// DTOs for ETF data
+export type ETFBreakdownData = {
+  metadata: ETFMetadata
+  holdings: ETFHolding[]
+  countryBreakdown: ETFCountryBreakdown[]
+  sectorBreakdown: ETFSectorBreakdown[]
+  assetAllocation: ETFAssetAllocation[]
+}
+
+export type CreateETFMetadataDto = Omit<ETFMetadata, 'id' | 'created_at' | 'updated_at'>
+
+export type UpdateETFMetadataDto = Partial<
+  Pick<
+    ETFMetadata,
+    | 'name'
+    | 'provider'
+    | 'total_assets_usd'
+    | 'ter_pct'
+    | 'last_scraped_at'
+    | 'scrape_status'
+    | 'scrape_error'
+  >
+>
 
 // ============================================================================
 // Health Check Types

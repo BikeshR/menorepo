@@ -1,12 +1,14 @@
+import { GeographicBreakdownChart } from '../analytics/_components/GeographicBreakdownChart'
+import { GeographicWorldMap } from '../analytics/_components/GeographicWorldMap'
+import { SectorBreakdownChart } from '../analytics/_components/SectorBreakdownChart'
+import { getPortfolioAnalytics } from '../analytics/actions'
 import { AllocationCharts } from './_components/AllocationCharts'
 import { BenchmarkComparison } from './_components/BenchmarkComparison'
-import { DiversificationMetrics } from './_components/DiversificationMetrics'
 import { InitialSync } from './_components/InitialSync'
 import { PerformanceChart } from './_components/PerformanceChart'
 import { PortfolioNews } from './_components/PortfolioNews'
 import { PortfolioOverview } from './_components/PortfolioOverview'
 import { TopPerformers } from './_components/TopPerformers'
-import { TransactionHistory } from './_components/TransactionHistory'
 import {
   calculatePortfolioMetrics,
   getBenchmarkComparisonData,
@@ -54,6 +56,10 @@ export default async function PortfolioPage() {
 
   // Fetch portfolio news
   const newsArticles = await getPortfolioNews(10)
+
+  // Fetch analytics data for sector/geographic breakdowns
+  const analyticsResult = await getPortfolioAnalytics()
+  const analytics = analyticsResult.success ? analyticsResult.data : null
 
   // Detect currency from positions
   const currencies = portfolioData.positions.map((p) => p.currency).filter(Boolean)
@@ -105,6 +111,17 @@ export default async function PortfolioPage() {
         </div>
       )}
 
+      {/* Sector & Geographic Breakdown */}
+      {analytics && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SectorBreakdownChart data={analytics.sectorBreakdown} />
+          <GeographicBreakdownChart data={analytics.geographicBreakdown} />
+        </div>
+      )}
+
+      {/* Geographic World Map */}
+      {analytics && <GeographicWorldMap data={analytics.geographicBreakdown} />}
+
       {/* Top Performers */}
       {(portfolioData.positions.length > 0 || portfolioData.cryptoPositions.length > 0) && (
         <div>
@@ -116,19 +133,8 @@ export default async function PortfolioPage() {
         </div>
       )}
 
-      {/* Diversification Metrics */}
-      {(portfolioData.positions.length > 0 || portfolioData.cryptoPositions.length > 0) && (
-        <DiversificationMetrics
-          positions={portfolioData.positions}
-          cryptoPositions={portfolioData.cryptoPositions}
-        />
-      )}
-
       {/* Portfolio News */}
       {newsArticles && newsArticles.length > 0 && <PortfolioNews articles={newsArticles} />}
-
-      {/* Transaction History */}
-      <TransactionHistory initialTransactions={transactions || []} />
     </div>
   )
 }

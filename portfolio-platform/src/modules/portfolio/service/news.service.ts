@@ -32,7 +32,7 @@ export class NewsService extends BaseService {
         const topHoldings = stocks
           .map((s) => ({
             ticker: s.ticker,
-            value: s.quantity * s.current_price,
+            value: s.quantity * (s.current_price ?? 0),
           }))
           .sort((a, b) => b.value - a.value)
           .slice(0, 5) // Top 5 holdings

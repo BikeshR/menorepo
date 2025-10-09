@@ -98,6 +98,9 @@ export class SyncService extends BaseService {
           current_price: normalizedCurrentPrice,
           gain_loss: normalizedPpl,
           gain_loss_pct: gainLossPct,
+          market_value: marketValue,
+          custom_group: null,
+          custom_tags: null,
           exchange: exchange ?? null,
           country: country ?? null,
           region: region ?? null,
@@ -105,9 +108,6 @@ export class SyncService extends BaseService {
           last_synced_at: new Date().toISOString(),
           sector: null,
           industry: null,
-          market_cap: null,
-          pe_ratio: null,
-          dividend_yield: null,
         })
 
         totalValue += marketValue
@@ -119,7 +119,7 @@ export class SyncService extends BaseService {
       this.logger.info('Upserted stocks', { count: stocks.length })
 
       // Calculate snapshot data
-      const totalCostBasis = stocks.reduce((sum, s) => sum + s.quantity * s.average_cost, 0)
+      const totalCostBasis = stocks.reduce((sum, s) => sum + s.quantity * (s.average_cost ?? 0), 0)
       const totalGainLoss = totalValue - totalCostBasis
       const totalGainLossPct = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0
 

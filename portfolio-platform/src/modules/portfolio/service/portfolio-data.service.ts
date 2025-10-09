@@ -34,11 +34,11 @@ export class PortfolioDataService extends BaseService {
 
       // Calculate current metrics
       const totalValue = stocks.reduce(
-        (sum, stock) => sum + stock.quantity * stock.current_price,
+        (sum, stock) => sum + stock.quantity * (stock.current_price ?? 0),
         0
       )
       const totalCostBasis = stocks.reduce(
-        (sum, stock) => sum + stock.quantity * stock.average_cost,
+        (sum, stock) => sum + stock.quantity * (stock.average_cost ?? 0),
         0
       )
       const totalGainLoss = totalValue - totalCostBasis
@@ -110,9 +110,9 @@ export class PortfolioDataService extends BaseService {
           fundamentals: {
             sector: stock.sector,
             industry: stock.industry,
-            marketCap: stock.market_cap,
-            peRatio: stock.pe_ratio,
-            dividendYield: stock.dividend_yield,
+            marketCap: null,
+            peRatio: null,
+            dividendYield: null,
             description: null,
           },
         }

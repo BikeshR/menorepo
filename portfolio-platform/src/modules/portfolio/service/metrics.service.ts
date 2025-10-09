@@ -153,7 +153,7 @@ export class MetricsService extends BaseService {
 
       for (const stock of stocks) {
         const industry = stock.industry || 'Unknown'
-        const value = stock.quantity * stock.current_price
+        const value = stock.quantity * (stock.current_price ?? 0)
         totalValue += value
 
         const existing = industryMap.get(industry) || { value: 0, count: 0 }

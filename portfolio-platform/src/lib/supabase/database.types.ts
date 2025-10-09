@@ -247,6 +247,33 @@ export type Database = {
           },
         ]
       }
+      custom_regions: {
+        Row: {
+          countries: string[]
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          countries: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          countries?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       demo_private_data: {
         Row: {
           content: string
@@ -270,6 +297,261 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      etf_asset_allocation: {
+        Row: {
+          asset_class: string
+          created_at: string
+          etf_ticker: string
+          id: string
+          last_updated_at: string
+          updated_at: string
+          weight_pct: number
+        }
+        Insert: {
+          asset_class: string
+          created_at?: string
+          etf_ticker: string
+          id?: string
+          last_updated_at?: string
+          updated_at?: string
+          weight_pct: number
+        }
+        Update: {
+          asset_class?: string
+          created_at?: string
+          etf_ticker?: string
+          id?: string
+          last_updated_at?: string
+          updated_at?: string
+          weight_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'etf_asset_allocation_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_metadata'
+            referencedColumns: ['ticker']
+          },
+          {
+            foreignKeyName: 'etf_asset_allocation_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_stale_data'
+            referencedColumns: ['ticker']
+          },
+        ]
+      }
+      etf_country_breakdown: {
+        Row: {
+          country: string
+          created_at: string
+          etf_ticker: string
+          id: string
+          last_updated_at: string
+          updated_at: string
+          weight_pct: number
+        }
+        Insert: {
+          country: string
+          created_at?: string
+          etf_ticker: string
+          id?: string
+          last_updated_at?: string
+          updated_at?: string
+          weight_pct: number
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          etf_ticker?: string
+          id?: string
+          last_updated_at?: string
+          updated_at?: string
+          weight_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'etf_country_breakdown_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_metadata'
+            referencedColumns: ['ticker']
+          },
+          {
+            foreignKeyName: 'etf_country_breakdown_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_stale_data'
+            referencedColumns: ['ticker']
+          },
+        ]
+      }
+      etf_holdings: {
+        Row: {
+          asset_type: string | null
+          country: string | null
+          created_at: string
+          etf_ticker: string
+          holding_isin: string | null
+          holding_name: string
+          holding_ticker: string | null
+          id: string
+          industry: string | null
+          last_updated_at: string
+          market_value_usd: number | null
+          sector: string | null
+          shares: number | null
+          updated_at: string
+          weight_pct: number
+        }
+        Insert: {
+          asset_type?: string | null
+          country?: string | null
+          created_at?: string
+          etf_ticker: string
+          holding_isin?: string | null
+          holding_name: string
+          holding_ticker?: string | null
+          id?: string
+          industry?: string | null
+          last_updated_at?: string
+          market_value_usd?: number | null
+          sector?: string | null
+          shares?: number | null
+          updated_at?: string
+          weight_pct: number
+        }
+        Update: {
+          asset_type?: string | null
+          country?: string | null
+          created_at?: string
+          etf_ticker?: string
+          holding_isin?: string | null
+          holding_name?: string
+          holding_ticker?: string | null
+          id?: string
+          industry?: string | null
+          last_updated_at?: string
+          market_value_usd?: number | null
+          sector?: string | null
+          shares?: number | null
+          updated_at?: string
+          weight_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'etf_holdings_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_metadata'
+            referencedColumns: ['ticker']
+          },
+          {
+            foreignKeyName: 'etf_holdings_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_stale_data'
+            referencedColumns: ['ticker']
+          },
+        ]
+      }
+      etf_metadata: {
+        Row: {
+          created_at: string
+          data_source: string | null
+          id: string
+          isin: string | null
+          last_scraped_at: string | null
+          name: string
+          provider: string | null
+          scrape_error: string | null
+          scrape_status: string | null
+          ter_pct: number | null
+          ticker: string
+          total_assets_usd: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_source?: string | null
+          id?: string
+          isin?: string | null
+          last_scraped_at?: string | null
+          name: string
+          provider?: string | null
+          scrape_error?: string | null
+          scrape_status?: string | null
+          ter_pct?: number | null
+          ticker: string
+          total_assets_usd?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_source?: string | null
+          id?: string
+          isin?: string | null
+          last_scraped_at?: string | null
+          name?: string
+          provider?: string | null
+          scrape_error?: string | null
+          scrape_status?: string | null
+          ter_pct?: number | null
+          ticker?: string
+          total_assets_usd?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      etf_sector_breakdown: {
+        Row: {
+          created_at: string
+          etf_ticker: string
+          id: string
+          industry_group: string | null
+          last_updated_at: string
+          sector: string
+          updated_at: string
+          weight_pct: number
+        }
+        Insert: {
+          created_at?: string
+          etf_ticker: string
+          id?: string
+          industry_group?: string | null
+          last_updated_at?: string
+          sector: string
+          updated_at?: string
+          weight_pct: number
+        }
+        Update: {
+          created_at?: string
+          etf_ticker?: string
+          id?: string
+          industry_group?: string | null
+          last_updated_at?: string
+          sector?: string
+          updated_at?: string
+          weight_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'etf_sector_breakdown_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_metadata'
+            referencedColumns: ['ticker']
+          },
+          {
+            foreignKeyName: 'etf_sector_breakdown_etf_ticker_fkey'
+            columns: ['etf_ticker']
+            isOneToOne: false
+            referencedRelation: 'etf_stale_data'
+            referencedColumns: ['ticker']
+          },
+        ]
       }
       investments: {
         Row: {
@@ -1189,6 +1471,30 @@ export type Database = {
           nodeport?: number | null
           schedule?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      etf_stale_data: {
+        Row: {
+          days_old: number | null
+          last_scraped_at: string | null
+          name: string | null
+          scrape_status: string | null
+          ticker: string | null
+        }
+        Insert: {
+          days_old?: never
+          last_scraped_at?: string | null
+          name?: string | null
+          scrape_status?: string | null
+          ticker?: string | null
+        }
+        Update: {
+          days_old?: never
+          last_scraped_at?: string | null
+          name?: string | null
+          scrape_status?: string | null
+          ticker?: string | null
         }
         Relationships: []
       }

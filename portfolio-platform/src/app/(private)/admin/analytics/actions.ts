@@ -2,6 +2,7 @@
 
 import { isAuthenticated } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getETFMetadata, refreshETFData } from '@/modules/portfolio/service/etf-data.service'
 
 /**
  * Get comprehensive portfolio analytics data
@@ -305,6 +306,173 @@ export async function getTaxTrackingData() {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch tax data',
+    }
+  }
+}
+
+/**
+ * Refresh a single ETF's breakdown data
+ */
+export async function refreshSingleETF(ticker: string, isin: string) {
+  try {
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      }
+    }
+
+    const result = await refreshETFData(ticker, isin)
+    return result
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
+ * Refresh all ETFs in portfolio
+ */
+export async function refreshPortfolioETFs(portfolioId: string) {
+  try {
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      }
+    }
+
+    const supabase = createServiceClient()
+
+    // Get all ETFs in portfolio
+    const { data: stocks, error } = await supabase
+      .from('stocks')
+      .select('ticker, isin')
+      .eq('portfolio_id', portfolioId)
+      .eq('asset_type', 'etf')
+
+    if (error) throw error
+
+    if (!stocks || stocks.length === 0) {
+      return { success: true, refreshed: 0, failed: 0, message: 'No ETFs in portfolio' }
+    }
+
+    let refreshed = 0
+    let failed = 0
+
+    for (const stock of stocks) {
+      if (!stock.isin) {
+        console.warn(`[Analytics Actions] ETF ${stock.ticker} has no ISIN, skipping`)
+        failed++
+        continue
+      }
+
+      const result = await refreshETFData(stock.ticker, stock.isin)
+      if (result.success) {
+        refreshed++
+      } else {
+        failed++
+      }
+
+      // Small delay between requests
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+
+    return {
+      success: true,
+      refreshed,
+      failed,
+      message: `Refreshed ${refreshed} ETFs, ${failed} failed`,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      refreshed: 0,
+      failed: 0,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
+ * Get list of ETFs in portfolio with their refresh status
+ */
+export async function getPortfolioETFStatus(portfolioId: string) {
+  try {
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+        data: [],
+      }
+    }
+
+    const supabase = createServiceClient()
+
+    // Get all ETFs
+    const { data: stocks, error } = await supabase
+      .from('stocks')
+      .select('ticker, name, isin, quantity, current_price, market_value')
+      .eq('portfolio_id', portfolioId)
+      .eq('asset_type', 'etf')
+
+    if (error) throw error
+
+    if (!stocks || stocks.length === 0) {
+      return { success: true, data: [] }
+    }
+
+    // Get metadata for each ETF
+    const etfStatuses = await Promise.all(
+      stocks.map(async (stock) => {
+        if (!stock.isin) {
+          return {
+            ticker: stock.ticker,
+            name: stock.name,
+            isin: null,
+            marketValue: stock.market_value || stock.quantity * (stock.current_price ?? 0),
+            lastScraped: null,
+            status: 'missing_isin' as const,
+            daysOld: null,
+          }
+        }
+
+        const metadata = await getETFMetadata(stock.ticker)
+
+        const daysOld = metadata?.last_scraped_at
+          ? Math.floor(
+              (Date.now() - new Date(metadata.last_scraped_at).getTime()) / (1000 * 60 * 60 * 24)
+            )
+          : null
+
+        // Validate and normalize status
+        const status = metadata?.scrape_status
+        const validStatus: 'pending' | 'success' | 'failed' | 'stale' =
+          status === 'success' || status === 'failed' || status === 'stale' ? status : 'pending'
+
+        return {
+          ticker: stock.ticker,
+          name: stock.name,
+          isin: stock.isin,
+          marketValue: stock.market_value || stock.quantity * (stock.current_price ?? 0),
+          lastScraped: metadata?.last_scraped_at || null,
+          status: validStatus,
+          daysOld,
+        }
+      })
+    )
+
+    return { success: true, data: etfStatuses }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      data: [],
     }
   }
 }

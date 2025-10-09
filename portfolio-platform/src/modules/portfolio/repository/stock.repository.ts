@@ -74,9 +74,6 @@ export class StockRepository extends BaseRepository<Stock> {
               last_synced_at: stock.last_synced_at,
               sector: stock.sector ?? null,
               industry: stock.industry ?? null,
-              market_cap: stock.market_cap ?? null,
-              pe_ratio: stock.pe_ratio ?? null,
-              dividend_yield: stock.dividend_yield ?? null,
             },
             {
               onConflict: 'portfolio_id,ticker',
@@ -119,9 +116,6 @@ export class StockRepository extends BaseRepository<Stock> {
             last_synced_at: stock.last_synced_at,
             sector: stock.sector ?? null,
             industry: stock.industry ?? null,
-            market_cap: stock.market_cap ?? null,
-            pe_ratio: stock.pe_ratio ?? null,
-            dividend_yield: stock.dividend_yield ?? null,
           })),
           {
             onConflict: 'portfolio_id,ticker',
