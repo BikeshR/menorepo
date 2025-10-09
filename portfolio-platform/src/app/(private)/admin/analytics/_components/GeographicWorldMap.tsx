@@ -29,7 +29,9 @@ export function GeographicWorldMap({ data }: GeographicWorldMapProps) {
             <div key={region.region} className="border-b pb-4 last:border-0">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">{region.region}</span>
-                <span className="text-sm text-muted-foreground">{region.percentage.toFixed(1)}%</span>
+                <span className="text-sm text-muted-foreground">
+                  {region.percentage.toFixed(1)}%
+                </span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>£{region.value.toLocaleString()}</span>

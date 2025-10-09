@@ -9,9 +9,12 @@
 // import * as XLSX from 'xlsx'
 import type { ETFBreakdownData } from '../../types'
 
-const BASE_URL = 'https://etf.dws.com/api/pdp/en-gb/export/etf'
+const _BASE_URL = 'https://etf.dws.com/api/pdp/en-gb/export/etf'
 
-export async function scrapeXtrackersETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+export async function scrapeXtrackersETF(
+  _ticker: string,
+  _isin: string
+): Promise<ETFBreakdownData> {
   throw new Error('xlsx dependency removed - scraping disabled')
   /*
   try {
@@ -199,7 +202,7 @@ export async function scrapeXtrackersETF(ticker: string, isin: string): Promise<
   */
 }
 
-function determineAssetType(
+function _determineAssetType(
   type?: string
 ): 'stock' | 'bond' | 'cash' | 'commodity' | 'other' | null {
   if (!type) return null

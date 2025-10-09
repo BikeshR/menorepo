@@ -9,7 +9,7 @@
 // import * as cheerio from 'cheerio'
 import type { ETFBreakdownData } from '../../types'
 
-export async function scrapeVanEckETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+export async function scrapeVanEckETF(_ticker: string, _isin: string): Promise<ETFBreakdownData> {
   throw new Error('cheerio dependency removed - scraping disabled')
   /*
   try {

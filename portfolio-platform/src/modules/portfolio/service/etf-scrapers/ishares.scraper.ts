@@ -63,7 +63,7 @@ export async function scrapeISharesETF(ticker: string, isin: string): Promise<ET
     const holdings = dataRows
       .filter((row) => row.length > 3 && row[0] && row[0].trim())
       .map((row) => {
-        const holding: any = {}
+        const holding: Record<string, string | undefined> = {}
         headers.forEach((header, index) => {
           holding[header.trim()] = row[index]?.trim()
         })

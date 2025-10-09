@@ -9,7 +9,7 @@
 // import { chromium } from 'playwright'
 import type { ETFBreakdownData } from '../../types'
 
-export async function scrapeJustETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+export async function scrapeJustETF(_ticker: string, _isin: string): Promise<ETFBreakdownData> {
   throw new Error('playwright dependency removed - scraping disabled')
   /*
   const browser = await chromium.launch({

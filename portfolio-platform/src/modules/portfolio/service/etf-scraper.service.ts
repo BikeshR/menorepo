@@ -66,7 +66,7 @@ async function fetchJustETF(isin: string): Promise<string> {
 /**
  * Parse ETF metadata from justETF page
  */
-function parseMetadata(html: string, ticker: string, isin: string): Partial<ETFMetadata> {
+function parseMetadata(_html: string, _ticker: string, _isin: string): Partial<ETFMetadata> {
   throw new Error('cheerio dependency removed - scraping disabled')
   // const $ = cheerio.load(html)
   //
@@ -120,7 +120,7 @@ function parseMetadata(html: string, ticker: string, isin: string): Partial<ETFM
 /**
  * Parse top holdings from justETF page
  */
-function parseHoldings(html: string, etf_ticker: string): ETFHolding[] {
+function parseHoldings(_html: string, _etf_ticker: string): ETFHolding[] {
   throw new Error('cheerio dependency removed - scraping disabled')
   // const $ = cheerio.load(html)
   // const holdings: ETFHolding[] = []
@@ -161,21 +161,21 @@ function parseHoldings(html: string, etf_ticker: string): ETFHolding[] {
 /**
  * Parse country breakdown from justETF page
  */
-function parseCountryBreakdown(html: string, etf_ticker: string): ETFCountryBreakdown[] {
+function parseCountryBreakdown(_html: string, _etf_ticker: string): ETFCountryBreakdown[] {
   throw new Error('cheerio dependency removed - scraping disabled')
 }
 
 /**
  * Parse sector breakdown from justETF page
  */
-function parseSectorBreakdown(html: string, etf_ticker: string): ETFSectorBreakdown[] {
+function parseSectorBreakdown(_html: string, _etf_ticker: string): ETFSectorBreakdown[] {
   throw new Error('cheerio dependency removed - scraping disabled')
 }
 
 /**
  * Parse asset allocation (stocks vs bonds vs cash)
  */
-function parseAssetAllocation(html: string, etf_ticker: string): ETFAssetAllocation[] {
+function parseAssetAllocation(_html: string, _etf_ticker: string): ETFAssetAllocation[] {
   throw new Error('cheerio dependency removed - scraping disabled')
 }
 

@@ -8,7 +8,10 @@
 // import * as cheerio from 'cheerio'
 import type { ETFBreakdownData } from '../../types'
 
-export async function scrapeWisdomTreeETF(ticker: string, isin: string): Promise<ETFBreakdownData> {
+export async function scrapeWisdomTreeETF(
+  _ticker: string,
+  _isin: string
+): Promise<ETFBreakdownData> {
   throw new Error('cheerio dependency removed - scraping disabled')
   /*
   try {
