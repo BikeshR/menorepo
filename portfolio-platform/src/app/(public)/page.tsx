@@ -1,19 +1,23 @@
 import { Github, Linkedin, LogIn, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { Chat } from '@/components/chat/Chat'
+import { ThemeColorPicker } from '@/components/theme/ThemeColorPicker'
 import { Button } from '@/components/ui/button'
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header with Login Button */}
+      {/* Header with Theme Picker and Login Button */}
       <header className="absolute top-0 right-0 p-4 sm:p-6 z-10">
-        <Link href="/login">
-          <Button variant="outline" className="gap-2">
-            <LogIn className="h-4 w-4" />
-            <span className="hidden sm:inline">Login</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeColorPicker />
+          <Link href="/login">
+            <Button variant="outline" className="gap-2">
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Login</span>
+            </Button>
+          </Link>
+        </div>
       </header>
 
       {/* Main Content - Chat Interface */}
