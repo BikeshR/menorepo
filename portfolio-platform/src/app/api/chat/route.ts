@@ -62,6 +62,22 @@ RESPONSE FORMAT:
 - DO NOT use tags like <think>, <thinking>, <thought>, or <reasoning>
 - Provide direct, polished answers only
 - Skip internal deliberation - just give the final response
+- After your answer, add 3 short follow-up questions to keep the conversation going
+- Format suggestions like this:
+
+[Your response here]
+
+---SUGGESTIONS---
+1. Short relevant question?
+2. Another follow-up?
+3. Third suggestion?
+
+IMPORTANT FOR SUGGESTIONS:
+- Write suggestions as questions a VISITOR would ask ABOUT BIKESH
+- Use "you/your" (referring to Bikesh), NOT "I/my/me"
+- Example CORRECT: "What are your main technical skills?"
+- Example WRONG: "What are my main technical skills?"
+- Keep suggestions SHORT (5-8 words max) and directly relevant to what you just discussed.
 
 Remember: You're representing Bikesh's professional brand. Be accurate, helpful, and authentic.`
 
@@ -96,6 +112,28 @@ Remember: You're representing Bikesh's professional brand. Be accurate, helpful,
     })
   } catch (error) {
     console.error('Chat API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+
+    // Preserve error messages from callGroqWithFallback
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+
+    // Check if it's a rate limit error
+    if (errorMessage.includes('RATE_LIMIT')) {
+      return NextResponse.json(
+        { error: errorMessage },
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    // Return the actual error message instead of generic "Internal server error"
+    return NextResponse.json(
+      { error: errorMessage },
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   }
 }

@@ -1,11 +1,13 @@
 /**
- * Groq AI Model Configuration with Fallback Chain
+ * Groq AI Model Configuration with Dynamic Fallback
  *
- * Models are listed in order of preference. If one fails (deprecated/unavailable),
- * the system automatically tries the next one.
+ * The system automatically discovers available models via Groq API and scores them
+ * based on parameters, token limits, context window, and recency.
  *
- * Update this list as Groq releases new models or deprecates old ones.
- * Check: https://console.groq.com/docs/models
+ * Models are tried in ranked order (best → worst). If a model hits its daily rate limit,
+ * the system automatically tries the next model in the ranked list.
+ *
+ * Completely dynamic - no hardcoded model names needed for fallback logic.
  */
 
 export interface GroqModel {
@@ -166,8 +168,10 @@ export async function fetchAvailableModels(apiKey: string): Promise<string[]> {
           model.id.includes('qwen') ||
           model.id.includes('compound')) &&
         !model.id.includes('guard') && // Exclude guard models (for content filtering)
+        !model.id.includes('prompt-guard') && // Exclude prompt guard models
         !model.id.includes('tts') && // Exclude text-to-speech models
         !model.id.includes('whisper') && // Exclude speech-to-text models
+        !model.id.includes('allam') && // Exclude ALLAM models (low token limit)
         model.max_completion_tokens >= 8192 // Must support reasonable response length
     )
 
@@ -192,6 +196,7 @@ export async function fetchAvailableModels(apiKey: string): Promise<string[]> {
     lastModelFetch = now
 
     console.log(`\n✅ Returning ${sortedModelIds.length} models sorted by quality`)
+    console.log(`📋 Fallback strategy: Try models in ranked order until one succeeds`)
     return sortedModelIds
   } catch (error) {
     console.error('❌ Failed to fetch available models:', error)

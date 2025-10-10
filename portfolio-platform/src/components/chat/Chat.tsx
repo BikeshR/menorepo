@@ -46,9 +46,34 @@ function cleanReasoningTokens(content: string): string {
   return cleaned
 }
 
+/**
+ * Parse suggestions from AI response
+ * Format: "---SUGGESTIONS---\n1. Question?\n2. Another?"
+ */
+function parseSuggestions(content: string): { cleanContent: string; suggestions: string[] } {
+  const suggestionMarker = '---SUGGESTIONS---'
+  const markerIndex = content.indexOf(suggestionMarker)
+
+  if (markerIndex === -1) {
+    return { cleanContent: content, suggestions: [] }
+  }
+
+  const cleanContent = content.substring(0, markerIndex).trim()
+  const suggestionsText = content.substring(markerIndex + suggestionMarker.length).trim()
+
+  // Parse numbered list: "1. Question?\n2. Another?"
+  const suggestions = suggestionsText
+    .split('\n')
+    .map((line) => line.replace(/^\d+\.\s*/, '').trim())
+    .filter((line) => line.length > 0)
+
+  return { cleanContent, suggestions }
+}
+
 export function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[] | undefined>(undefined)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom when new messages arrive
@@ -117,14 +142,23 @@ export function Chat() {
                 // Clean reasoning tokens before displaying
                 const cleanedMessage = cleanReasoningTokens(assistantMessage)
 
-                // Update or add assistant message
+                // Parse suggestions and clean content
+                const { cleanContent, suggestions: parsedSuggestions } =
+                  parseSuggestions(cleanedMessage)
+
+                // Update suggestions if found
+                if (parsedSuggestions.length > 0) {
+                  setSuggestions(parsedSuggestions)
+                }
+
+                // Update or add assistant message (without suggestions marker)
                 setMessages((prev) => {
                   const existingIndex = prev.findIndex((m) => m.id === assistantMessageId)
                   if (existingIndex >= 0) {
                     const updated = [...prev]
                     updated[existingIndex] = {
                       ...updated[existingIndex],
-                      content: cleanedMessage,
+                      content: cleanContent,
                     }
                     return updated
                   }
@@ -133,7 +167,7 @@ export function Chat() {
                     {
                       id: assistantMessageId,
                       role: 'assistant',
-                      content: cleanedMessage,
+                      content: cleanContent,
                       modelName,
                     },
                   ]
@@ -191,21 +225,29 @@ Please try again or contact Bikesh directly at bksh.rana@gmail.com`
     }
   }
 
-  const showSuggestions = messages.length === 0
+  const isEmpty = messages.length === 0 && !isLoading
 
+  if (isEmpty) {
+    // Centered view - initial state
+    return (
+      <div className="w-full max-w-3xl mx-auto flex-1 flex items-center justify-center px-4">
+        <div className="w-full">
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            disabled={isLoading}
+            showSuggestions={!isLoading}
+            suggestions={suggestions}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // Full conversation view
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col h-full">
+    <div className="w-full max-w-3xl mx-auto flex flex-col flex-1">
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.length === 0 && (
-          <div className="text-center space-y-2 py-12">
-            <h2 className="text-2xl font-semibold">What would you like to know about Bikesh?</h2>
-            <p className="text-muted-foreground">
-              Ask me anything about experience, projects, or skills
-            </p>
-          </div>
-        )}
-
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
@@ -229,7 +271,8 @@ Please try again or contact Bikesh directly at bksh.rana@gmail.com`
         <ChatInput
           onSendMessage={handleSendMessage}
           disabled={isLoading}
-          showSuggestions={showSuggestions}
+          showSuggestions={!isLoading}
+          suggestions={suggestions}
         />
       </div>
     </div>

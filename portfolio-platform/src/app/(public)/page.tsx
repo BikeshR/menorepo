@@ -59,13 +59,10 @@ export default function HomePage() {
             {/* Separator */}
             <span className="text-muted-foreground/30">|</span>
 
-            {/* Traditional Portfolio Link */}
-            <Link
-              href="/projects"
-              className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
-            >
-              Traditional portfolio
-            </Link>
+            {/* Traditional Portfolio - Under Construction */}
+            <span className="text-muted-foreground text-xs">
+              Traditional portfolio under construction
+            </span>
           </div>
         </div>
       </footer>

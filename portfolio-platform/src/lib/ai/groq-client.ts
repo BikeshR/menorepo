@@ -42,13 +42,15 @@ function shouldTryNextModel(error: GroqError, statusCode?: number): boolean {
 
 /**
  * Call Groq API with automatic model fallback
- * Tries models in order until one works
  *
- * Uses smart selection:
+ * Strategy:
  * 1. Queries Groq API for available models (cached for 1 hour)
  * 2. Scores models algorithmically based on API fields (params, tokens, context, recency)
  * 3. Randomly selects from top 3 for variety
- * 4. Falls back to remaining models if selected one fails
+ * 4. If model hits daily rate limit, tries next model in ranked order
+ * 5. Continues down the ranked list until a model succeeds or all are exhausted
+ *
+ * No hardcoded model names - completely dynamic and future-proof
  */
 export async function callGroqWithFallback(
   apiKey: string,
@@ -62,11 +64,12 @@ export async function callGroqWithFallback(
   const randomIndex = Math.floor(Math.random() * top3.length)
   const selectedModel = top3[randomIndex]
 
-  // Build fallback chain: selected model first, then the rest
+  // Build fallback chain: selected model first, then try remaining models in ranked order
   const modelsToTry = [selectedModel, ...availableModels.filter((m) => m !== selectedModel)]
 
   console.log(`\n🎲 Randomly selected from top 3: ${selectedModel}`)
-  console.log(`📋 Top 3 were: ${top3.join(', ')}\n`)
+  console.log(`📋 Top 3 were: ${top3.join(', ')}`)
+  console.log(`📊 Will try ${modelsToTry.length} models in ranked order if needed\n`)
 
   let lastError: Error | null = null
 
@@ -106,6 +109,21 @@ export async function callGroqWithFallback(
       // Check if it's a rate limit error
       if (response.status === 429) {
         const retryAfter = response.headers.get('retry-after')
+        const resetRequests = response.headers.get('x-ratelimit-reset-requests')
+
+        // Determine if it's a daily limit (long reset time) or minute limit (short reset time)
+        const isDailyLimit =
+          resetRequests &&
+          (resetRequests.includes('h') || // Hours in reset time
+            (resetRequests.includes('m') && Number.parseInt(resetRequests) > 5)) // More than 5 minutes
+
+        // If daily limit, try next model in ranked list
+        if (isDailyLimit) {
+          console.warn(`⚠️  Model ${modelId} hit daily rate limit, trying next model...`)
+          continue // Try next model
+        }
+
+        // Minute limit applies to all models - throw error immediately
         const resetTime = retryAfter ? `${retryAfter} seconds` : 'a few moments'
         throw new Error(
           `RATE_LIMIT: Groq API rate limit exceeded. Please try again in ${resetTime}. This is a Groq service limit, not an error with the portfolio.`

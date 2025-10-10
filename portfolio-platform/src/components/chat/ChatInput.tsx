@@ -4,10 +4,11 @@ import { Send, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 
-const SUGGESTED_QUESTIONS = [
-  'Tell me about your experience',
-  'What projects have you built?',
-  'What are your technical skills?',
+// Static initial suggestions for instant load
+const INITIAL_SUGGESTIONS = [
+  'What are your key technical skills?',
+  'Tell me about your recent projects',
+  'What is your professional experience?',
   'Are you available for work?',
 ]
 
@@ -15,12 +16,14 @@ interface ChatInputProps {
   onSendMessage: (message: string) => void
   disabled?: boolean
   showSuggestions?: boolean
+  suggestions?: string[] // Follow-up suggestions from AI responses
 }
 
 export function ChatInput({
   onSendMessage,
   disabled = false,
   showSuggestions = true,
+  suggestions = INITIAL_SUGGESTIONS,
 }: ChatInputProps) {
   const [input, setInput] = useState('')
 
@@ -39,30 +42,7 @@ export function ChatInput({
   }
 
   return (
-    <div className="w-full space-y-4">
-      {/* Suggested Questions */}
-      {showSuggestions && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Sparkles className="w-4 h-4" />
-            <span>Suggested questions:</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTED_QUESTIONS.map((question) => (
-              <button
-                key={question}
-                type="button"
-                onClick={() => handleSuggestionClick(question)}
-                disabled={disabled}
-                className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {question}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
+    <div className="w-full space-y-3">
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
@@ -83,6 +63,29 @@ export function ChatInput({
           <span className="sr-only">Send message</span>
         </Button>
       </form>
+
+      {/* Suggested Questions */}
+      {showSuggestions && suggestions && suggestions.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Suggested questions:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((question, index) => (
+              <button
+                key={`${question}-${index}`}
+                type="button"
+                onClick={() => handleSuggestionClick(question)}
+                disabled={disabled}
+                className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
