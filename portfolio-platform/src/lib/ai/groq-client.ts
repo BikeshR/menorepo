@@ -23,7 +23,12 @@ interface GroqError {
  * Check if error indicates model deprecation/decommission or incompatibility
  * These errors should trigger trying the next model in the fallback chain
  */
-function shouldTryNextModel(error: GroqError): boolean {
+function shouldTryNextModel(error: GroqError, statusCode?: number): boolean {
+  // Rate limit errors should NOT trigger fallback - they apply to all models
+  if (statusCode === 429) {
+    return false
+  }
+
   const message = error?.error?.message?.toLowerCase() || ''
   return (
     message.includes('decommission') ||
@@ -98,12 +103,21 @@ export async function callGroqWithFallback(
         // Not JSON, that's ok
       }
 
-      if (shouldTryNextModel(errorData)) {
+      // Check if it's a rate limit error
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after')
+        const resetTime = retryAfter ? `${retryAfter} seconds` : 'a few moments'
+        throw new Error(
+          `RATE_LIMIT: Groq API rate limit exceeded. Please try again in ${resetTime}. This is a Groq service limit, not an error with the portfolio.`
+        )
+      }
+
+      if (shouldTryNextModel(errorData, response.status)) {
         console.warn(`⚠️  Model ${modelId} incompatible or deprecated, trying next...`)
         continue // Try next model
       }
 
-      // If it's another error (auth, rate limit, etc), throw it
+      // If it's another error (auth, etc), throw it
       // Don't try other models for non-compatibility errors
       throw new Error(`Groq API error (${response.status}): ${errorText.substring(0, 200)}`)
     } catch (error) {

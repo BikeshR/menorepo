@@ -14,50 +14,8 @@ try {
   cvContent = 'CV file not found'
 }
 
-// Rate limiting using a simple in-memory store
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT = 10 // requests per window
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour in milliseconds
-
-function checkRateLimit(identifier: string): boolean {
-  const now = Date.now()
-  const userLimit = rateLimitMap.get(identifier)
-
-  if (!userLimit || now > userLimit.resetTime) {
-    // Reset or initialize
-    rateLimitMap.set(identifier, {
-      count: 1,
-      resetTime: now + RATE_LIMIT_WINDOW,
-    })
-    return true
-  }
-
-  if (userLimit.count >= RATE_LIMIT) {
-    return false
-  }
-
-  userLimit.count += 1
-  return true
-}
-
-function getClientIdentifier(req: NextRequest): string {
-  // Use IP address for rate limiting
-  const forwarded = req.headers.get('x-forwarded-for')
-  const ip = forwarded ? forwarded.split(',')[0] : 'unknown'
-  return ip
-}
-
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting
-    const identifier = getClientIdentifier(req)
-    if (!checkRateLimit(identifier)) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      )
-    }
-
     const { message } = await req.json()
 
     if (!message || typeof message !== 'string') {
@@ -98,6 +56,12 @@ GUIDELINES:
 - If you don't know something specific, be honest and suggest contacting Bikesh directly
 - Always maintain a positive, helpful tone
 - Use the CV as your primary source of truth for detailed information
+
+RESPONSE FORMAT:
+- NEVER include thinking/reasoning process in your response
+- DO NOT use tags like <think>, <thinking>, <thought>, or <reasoning>
+- Provide direct, polished answers only
+- Skip internal deliberation - just give the final response
 
 Remember: You're representing Bikesh's professional brand. Be accurate, helpful, and authentic.`
 

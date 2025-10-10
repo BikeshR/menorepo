@@ -5,6 +5,47 @@ import { useEffect, useRef, useState } from 'react'
 import { ChatInput } from './ChatInput'
 import { ChatMessage, type Message } from './ChatMessage'
 
+/**
+ * Remove reasoning/thinking tokens that some models (like Qwen3) output
+ * These are internal reasoning artifacts that shouldn't be shown to users
+ *
+ * Also handles incomplete tags during streaming by hiding content after unclosed tags
+ */
+function cleanReasoningTokens(content: string): string {
+  // First, remove complete reasoning blocks
+  let cleaned = content
+    // Remove <think>...</think> blocks
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    // Remove <thinking>...</thinking> blocks
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    // Remove <thought>...</thought> blocks
+    .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+    // Remove <reasoning>...</reasoning> blocks
+    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+    // Clean up extra whitespace/newlines left behind
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
+    .trim()
+
+  // Check for unclosed reasoning tags (incomplete during streaming)
+  const unclosedTags = [
+    /<think>/gi,
+    /<thinking>/gi,
+    /<thought>/gi,
+    /<reasoning>/gi,
+  ]
+
+  for (const tagPattern of unclosedTags) {
+    const match = cleaned.match(tagPattern)
+    if (match && match.index !== undefined) {
+      // Found an unclosed tag - hide everything from that point onward
+      cleaned = cleaned.substring(0, match.index).trim()
+      break
+    }
+  }
+
+  return cleaned
+}
+
 export function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -73,6 +114,9 @@ export function Chat() {
               if (content) {
                 assistantMessage += content
 
+                // Clean reasoning tokens before displaying
+                const cleanedMessage = cleanReasoningTokens(assistantMessage)
+
                 // Update or add assistant message
                 setMessages((prev) => {
                   const existingIndex = prev.findIndex((m) => m.id === assistantMessageId)
@@ -80,7 +124,7 @@ export function Chat() {
                     const updated = [...prev]
                     updated[existingIndex] = {
                       ...updated[existingIndex],
-                      content: assistantMessage,
+                      content: cleanedMessage,
                     }
                     return updated
                   }
@@ -89,7 +133,7 @@ export function Chat() {
                     {
                       id: assistantMessageId,
                       role: 'assistant',
-                      content: assistantMessage,
+                      content: cleanedMessage,
                       modelName,
                     },
                   ]
@@ -103,18 +147,43 @@ export function Chat() {
       }
     } catch (error) {
       console.error('Chat error:', error)
-      // Add error message with details
+
+      // Parse error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      // Check if it's a rate limit error
+      const isRateLimit = errorMessage.includes('RATE_LIMIT')
+
+      let userMessage: string
+      if (isRateLimit) {
+        // Extract retry time if available
+        const retryMatch = errorMessage.match(/in (\d+ seconds|a few moments)/)
+        const retryTime = retryMatch ? retryMatch[1] : 'a few moments'
+
+        userMessage = `⏱️ **Rate Limit Reached**
+
+The AI service (Groq) has temporarily limited requests. This is a service-wide limit, not an issue with the portfolio.
+
+**Please try again in ${retryTime}.**
+
+In the meantime, you can reach out directly:
+- Email: bksh.rana@gmail.com
+- LinkedIn: [linkedin.com/in/bikesh-rana](https://www.linkedin.com/in/bikesh-rana)`
+      } else {
+        // Generic error
+        userMessage = `I'm sorry, I'm having trouble responding right now.
+
+**Error**: ${errorMessage}
+
+Please try again or contact Bikesh directly at bksh.rana@gmail.com`
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           id: `error-${Date.now()}`,
           role: 'assistant',
-          content: `I'm sorry, I'm having trouble responding right now.
-
-Error: ${errorMessage}
-
-Please try again or contact Bikesh directly at bksh.rana@gmail.com`,
+          content: userMessage,
         },
       ])
     } finally {
