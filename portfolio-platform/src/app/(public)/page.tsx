@@ -1,80 +1,74 @@
 import { Github, Linkedin, LogIn, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { Chat } from '@/components/chat/Chat'
 import { Button } from '@/components/ui/button'
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header with Login Button */}
-      <header className="absolute top-0 right-0 p-6">
+      <header className="absolute top-0 right-0 p-4 sm:p-6 z-10">
         <Link href="/login">
           <Button variant="outline" className="gap-2">
             <LogIn className="h-4 w-4" />
-            Login
+            <span className="hidden sm:inline">Login</span>
           </Button>
         </Link>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-4">
-        <div className="max-w-2xl w-full text-center space-y-8">
-          {/* Name and Title */}
-          <div className="space-y-2">
-            <h1 className="text-5xl sm:text-6xl font-bold tracking-tight">Bikesh Rana</h1>
-            <p className="text-xl sm:text-2xl text-muted-foreground">Full-Stack Developer</p>
-          </div>
+      {/* Main Content - Chat Interface */}
+      <main className="flex-1 flex flex-col">
+        <Chat />
+      </main>
 
-          {/* Under Construction Message */}
-          <div className="space-y-4 py-8">
-            <div className="inline-block px-4 py-2 bg-primary/10 rounded-lg border border-primary/20">
-              <p className="text-sm font-medium text-primary">Under Construction</p>
+      {/* Footer */}
+      <footer className="border-t py-4 px-4">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+          <p className="text-muted-foreground">&copy; 2025 Bikesh Rana. All rights reserved.</p>
+
+          <div className="flex items-center gap-4">
+            {/* Social Icons */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="https://github.com/BikeshR"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="GitHub"
+              >
+                <Github className="h-4 w-4" />
+              </Link>
+              <Link
+                href="https://www.linkedin.com/in/bikesh-rana"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="LinkedIn"
+              >
+                <Linkedin className="h-4 w-4" />
+              </Link>
+              <Link
+                href="mailto:bksh.rana@gmail.com"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Email"
+              >
+                <Mail className="h-4 w-4" />
+              </Link>
             </div>
-            <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              Building something great. Check back soon for the full portfolio experience.
-            </p>
-          </div>
 
-          {/* Contact Links */}
-          <div className="flex items-center justify-center gap-4 pt-4">
-            <Link
-              href="https://github.com/BikeshR"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
-            >
-              <Button variant="ghost" size="icon" className="h-12 w-12">
-                <Github className="h-6 w-6" />
-                <span className="sr-only">GitHub</span>
-              </Button>
-            </Link>
-            <Link
-              href="https://www.linkedin.com/in/bikesh-rana"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
-            >
-              <Button variant="ghost" size="icon" className="h-12 w-12">
-                <Linkedin className="h-6 w-6" />
-                <span className="sr-only">LinkedIn</span>
-              </Button>
-            </Link>
-            <Link
-              href="mailto:bksh.rana@gmail.com"
-              className="hover:text-primary transition-colors"
-            >
-              <Button variant="ghost" size="icon" className="h-12 w-12">
-                <Mail className="h-6 w-6" />
-                <span className="sr-only">Email</span>
-              </Button>
-            </Link>
-          </div>
+            {/* Separator */}
+            <span className="text-muted-foreground/30">|</span>
 
-          {/* Footer Note */}
-          <div className="pt-8">
-            <p className="text-sm text-muted-foreground">Last updated: October 2025</p>
+            {/* Traditional Portfolio Link */}
+            <Link
+              href="/projects"
+              className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+            >
+              Traditional portfolio
+            </Link>
           </div>
         </div>
-      </main>
+      </footer>
     </div>
   )
 }
