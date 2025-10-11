@@ -1,4 +1,4 @@
-import { ArrowUpRight, BarChart3, TrendingUp } from 'lucide-react'
+import { ArrowUpRight, BarChart3, TrendingUp, Image } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -98,7 +98,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Portfolio Details</CardTitle>
@@ -143,6 +143,27 @@ export default async function DashboardPage() {
                 <Button className="w-full">
                   <BarChart3 className="mr-2 h-4 w-4" />
                   View Analytics
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>COSMO Objekts</CardTitle>
+            <CardDescription>View your TripleS COSMO collection</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Explore your objekt collection on Abstract blockchain. View stats, filter by member
+                or season, and check your COMO voting power.
+              </p>
+              <Link href="/admin/cosmo">
+                <Button variant="outline" className="w-full">
+                  <Image className="mr-2 h-4 w-4" />
+                  View Objekts
                 </Button>
               </Link>
             </div>
