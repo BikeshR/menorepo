@@ -65,7 +65,11 @@ function parseSuggestions(content: string): { cleanContent: string; suggestions:
   return { cleanContent, suggestions }
 }
 
-export function Chat() {
+interface ChatProps {
+  onMessagesChange?: (hasMessages: boolean) => void
+}
+
+export function Chat({ onMessagesChange }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[] | undefined>(undefined)
@@ -75,6 +79,11 @@ export function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
+
+  // Notify parent when messages change
+  useEffect(() => {
+    onMessagesChange?.(messages.length > 0)
+  }, [messages.length, onMessagesChange])
 
   const handleSendMessage = async (content: string) => {
     // Add user message

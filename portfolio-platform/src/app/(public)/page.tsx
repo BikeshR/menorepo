@@ -1,15 +1,20 @@
+'use client'
+
 import { Github, Linkedin, LogIn, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { useState } from 'react'
 import { Chat } from '@/components/chat/Chat'
 import { ThemeColorPicker } from '@/components/theme/ThemeColorPicker'
 import { Button } from '@/components/ui/button'
 
 export default function HomePage() {
+  const [hasMessages, setHasMessages] = useState(false)
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header with Theme Picker and Login Button */}
+      {/* Header with backdrop blur - visible on all screen sizes */}
       <header className="absolute top-0 right-0 p-4 sm:p-6 z-10">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 backdrop-blur-md bg-background/80 rounded-lg px-3 py-2 border border-border/50">
           <ThemeColorPicker />
           <Link href="/login">
             <Button variant="outline" className="gap-2">
@@ -21,9 +26,24 @@ export default function HomePage() {
       </header>
 
       {/* Main Content - Chat Interface */}
-      <main className="flex-1 flex flex-col">
-        <Chat />
+      <main className={`flex-1 flex flex-col ${hasMessages ? 'pb-16 sm:pb-0' : ''}`}>
+        <Chat onMessagesChange={setHasMessages} />
       </main>
+
+      {/* Mobile Bottom Toolbar - Only shown when chat has messages */}
+      {hasMessages && (
+        <div className="fixed bottom-0 left-0 right-0 sm:hidden border-t bg-background/95 backdrop-blur-md p-3 z-20 shadow-lg">
+          <div className="flex items-center justify-center gap-2">
+            <ThemeColorPicker />
+            <Link href="/login">
+              <Button variant="outline" size="sm" className="gap-2">
+                <LogIn className="h-4 w-4" />
+                <span>Login</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t py-4 px-4">
