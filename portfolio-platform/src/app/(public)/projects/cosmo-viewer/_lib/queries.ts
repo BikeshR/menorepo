@@ -11,6 +11,9 @@ import type { CollectionStats, Objekt, ObjektMetadata } from './types'
 /**
  * Fetch all objekts owned by an address
  *
+ * Uses Transfer events to discover tokens, then checks current ownership
+ * This approach works because the contract doesn't implement ERC-721 Enumerable
+ *
  * @param address - Ethereum address (0x...)
  * @returns Array of objekts with metadata
  */
@@ -22,35 +25,56 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
   }
 
   try {
-    // 1. Get number of objekts owned
-    const balance = (await abstractClient.readContract({
+    // 1. Get Transfer events where this address received tokens
+    // Query logs for Transfer(address from, address to, uint256 tokenId)
+    const logs = await abstractClient.getLogs({
       address: COSMO_CONTRACT_ADDRESS,
-      abi: COSMO_CONTRACT_ABI,
-      functionName: 'balanceOf',
-      args: [address],
-    })) as bigint
+      event: {
+        type: 'event',
+        name: 'Transfer',
+        inputs: [
+          { type: 'address', indexed: true, name: 'from' },
+          { type: 'address', indexed: true, name: 'to' },
+          { type: 'uint256', indexed: true, name: 'tokenId' },
+        ],
+      },
+      args: {
+        to: address, // Filter for transfers TO this address
+      },
+      fromBlock: BigInt(0), // From contract deployment
+      toBlock: 'latest',
+    })
 
-    const balanceNumber = Number(balance)
+    // Extract unique token IDs
+    const tokenIdSet = new Set<bigint>()
+    for (const log of logs) {
+      if (log.args.tokenId) {
+        tokenIdSet.add(log.args.tokenId)
+      }
+    }
 
-    if (balanceNumber === 0) {
+    const tokenIds = Array.from(tokenIdSet)
+
+    if (tokenIds.length === 0) {
       return []
     }
 
-    // 2. Get token IDs for each objekt
-    const tokenIdPromises = Array.from({ length: balanceNumber }, (_, index) =>
-      abstractClient.readContract({
-        address: COSMO_CONTRACT_ADDRESS,
-        abi: COSMO_CONTRACT_ABI,
-        functionName: 'tokenOfOwnerByIndex',
-        args: [address, BigInt(index)],
-      })
-    )
-
-    const tokenIds = (await Promise.all(tokenIdPromises)) as bigint[]
-
-    // 3. Fetch metadata for each token
+    // 2. Check ownership and fetch metadata for each token
     const objektPromises = tokenIds.map(async (tokenId) => {
       try {
+        // Check if address still owns this token
+        const currentOwner = (await abstractClient.readContract({
+          address: COSMO_CONTRACT_ADDRESS,
+          abi: COSMO_CONTRACT_ABI,
+          functionName: 'ownerOf',
+          args: [tokenId],
+        })) as `0x${string}`
+
+        // Skip if no longer owned by this address
+        if (currentOwner.toLowerCase() !== address.toLowerCase()) {
+          return null
+        }
+
         // Get metadata URI
         const uri = (await abstractClient.readContract({
           address: COSMO_CONTRACT_ADDRESS,
@@ -78,7 +102,9 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
       }
     })
 
-    const objekts = await Promise.all(objektPromises)
+    const results = await Promise.all(objektPromises)
+    // Filter out null values (tokens no longer owned)
+    const objekts = results.filter((obj) => obj !== null) as Objekt[]
     return objekts
   } catch (error) {
     console.error('Failed to fetch objekts:', error)
