@@ -11,10 +11,6 @@ import type { CollectionStats, Objekt, ObjektMetadata } from './types'
 /**
  * Fetch all objekts owned by an address
  *
- * HYBRID APPROACH:
- * - Uses Transfer events to discover token IDs (contract doesn't support enumeration)
- * - Uses tokenURI to fetch metadata (standard NFT metadata with correct attributes)
- *
  * @param address - Ethereum address (0x...)
  * @returns Array of objekts with metadata
  */
@@ -26,58 +22,45 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
   }
 
   try {
-    // 1. Get Transfer events where this address received tokens
-    const logs = await abstractClient.getLogs({
+    // 1. Get number of objekts owned
+    const balance = (await abstractClient.readContract({
       address: COSMO_CONTRACT_ADDRESS,
-      event: {
-        type: 'event',
-        name: 'Transfer',
-        inputs: [
-          { type: 'address', indexed: true, name: 'from' },
-          { type: 'address', indexed: true, name: 'to' },
-          { type: 'uint256', indexed: true, name: 'tokenId' },
-        ],
-      },
-      args: {
-        to: address,
-      },
-      fromBlock: BigInt(0),
-      toBlock: 'latest',
-    })
+      abi: COSMO_CONTRACT_ABI,
+      functionName: 'balanceOf',
+      args: [address],
+    })) as bigint
 
-    // Extract unique token IDs
-    const tokenIdSet = new Set<bigint>()
-    for (const log of logs) {
-      if (log.args.tokenId) {
-        tokenIdSet.add(log.args.tokenId)
-      }
-    }
+    const balanceNumber = Number(balance)
 
-    const tokenIds = Array.from(tokenIdSet)
-
-    if (tokenIds.length === 0) {
+    if (balanceNumber === 0) {
       return []
     }
 
-    // 2. Check ownership and fetch metadata for each token
+    // 2. Get token IDs for each objekt
+    const tokenIdPromises = Array.from({ length: balanceNumber }, (_, index) =>
+      abstractClient.readContract({
+        address: COSMO_CONTRACT_ADDRESS,
+        abi: COSMO_CONTRACT_ABI,
+        functionName: 'tokenOfOwnerByIndex',
+        args: [address, BigInt(index)],
+      })
+    )
+
+    const tokenIds = (await Promise.all(tokenIdPromises)) as bigint[]
+
+    // 3. Fetch metadata for each token
     const objektPromises = tokenIds.map(async (tokenId) => {
       try {
-        // Check if address still owns this token
-        const currentOwner = (await abstractClient.readContract({
+        // Get metadata URI
+        const uri = (await abstractClient.readContract({
           address: COSMO_CONTRACT_ADDRESS,
           abi: COSMO_CONTRACT_ABI,
-          functionName: 'ownerOf',
+          functionName: 'tokenURI',
           args: [tokenId],
-        })) as `0x${string}`
+        })) as string
 
-        // Skip if no longer owned
-        if (currentOwner.toLowerCase() !== address.toLowerCase()) {
-          return null
-        }
-
-        // Fetch metadata directly from COSMO API instead of tokenURI
-        // The tokenURI may not have the complete metadata with Member/Season/Class
-        const metadata = await fetchMetadataFromAPI(tokenId.toString())
+        // Fetch metadata JSON from URI
+        const metadata = await fetchMetadata(uri)
 
         return {
           tokenId: tokenId.toString(),
@@ -86,6 +69,7 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
         } satisfies Objekt
       } catch (error) {
         console.error(`Failed to fetch metadata for token ${tokenId}:`, error)
+        // Return placeholder if metadata fetch fails
         return {
           tokenId: tokenId.toString(),
           owner: address,
@@ -94,8 +78,7 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
       }
     })
 
-    const results = await Promise.all(objektPromises)
-    const objekts = results.filter((obj) => obj !== null) as Objekt[]
+    const objekts = await Promise.all(objektPromises)
     return objekts
   } catch (error) {
     console.error('Failed to fetch objekts:', error)
@@ -106,43 +89,25 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
 }
 
 /**
- * Fetch metadata from COSMO API
+ * Fetch metadata from URI
  *
- * The COSMO API provides complete metadata including Member, Season, Class attributes
- * API endpoint: https://api.cosmo.fans/objekt/v1/token/{tokenId}
+ * Handles both HTTPS and IPFS URIs
  */
-async function fetchMetadataFromAPI(tokenId: string): Promise<ObjektMetadata> {
+async function fetchMetadata(uri: string): Promise<ObjektMetadata> {
   try {
-    const apiUrl = `https://api.cosmo.fans/objekt/v1/token/${tokenId}`
-    const response = await fetch(apiUrl)
+    // Convert IPFS URIs to HTTP gateway
+    const httpUri = uri.startsWith('ipfs://') ? `https://ipfs.io/ipfs/${uri.slice(7)}` : uri
+
+    const response = await fetch(httpUri)
 
     if (!response.ok) {
-      throw new Error(`API returned ${response.status}: ${response.statusText}`)
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    const data = await response.json()
-
-    // Log the raw response for debugging (server-side only)
-    if (typeof window === 'undefined') {
-      console.log(`Token ${tokenId} metadata:`, JSON.stringify(data, null, 2))
-    }
-
-    // The COSMO API returns metadata in a specific format
-    // We need to map it to our ObjektMetadata structure
-    return {
-      name: data.name || data.collectionId || `Objekt #${tokenId}`,
-      description: data.description || '',
-      image: data.frontImage || data.image || data.imageUrl || '',
-      attributes: Array.isArray(data.attributes)
-        ? data.attributes
-        : [
-            { trait_type: 'Member', value: data.member || data.artistName || '' },
-            { trait_type: 'Season', value: data.season || data.collectionId || '' },
-            { trait_type: 'Class', value: data.class || data.objektClass || '' },
-          ].filter((attr) => attr.value !== ''),
-    }
+    const metadata = (await response.json()) as ObjektMetadata
+    return metadata
   } catch (error) {
-    console.error(`Failed to fetch metadata for token ${tokenId}:`, error)
+    console.error(`Failed to fetch metadata from ${uri}:`, error)
     throw error
   }
 }

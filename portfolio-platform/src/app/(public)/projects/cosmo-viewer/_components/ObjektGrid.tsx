@@ -10,8 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { calculateStats } from '../_lib/queries'
-import type { Objekt } from '../_lib/types'
+import { calculateStats, getObjektsForAddress } from '../_lib/queries'
 import {
   filterByMember,
   filterBySeason,
@@ -27,35 +26,19 @@ type ObjektGridProps = {
   address: `0x${string}`
 }
 
-/**
- * Fetch objekts from server-side API route
- * This avoids CORS issues and works reliably on mobile devices
- */
-async function fetchObjekts(address: string): Promise<Objekt[]> {
-  const response = await fetch(`/api/cosmo/objekts?address=${address}`)
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || errorData.error || 'Failed to fetch objekts')
-  }
-
-  const data = await response.json()
-  return data.data
-}
-
 export function ObjektGrid({ address }: ObjektGridProps) {
   const [selectedMember, setSelectedMember] = useState('')
   const [selectedSeason, setSelectedSeason] = useState('')
   const [sortBy, setSortBy] = useState<'tokenId' | 'member' | 'season' | 'class'>('tokenId')
 
-  // Fetch objekts with React Query via server-side API
+  // Fetch objekts with React Query
   const {
     data: objekts = [],
     isLoading,
     error,
   } = useQuery({
     queryKey: ['objekts', address],
-    queryFn: () => fetchObjekts(address),
+    queryFn: () => getObjektsForAddress(address),
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2,
   })
