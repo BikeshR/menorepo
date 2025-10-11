@@ -18,17 +18,10 @@ export const COSMO_CONTRACT_ADDRESS: Address = '0x99Bb83AE9bb0C0A6be865CaCF67760
 /**
  * ERC-721 ABI for reading objekt data
  * Contract does NOT support Enumerable extension (no tokenOfOwnerByIndex)
- * We use Transfer events instead to discover token IDs
+ * We use Transfer events to discover token IDs
+ * We use COSMO API for metadata (not tokenURI)
  */
 export const COSMO_CONTRACT_ABI = [
-  // Get metadata URI for a token
-  {
-    inputs: [{ name: 'tokenId', type: 'uint256' }],
-    name: 'tokenURI',
-    outputs: [{ name: '', type: 'string' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
   // Get owner of a specific token
   {
     inputs: [{ name: 'tokenId', type: 'uint256' }],

@@ -75,16 +75,9 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
           return null
         }
 
-        // Get metadata URI from contract
-        const uri = (await abstractClient.readContract({
-          address: COSMO_CONTRACT_ADDRESS,
-          abi: COSMO_CONTRACT_ABI,
-          functionName: 'tokenURI',
-          args: [tokenId],
-        })) as string
-
-        // Fetch metadata from URI
-        const metadata = await fetchMetadata(uri)
+        // Fetch metadata directly from COSMO API instead of tokenURI
+        // The tokenURI may not have the complete metadata with Member/Season/Class
+        const metadata = await fetchMetadataFromAPI(tokenId.toString())
 
         return {
           tokenId: tokenId.toString(),
@@ -113,26 +106,43 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
 }
 
 /**
- * Fetch metadata from URI
+ * Fetch metadata from COSMO API
  *
- * Handles both HTTPS and IPFS URIs
- * This uses the tokenURI from the contract (standard NFT metadata approach)
+ * The COSMO API provides complete metadata including Member, Season, Class attributes
+ * API endpoint: https://api.cosmo.fans/objekt/v1/token/{tokenId}
  */
-async function fetchMetadata(uri: string): Promise<ObjektMetadata> {
+async function fetchMetadataFromAPI(tokenId: string): Promise<ObjektMetadata> {
   try {
-    // Convert IPFS URIs to HTTP gateway
-    const httpUri = uri.startsWith('ipfs://') ? `https://ipfs.io/ipfs/${uri.slice(7)}` : uri
-
-    const response = await fetch(httpUri)
+    const apiUrl = `https://api.cosmo.fans/objekt/v1/token/${tokenId}`
+    const response = await fetch(apiUrl)
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      throw new Error(`API returned ${response.status}: ${response.statusText}`)
     }
 
-    const metadata = (await response.json()) as ObjektMetadata
-    return metadata
+    const data = await response.json()
+
+    // Log the raw response for debugging (server-side only)
+    if (typeof window === 'undefined') {
+      console.log(`Token ${tokenId} metadata:`, JSON.stringify(data, null, 2))
+    }
+
+    // The COSMO API returns metadata in a specific format
+    // We need to map it to our ObjektMetadata structure
+    return {
+      name: data.name || data.collectionId || `Objekt #${tokenId}`,
+      description: data.description || '',
+      image: data.frontImage || data.image || data.imageUrl || '',
+      attributes: Array.isArray(data.attributes)
+        ? data.attributes
+        : [
+            { trait_type: 'Member', value: data.member || data.artistName || '' },
+            { trait_type: 'Season', value: data.season || data.collectionId || '' },
+            { trait_type: 'Class', value: data.class || data.objektClass || '' },
+          ].filter((attr) => attr.value !== ''),
+    }
   } catch (error) {
-    console.error(`Failed to fetch metadata from ${uri}:`, error)
+    console.error(`Failed to fetch metadata for token ${tokenId}:`, error)
     throw error
   }
 }
