@@ -8,19 +8,19 @@
  * Includes filtering and sorting controls
  */
 
-import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getObjektsForAddress, calculateStats } from '../_lib/queries'
+import { useMemo, useState } from 'react'
+import { calculateStats, getObjektsForAddress } from '../_lib/queries'
 import {
-  sortObjekts,
   filterByMember,
   filterBySeason,
   getUniqueMembers,
   getUniqueSeasons,
+  sortObjekts,
 } from '../_lib/utils'
-import { ObjektCard } from './ObjektCard'
-import { FilterControls } from './FilterControls'
 import { CollectionStats } from './CollectionStats'
+import { FilterControls } from './FilterControls'
+import { ObjektCard } from './ObjektCard'
 
 type ObjektGridProps = {
   address: `0x${string}`
@@ -124,9 +124,7 @@ export function ObjektGrid({ address }: ObjektGridProps) {
         </div>
       ) : (
         <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
-          <p className="text-gray-600 dark:text-gray-400">
-            No objekts match the selected filters.
-          </p>
+          <p className="text-gray-600 dark:text-gray-400">No objekts match the selected filters.</p>
         </div>
       )}
     </div>

@@ -27,12 +27,7 @@ function cleanReasoningTokens(content: string): string {
     .trim()
 
   // Check for unclosed reasoning tags (incomplete during streaming)
-  const unclosedTags = [
-    /<think>/gi,
-    /<thinking>/gi,
-    /<thought>/gi,
-    /<reasoning>/gi,
-  ]
+  const unclosedTags = [/<think>/gi, /<thinking>/gi, /<thought>/gi, /<reasoning>/gi]
 
   for (const tagPattern of unclosedTags) {
     const match = cleaned.match(tagPattern)
@@ -79,7 +74,7 @@ export function Chat() {
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [])
 
   const handleSendMessage = async (content: string) => {
     // Add user message
@@ -173,7 +168,7 @@ export function Chat() {
                   ]
                 })
               }
-            } catch (e) {
+            } catch (_e) {
               // Skip invalid JSON
             }
           }

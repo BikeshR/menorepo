@@ -8,6 +8,8 @@
 
 'use client'
 
+import { useId } from 'react'
+
 type FilterControlsProps = {
   members: string[]
   seasons: string[]
@@ -29,23 +31,25 @@ export function FilterControls({
   onSeasonChange,
   onSortChange,
 }: FilterControlsProps) {
+  const memberFilterId = useId()
+  const seasonFilterId = useId()
+  const sortById = useId()
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md border border-gray-200 dark:border-gray-800 p-4 space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-        Filter & Sort
-      </h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Filter & Sort</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Member Filter */}
         <div>
           <label
-            htmlFor="member-filter"
+            htmlFor={memberFilterId}
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             Member
           </label>
           <select
-            id="member-filter"
+            id={memberFilterId}
             value={selectedMember}
             onChange={(e) => onMemberChange(e.target.value)}
             className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -62,13 +66,13 @@ export function FilterControls({
         {/* Season Filter */}
         <div>
           <label
-            htmlFor="season-filter"
+            htmlFor={seasonFilterId}
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             Season
           </label>
           <select
-            id="season-filter"
+            id={seasonFilterId}
             value={selectedSeason}
             onChange={(e) => onSeasonChange(e.target.value)}
             className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -85,13 +89,13 @@ export function FilterControls({
         {/* Sort */}
         <div>
           <label
-            htmlFor="sort-by"
+            htmlFor={sortById}
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             Sort By
           </label>
           <select
-            id="sort-by"
+            id={sortById}
             value={sortBy}
             onChange={(e) =>
               onSortChange(e.target.value as 'tokenId' | 'member' | 'season' | 'class')

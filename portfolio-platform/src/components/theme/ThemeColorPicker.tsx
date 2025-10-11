@@ -1,14 +1,14 @@
 'use client'
 
 import { Check, Palette } from 'lucide-react'
-import { useThemeColor } from '@/lib/theme/use-theme-color'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+import { useThemeColor } from '@/lib/theme/use-theme-color'
 
 /**
  * Theme color picker component

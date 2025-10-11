@@ -25,9 +25,7 @@ export default function AdminCosmoPage() {
           </h2>
           <p className="text-yellow-800 dark:text-yellow-200 mb-4">
             To use the admin COSMO viewer, please add your wallet address to{' '}
-            <code className="bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">
-              .env.local
-            </code>
+            <code className="bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">.env.local</code>
           </p>
           <div className="bg-yellow-100 dark:bg-yellow-900 rounded p-4 font-mono text-sm mb-4">
             <code>COSMO_WALLET_ADDRESS=0xYourWalletAddressHere</code>

@@ -82,7 +82,7 @@ const MODEL_CACHE_TTL = 60 * 60 * 1000 // 1 hour
 function scoreModel(model: GroqAPIModel): number {
   // 1. Extract parameter count from ID (e.g., "70b" -> 70)
   const paramMatch = model.id.toLowerCase().match(/(\d+)b/)
-  const paramCount = paramMatch ? parseInt(paramMatch[1]) : 8 // Default 8B if unparseable
+  const paramCount = paramMatch ? parseInt(paramMatch[1], 10) : 8 // Default 8B if unparseable
 
   // Use square root to prevent large models from dominating
   // 120B→10.95, 70B→8.37, 32B→5.66, 17B→4.12, 8B→2.83

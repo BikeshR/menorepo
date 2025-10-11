@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
 }
+
 import { AddressSearch } from './_components/AddressSearch'
 import { ObjektGrid } from './_components/ObjektGrid'
 import { QueryProvider } from './_components/QueryProvider'
@@ -117,12 +118,12 @@ export default async function CosmoViewerPage({ searchParams }: PageProps) {
                 <div className="space-y-4 text-gray-600 dark:text-gray-400">
                   <p>
                     COSMO is TripleS&#39;s blockchain-based collectible system featuring digital
-                    objekts (photocards) of the members. Each objekt is a unique NFT on the
-                    Abstract L2 blockchain.
+                    objekts (photocards) of the members. Each objekt is a unique NFT on the Abstract
+                    L2 blockchain.
                   </p>
                   <p>
-                    Objekts provide COMO voting power, allowing fans to participate in
-                    group decisions. Each objekt equals 1 COMO vote.
+                    Objekts provide COMO voting power, allowing fans to participate in group
+                    decisions. Each objekt equals 1 COMO vote.
                   </p>
                   <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">

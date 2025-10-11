@@ -6,8 +6,8 @@
  */
 
 import Image from 'next/image'
-import type { Objekt } from '../_lib/types'
 import { getAttribute } from '../_lib/queries'
+import type { Objekt } from '../_lib/types'
 
 type ObjektCardProps = {
   objekt: Objekt
@@ -35,9 +35,7 @@ export function ObjektCard({ objekt }: ObjektCardProps) {
       {/* Metadata */}
       <div className="p-4 space-y-2">
         {/* Member name - prominent */}
-        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 truncate">
-          {member}
-        </h3>
+        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 truncate">{member}</h3>
 
         {/* Details grid */}
         <div className="grid grid-cols-2 gap-2 text-sm">
@@ -54,9 +52,7 @@ export function ObjektCard({ objekt }: ObjektCardProps) {
         {/* Token ID */}
         <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
           <span className="text-xs text-gray-500 dark:text-gray-400">Token ID</span>
-          <p className="font-mono text-xs text-gray-700 dark:text-gray-300">
-            #{objekt.tokenId}
-          </p>
+          <p className="font-mono text-xs text-gray-700 dark:text-gray-300">#{objekt.tokenId}</p>
         </div>
       </div>
 

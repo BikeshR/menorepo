@@ -4,7 +4,7 @@
  * Configures viem to connect to Abstract L2 blockchain
  */
 
-import { createPublicClient, http, type Chain } from 'viem'
+import { type Chain, createPublicClient, http } from 'viem'
 
 /**
  * Abstract Chain Configuration

@@ -13,8 +13,7 @@ import type { Address } from 'viem'
  * OBJEKT contract on Abstract blockchain
  * Source: https://github.com/teamreflex/cosmo-db/blob/main/src/constants.ts
  */
-export const COSMO_CONTRACT_ADDRESS: Address =
-  '0x99Bb83AE9bb0C0A6be865CaCF67760947f91Cb70'
+export const COSMO_CONTRACT_ADDRESS: Address = '0x99Bb83AE9bb0C0A6be865CaCF67760947f91Cb70'
 
 /**
  * Minimal ERC-721 ABI for reading objekt data

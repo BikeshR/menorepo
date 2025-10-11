@@ -72,9 +72,9 @@ export function ChatInput({
             <span>Suggested questions:</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {suggestions.map((question, index) => (
+            {suggestions.map((question) => (
               <button
-                key={`${question}-${index}`}
+                key={question}
                 type="button"
                 onClick={() => handleSuggestionClick(question)}
                 disabled={disabled}

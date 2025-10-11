@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { COLOR_PALETTES, getHueFromColor, type ColorPaletteId } from './colors'
+import { COLOR_PALETTES, type ColorPaletteId, getHueFromColor } from './colors'
 import { applyTheme } from './theme-generator'
 
 const STORAGE_KEY = 'bikesh-theme-color'

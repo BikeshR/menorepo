@@ -115,7 +115,7 @@ export async function callGroqWithFallback(
         const isDailyLimit =
           resetRequests &&
           (resetRequests.includes('h') || // Hours in reset time
-            (resetRequests.includes('m') && Number.parseInt(resetRequests) > 5)) // More than 5 minutes
+            (resetRequests.includes('m') && Number.parseInt(resetRequests, 10) > 5)) // More than 5 minutes
 
         // If daily limit, try next model in ranked list
         if (isDailyLimit) {

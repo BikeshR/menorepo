@@ -5,12 +5,8 @@
  */
 
 import { abstractClient } from './abstract-client'
-import {
-  COSMO_CONTRACT_ADDRESS,
-  COSMO_CONTRACT_ABI,
-  IS_CONTRACT_CONFIGURED,
-} from './contracts'
-import type { Objekt, ObjektMetadata, CollectionStats } from './types'
+import { COSMO_CONTRACT_ABI, COSMO_CONTRACT_ADDRESS, IS_CONTRACT_CONFIGURED } from './contracts'
+import type { CollectionStats, Objekt, ObjektMetadata } from './types'
 
 /**
  * Fetch all objekts owned by an address
@@ -100,9 +96,7 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
 async function fetchMetadata(uri: string): Promise<ObjektMetadata> {
   try {
     // Convert IPFS URIs to HTTP gateway
-    const httpUri = uri.startsWith('ipfs://')
-      ? `https://ipfs.io/ipfs/${uri.slice(7)}`
-      : uri
+    const httpUri = uri.startsWith('ipfs://') ? `https://ipfs.io/ipfs/${uri.slice(7)}` : uri
 
     const response = await fetch(httpUri)
 
