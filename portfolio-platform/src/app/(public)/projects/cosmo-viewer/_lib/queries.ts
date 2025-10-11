@@ -11,8 +11,8 @@ import type { CollectionStats, Objekt, ObjektMetadata } from './types'
 /**
  * Fetch all objekts owned by an address
  *
- * Uses Transfer events to discover tokens, then checks current ownership
- * This approach works because the contract doesn't implement ERC-721 Enumerable
+ * Uses ERC-721 Enumerable pattern: balanceOf + tokenOfOwnerByIndex + tokenURI
+ * This is the standard approach that was working originally
  *
  * @param address - Ethereum address (0x...)
  * @returns Array of objekts with metadata
@@ -25,58 +25,45 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
   }
 
   try {
-    // 1. Get Transfer events where this address received tokens
-    // Query logs for Transfer(address from, address to, uint256 tokenId)
-    const logs = await abstractClient.getLogs({
+    // 1. Get number of objekts owned
+    const balance = (await abstractClient.readContract({
       address: COSMO_CONTRACT_ADDRESS,
-      event: {
-        type: 'event',
-        name: 'Transfer',
-        inputs: [
-          { type: 'address', indexed: true, name: 'from' },
-          { type: 'address', indexed: true, name: 'to' },
-          { type: 'uint256', indexed: true, name: 'tokenId' },
-        ],
-      },
-      args: {
-        to: address, // Filter for transfers TO this address
-      },
-      fromBlock: BigInt(0), // From contract deployment
-      toBlock: 'latest',
-    })
+      abi: COSMO_CONTRACT_ABI,
+      functionName: 'balanceOf',
+      args: [address],
+    })) as bigint
 
-    // Extract unique token IDs
-    const tokenIdSet = new Set<bigint>()
-    for (const log of logs) {
-      if (log.args.tokenId) {
-        tokenIdSet.add(log.args.tokenId)
-      }
-    }
+    const balanceNumber = Number(balance)
 
-    const tokenIds = Array.from(tokenIdSet)
-
-    if (tokenIds.length === 0) {
+    if (balanceNumber === 0) {
       return []
     }
 
-    // 2. Check ownership and fetch metadata for each token
+    // 2. Get token IDs for each objekt
+    const tokenIdPromises = Array.from({ length: balanceNumber }, (_, index) =>
+      abstractClient.readContract({
+        address: COSMO_CONTRACT_ADDRESS,
+        abi: COSMO_CONTRACT_ABI,
+        functionName: 'tokenOfOwnerByIndex',
+        args: [address, BigInt(index)],
+      })
+    )
+
+    const tokenIds = (await Promise.all(tokenIdPromises)) as bigint[]
+
+    // 3. Fetch metadata for each token
     const objektPromises = tokenIds.map(async (tokenId) => {
       try {
-        // Check if address still owns this token
-        const currentOwner = (await abstractClient.readContract({
+        // Get metadata URI
+        const uri = (await abstractClient.readContract({
           address: COSMO_CONTRACT_ADDRESS,
           abi: COSMO_CONTRACT_ABI,
-          functionName: 'ownerOf',
+          functionName: 'tokenURI',
           args: [tokenId],
-        })) as `0x${string}`
+        })) as string
 
-        // Skip if no longer owned by this address
-        if (currentOwner.toLowerCase() !== address.toLowerCase()) {
-          return null
-        }
-
-        // Fetch metadata from COSMO API
-        const metadata = await fetchMetadata(tokenId.toString())
+        // Fetch metadata JSON from URI
+        const metadata = await fetchMetadata(uri)
 
         return {
           tokenId: tokenId.toString(),
@@ -94,9 +81,7 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
       }
     })
 
-    const results = await Promise.all(objektPromises)
-    // Filter out null values (tokens no longer owned)
-    const objekts = results.filter((obj) => obj !== null) as Objekt[]
+    const objekts = await Promise.all(objektPromises)
     return objekts
   } catch (error) {
     console.error('Failed to fetch objekts:', error)
@@ -107,31 +92,26 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
 }
 
 /**
- * Fetch metadata from COSMO API
+ * Fetch metadata from URI
  *
- * Uses the official COSMO API to get objekt metadata
- * API: https://api.cosmo.fans/objekt/v1/token/{tokenId}
+ * Handles both HTTPS and IPFS URIs
+ * This uses the tokenURI from the contract (standard NFT metadata approach)
  */
-async function fetchMetadata(tokenId: string): Promise<ObjektMetadata> {
+async function fetchMetadata(uri: string): Promise<ObjektMetadata> {
   try {
-    const apiUrl = `https://api.cosmo.fans/objekt/v1/token/${tokenId}`
-    const response = await fetch(apiUrl)
+    // Convert IPFS URIs to HTTP gateway
+    const httpUri = uri.startsWith('ipfs://') ? `https://ipfs.io/ipfs/${uri.slice(7)}` : uri
+
+    const response = await fetch(httpUri)
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    const data = await response.json()
-
-    // Transform COSMO API response to our metadata format
-    return {
-      name: data.name || `Objekt #${tokenId}`,
-      description: data.description || '',
-      image: data.image || data.frontImage || '',
-      attributes: data.attributes || [],
-    }
+    const metadata = (await response.json()) as ObjektMetadata
+    return metadata
   } catch (error) {
-    console.error(`Failed to fetch metadata for token ${tokenId}:`, error)
+    console.error(`Failed to fetch metadata from ${uri}:`, error)
     throw error
   }
 }

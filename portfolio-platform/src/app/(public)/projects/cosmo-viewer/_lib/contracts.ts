@@ -16,11 +16,37 @@ import type { Address } from 'viem'
 export const COSMO_CONTRACT_ADDRESS: Address = '0x99Bb83AE9bb0C0A6be865CaCF67760947f91Cb70'
 
 /**
- * Minimal ERC-721 ABI for reading objekt data
- * Only includes functions we need for the viewer
- * Note: Metadata is fetched from COSMO API, not from tokenURI
+ * ERC-721 Enumerable ABI for reading objekt data
+ * Includes enumeration functions supported by the COSMO contract
  */
 export const COSMO_CONTRACT_ABI = [
+  // Get number of objekts owned by address
+  {
+    inputs: [{ name: 'owner', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  // Get token ID by index for an owner
+  {
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'index', type: 'uint256' },
+    ],
+    name: 'tokenOfOwnerByIndex',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  // Get metadata URI for a token
+  {
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    name: 'tokenURI',
+    outputs: [{ name: '', type: 'string' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
   // Get owner of a specific token
   {
     inputs: [{ name: 'tokenId', type: 'uint256' }],
