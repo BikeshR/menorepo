@@ -75,16 +75,8 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
           return null
         }
 
-        // Get metadata URI
-        const uri = (await abstractClient.readContract({
-          address: COSMO_CONTRACT_ADDRESS,
-          abi: COSMO_CONTRACT_ABI,
-          functionName: 'tokenURI',
-          args: [tokenId],
-        })) as string
-
-        // Fetch metadata JSON from URI
-        const metadata = await fetchMetadata(uri)
+        // Fetch metadata from COSMO API
+        const metadata = await fetchMetadata(tokenId.toString())
 
         return {
           tokenId: tokenId.toString(),
@@ -115,25 +107,31 @@ export async function getObjektsForAddress(address: `0x${string}`): Promise<Obje
 }
 
 /**
- * Fetch metadata from URI
+ * Fetch metadata from COSMO API
  *
- * Handles both HTTPS and IPFS URIs
+ * Uses the official COSMO API to get objekt metadata
+ * API: https://api.cosmo.fans/objekt/v1/token/{tokenId}
  */
-async function fetchMetadata(uri: string): Promise<ObjektMetadata> {
+async function fetchMetadata(tokenId: string): Promise<ObjektMetadata> {
   try {
-    // Convert IPFS URIs to HTTP gateway
-    const httpUri = uri.startsWith('ipfs://') ? `https://ipfs.io/ipfs/${uri.slice(7)}` : uri
-
-    const response = await fetch(httpUri)
+    const apiUrl = `https://api.cosmo.fans/objekt/v1/token/${tokenId}`
+    const response = await fetch(apiUrl)
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    const metadata = (await response.json()) as ObjektMetadata
-    return metadata
+    const data = await response.json()
+
+    // Transform COSMO API response to our metadata format
+    return {
+      name: data.name || `Objekt #${tokenId}`,
+      description: data.description || '',
+      image: data.image || data.frontImage || '',
+      attributes: data.attributes || [],
+    }
   } catch (error) {
-    console.error(`Failed to fetch metadata from ${uri}:`, error)
+    console.error(`Failed to fetch metadata for token ${tokenId}:`, error)
     throw error
   }
 }
