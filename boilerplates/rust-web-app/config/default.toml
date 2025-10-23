@@ -1,0 +1,12 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[database]
+url = "postgres://postgres:postgres@localhost:5432/rust_web_app"
+max_connections = 5
+
+[application]
+jwt_secret = "your-super-secret-jwt-key-change-this-in-production"
+jwt_expiration = 3600
+environment = "development"

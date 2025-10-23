@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: rust_web_app_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rust_web_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Rust Web Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rust_web_app
+    environment:
+      APP__DATABASE__URL: postgres://postgres:postgres@postgres:5432/rust_web_app
+      APP__SERVER__HOST: 0.0.0.0
+      APP__SERVER__PORT: 8080
+      APP__APPLICATION__JWT_SECRET: ${APP__APPLICATION__JWT_SECRET:-your-super-secret-jwt-key}
+      APP__APPLICATION__JWT_EXPIRATION: 3600
+      APP__APPLICATION__ENVIRONMENT: development
+      RUST_LOG: rust_web_app=debug,tower_http=debug,sqlx=info
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
