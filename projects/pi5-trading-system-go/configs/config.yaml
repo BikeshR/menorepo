@@ -1,0 +1,58 @@
+# Pi5 Trading System - Go Implementation Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8081  # Different from Python version (8080)
+  read_timeout: 30s
+  write_timeout: 30s
+  idle_timeout: 120s
+
+database:
+  host: "timescaledb"  # Docker service name (use "localhost" for local dev)
+  port: 5432
+  user: "pi5trader"
+  password: "trading_secure_2025"
+  database: "pi5_trading"
+  max_conns: 25
+  min_conns: 5
+  max_conn_life: 5m
+
+redis:
+  host: "redis"  # Docker service name (use "localhost" for local dev)
+  port: 6379
+  password: ""
+  db: 0
+
+trading:
+  initial_cash: 100000.0
+  demo_mode: true
+  paper_trading: true
+  event_bus_buffer: 1000  # Channel buffer size for event bus
+
+  strategies:
+    - id: "moving_avg_crossover"
+      name: "Moving Average Crossover"
+      enabled: true
+      symbols:
+        - "AAPL"
+        - "MSFT"
+        - "GOOGL"
+      params:
+        short_period: 20
+        long_period: 50
+
+    - id: "rsi_strategy"
+      name: "RSI Mean Reversion"
+      enabled: false
+      symbols:
+        - "TSLA"
+        - "NVDA"
+      params:
+        rsi_period: 14
+        oversold: 30
+        overbought: 70
+
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json or console
+  time_format: "2006-01-02T15:04:05Z07:00"

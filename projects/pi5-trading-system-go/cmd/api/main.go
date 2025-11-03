@@ -1,0 +1,267 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/rs/zerolog"
+
+	"github.com/bikeshrana/pi5-trading-system-go/internal/api"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/strategy"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
+)
+
+func main() {
+	// Exit code
+	var exitCode int
+	defer func() {
+		os.Exit(exitCode)
+	}()
+
+	// Run the application
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		exitCode = 1
+	}
+}
+
+func run() error {
+	// Load configuration
+	cfg, err := config.Load("configs/config.yaml")
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Setup logger
+	logger := setupLogger(cfg.Logging)
+	logger.Info().Msg("Pi5 Trading System - Go Implementation")
+	logger.Info().Str("version", "1.0.0").Msg("Starting application")
+
+	// Create context that listens for termination signals
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Setup signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Create event bus (the heart of the system!)
+	eventBus := events.NewEventBus(cfg.Trading.EventBusBuffer, logger)
+	defer eventBus.Close()
+
+	logger.Info().
+		Int("buffer_size", cfg.Trading.EventBusBuffer).
+		Msg("Event bus created")
+
+	// Connect to TimescaleDB
+	db, err := timescale.NewClient(ctx, &cfg.Database, logger)
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+	defer db.Close()
+
+	logger.Info().Msg("Database connected")
+
+	// Initialize strategies
+	strategies := make([]strategy.Strategy, 0)
+
+	for _, stratCfg := range cfg.Trading.Strategies {
+		if !stratCfg.Enabled {
+			logger.Info().
+				Str("strategy_id", stratCfg.ID).
+				Msg("Strategy disabled, skipping")
+			continue
+		}
+
+		var strat strategy.Strategy
+
+		// Create strategy based on ID
+		switch stratCfg.ID {
+		case "moving_avg_crossover":
+			shortPeriod := int(stratCfg.Params["short_period"].(float64))
+			longPeriod := int(stratCfg.Params["long_period"].(float64))
+
+			strat = strategy.NewMovingAverageCrossoverStrategy(
+				stratCfg.ID,
+				stratCfg.Symbols,
+				shortPeriod,
+				longPeriod,
+				eventBus,
+				logger,
+			)
+
+		default:
+			logger.Warn().
+				Str("strategy_id", stratCfg.ID).
+				Msg("Unknown strategy type, skipping")
+			continue
+		}
+
+		// Initialize strategy
+		if err := strat.Initialize(ctx); err != nil {
+			logger.Error().
+				Err(err).
+				Str("strategy_id", stratCfg.ID).
+				Msg("Failed to initialize strategy")
+			continue
+		}
+
+		// Start strategy
+		if err := strat.Start(ctx); err != nil {
+			logger.Error().
+				Err(err).
+				Str("strategy_id", stratCfg.ID).
+				Msg("Failed to start strategy")
+			continue
+		}
+
+		strategies = append(strategies, strat)
+
+		logger.Info().
+			Str("strategy_id", stratCfg.ID).
+			Str("strategy_name", stratCfg.Name).
+			Strs("symbols", stratCfg.Symbols).
+			Msg("Strategy started")
+	}
+
+	// Create HTTP server
+	server := api.NewServer(&cfg.Server, db, logger)
+
+	// Start HTTP server in a goroutine
+	serverErrChan := make(chan error, 1)
+	go func() {
+		logger.Info().
+			Str("addr", fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)).
+			Msg("Starting HTTP server")
+
+		if err := server.Start(); err != nil {
+			serverErrChan <- err
+		}
+	}()
+
+	// Demo: Simulate market data events
+	// In a real system, this would come from a market data provider
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		symbols := []string{"AAPL", "MSFT", "GOOGL"}
+		basePrice := map[string]float64{
+			"AAPL":  150.0,
+			"MSFT":  350.0,
+			"GOOGL": 140.0,
+		}
+
+		for {
+			select {
+			case <-ticker.C:
+				// Publish market data events for each symbol
+				for _, symbol := range symbols {
+					price := basePrice[symbol] + (float64(time.Now().Unix()%10) - 5)
+					event := events.NewMarketDataEvent(
+						symbol,
+						price-0.5,
+						price+1.0,
+						price-1.0,
+						price,
+						1000000,
+						time.Now(),
+					)
+
+					eventBus.Publish(ctx, event)
+
+					logger.Debug().
+						Str("symbol", symbol).
+						Float64("price", price).
+						Msg("Published market data event")
+				}
+
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// Wait for termination signal or server error
+	select {
+	case sig := <-sigChan:
+		logger.Info().
+			Str("signal", sig.String()).
+			Msg("Received shutdown signal")
+
+	case err := <-serverErrChan:
+		logger.Error().
+			Err(err).
+			Msg("Server error")
+		return err
+	}
+
+	// Graceful shutdown
+	logger.Info().Msg("Shutting down...")
+
+	// Create shutdown context with timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	// Stop strategies
+	for _, strat := range strategies {
+		if err := strat.Stop(shutdownCtx); err != nil {
+			logger.Error().
+				Err(err).
+				Str("strategy_id", strat.ID()).
+				Msg("Error stopping strategy")
+		}
+	}
+
+	// Shutdown HTTP server
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Error().
+			Err(err).
+			Msg("Error shutting down server")
+	}
+
+	// Print event bus metrics
+	metrics := eventBus.GetMetrics()
+	for eventType, metric := range metrics {
+		logger.Info().
+			Str("event_type", string(eventType)).
+			Int64("published", metric.PublishedCount).
+			Int64("dropped", metric.DroppedCount).
+			Msg("Event bus metrics")
+	}
+
+	logger.Info().Msg("Shutdown complete")
+	return nil
+}
+
+// setupLogger creates and configures the logger
+func setupLogger(cfg config.LoggingConfig) zerolog.Logger {
+	// Set log level
+	level, err := zerolog.ParseLevel(cfg.Level)
+	if err != nil {
+		level = zerolog.InfoLevel
+	}
+
+	zerolog.SetGlobalLevel(level)
+
+	// Configure output format
+	var logger zerolog.Logger
+	if cfg.Format == "console" {
+		// Pretty console output for development
+		logger = zerolog.New(zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: cfg.TimeFormat,
+		}).With().Timestamp().Logger()
+	} else {
+		// JSON output for production
+		logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	}
+
+	return logger
+}
