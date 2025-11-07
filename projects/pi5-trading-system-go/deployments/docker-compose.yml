@@ -1,24 +1,24 @@
-# Docker Compose for Pi5 Trading System - Go Implementation
-# Runs alongside the Python version (shares TimescaleDB and Redis)
+# Docker Compose for Pi5 Trading System - Go Implementation with Frontend
+# Standalone deployment (Go backend + React frontend + Database + Redis)
 
 version: '3.8'
 
 services:
-  # Go Trading API (port 8081 to avoid conflict with Python on 8080)
+  # Go Trading API with Frontend (port 8081)
   trading_api_go:
     build:
       context: ..
       dockerfile: Dockerfile
     container_name: pi5_trading_go
     environment:
-      # Database Configuration (shared with Python)
+      # Database Configuration
       DB_HOST: timescaledb
       DB_PORT: 5432
       DB_NAME: pi5_trading
       DB_USER: pi5trader
       DB_PASSWORD: ${DB_PASSWORD:-trading_secure_2025}
 
-      # Redis Configuration (shared with Python)
+      # Redis Configuration
       REDIS_HOST: redis
       REDIS_PORT: 6379
 
@@ -32,13 +32,13 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "8081:8081"  # Go API on different port from Python (8080)
+      - "8080:8080"  # Single port for both API and frontend
     volumes:
       - ../configs:/app/configs:ro
       - ./logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -46,8 +46,7 @@ services:
     networks:
       - pi5-trading-network
 
-  # TimescaleDB (shared with Python version)
-  # Only start this if not already running from Python deployment
+  # TimescaleDB - PostgreSQL with TimescaleDB extension
   timescaledb:
     image: timescale/timescaledb:latest-pg14
     container_name: pi5_trading_db
@@ -69,8 +68,7 @@ services:
     networks:
       - pi5-trading-network
 
-  # Redis (shared with Python version)
-  # Only start this if not already running from Python deployment
+  # Redis - Caching and pub/sub
   redis:
     image: redis:7-alpine
     container_name: pi5_trading_redis

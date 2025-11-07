@@ -64,6 +64,11 @@ func (c *Client) Close() {
 	c.pool.Close()
 }
 
+// GetPool returns the underlying connection pool
+func (c *Client) GetPool() *pgxpool.Pool {
+	return c.pool
+}
+
 // Health checks if the database connection is healthy
 func (c *Client) Health(ctx context.Context) error {
 	return c.pool.Ping(ctx)

@@ -13,7 +13,10 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/api"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/execution"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/strategy"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
 )
 
@@ -67,6 +70,41 @@ func run() error {
 	defer db.Close()
 
 	logger.Info().Msg("Database connected")
+
+	// Initialize repositories for execution engine
+	ordersRepo := data.NewOrdersRepository(db.GetPool(), logger)
+	portfolioRepo := data.NewPortfolioRepository(db.GetPool(), logger)
+
+	// Initialize risk manager with default limits
+	riskLimits := risk.GetDefaultLimits()
+	riskManager := risk.NewRiskManager(riskLimits, portfolioRepo, ordersRepo, logger)
+
+	logger.Info().
+		Int("max_position_size", riskLimits.MaxPositionSize).
+		Float64("max_daily_loss", riskLimits.MaxDailyLoss).
+		Float64("max_concentration", riskLimits.MaxConcentration).
+		Msg("Risk manager initialized")
+
+	// Initialize execution engine
+	executionEngine := execution.NewExecutionEngine(
+		eventBus,
+		ordersRepo,
+		portfolioRepo,
+		riskManager,
+		cfg.Trading.DemoMode,
+		cfg.Trading.PaperTrading,
+		logger,
+	)
+
+	// Start execution engine
+	if err := executionEngine.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start execution engine: %w", err)
+	}
+
+	logger.Info().
+		Bool("demo_mode", cfg.Trading.DemoMode).
+		Bool("paper_trading", cfg.Trading.PaperTrading).
+		Msg("Execution engine started")
 
 	// Initialize strategies
 	strategies := make([]strategy.Strategy, 0)
@@ -130,8 +168,8 @@ func run() error {
 			Msg("Strategy started")
 	}
 
-	// Create HTTP server
-	server := api.NewServer(&cfg.Server, db, logger)
+	// Create HTTP server with database, auth config, and event bus
+	server := api.NewServer(&cfg.Server, &cfg.Auth, db, eventBus, logger)
 
 	// Start HTTP server in a goroutine
 	serverErrChan := make(chan error, 1)
@@ -209,6 +247,13 @@ func run() error {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 
+	// Stop execution engine
+	if err := executionEngine.Stop(shutdownCtx); err != nil {
+		logger.Error().
+			Err(err).
+			Msg("Error stopping execution engine")
+	}
+
 	// Stop strategies
 	for _, strat := range strategies {
 		if err := strat.Stop(shutdownCtx); err != nil {
@@ -235,6 +280,15 @@ func run() error {
 			Int64("dropped", metric.DroppedCount).
 			Msg("Event bus metrics")
 	}
+
+	// Print execution engine metrics
+	execMetrics := executionEngine.GetMetrics()
+	logger.Info().
+		Int64("total_executions", execMetrics["total_executions"].(int64)).
+		Int64("total_rejections", execMetrics["total_rejections"].(int64)).
+		Float64("total_volume", execMetrics["total_volume"].(float64)).
+		Int("pending_orders", execMetrics["pending_orders"].(int)).
+		Msg("Execution engine metrics")
 
 	logger.Info().Msg("Shutdown complete")
 	return nil

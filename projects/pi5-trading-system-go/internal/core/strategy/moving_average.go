@@ -190,7 +190,7 @@ func (s *MovingAverageCrossoverStrategy) OnOrderFilled(ctx context.Context, even
 		Str("symbol", event.Symbol).
 		Str("action", event.Action).
 		Int("quantity", event.Quantity).
-		Float64("filled_price", event.FilledPrice).
+		Float64("filled_price", event.Price).
 		Msg("Order filled for our strategy")
 
 	// Update strategy state based on filled order

@@ -48,13 +48,13 @@ func (e BaseEvent) Timestamp() time.Time {
 // MarketDataEvent represents market data updates
 type MarketDataEvent struct {
 	BaseEvent
-	Symbol    string
-	Open      float64
-	High      float64
-	Low       float64
-	Close     float64
-	Volume    int64
-	Timestamp time.Time
+	Symbol         string
+	Open           float64
+	High           float64
+	Low            float64
+	Close          float64
+	Volume         int64
+	DataTimestamp  time.Time // Timestamp of the market data point
 }
 
 func NewMarketDataEvent(symbol string, open, high, low, close float64, volume int64, timestamp time.Time) *MarketDataEvent {
@@ -63,13 +63,13 @@ func NewMarketDataEvent(symbol string, open, high, low, close float64, volume in
 			EventType: EventTypeMarketData,
 			EventTime: time.Now(),
 		},
-		Symbol:    symbol,
-		Open:      open,
-		High:      high,
-		Low:       low,
-		Close:     close,
-		Volume:    volume,
-		Timestamp: timestamp,
+		Symbol:        symbol,
+		Open:          open,
+		High:          high,
+		Low:           low,
+		Close:         close,
+		Volume:        volume,
+		DataTimestamp: timestamp,
 	}
 }
 
@@ -110,8 +110,9 @@ type OrderEvent struct {
 	Action     string // "BUY", "SELL"
 	Quantity   int
 	Price      float64
-	OrderType  string // "MARKET", "LIMIT"
-	Status     string // "PENDING", "SUBMITTED", "FILLED", "CANCELLED"
+	LimitPrice float64 // For limit orders
+	OrderType  string  // "MARKET", "LIMIT"
+	Status     string  // "PENDING", "SUBMITTED", "FILLED", "CANCELLED"
 }
 
 func NewOrderEvent(orderID, strategyID, symbol, action string, quantity int, price float64, orderType, status string) *OrderEvent {
@@ -134,31 +135,42 @@ func NewOrderEvent(orderID, strategyID, symbol, action string, quantity int, pri
 // OrderFilledEvent represents a filled order
 type OrderFilledEvent struct {
 	BaseEvent
-	OrderID      string
-	StrategyID   string
-	Symbol       string
-	Action       string
-	Quantity     int
-	FilledPrice  float64
-	Commission   float64
-	FillTime     time.Time
+	OrderID        string
+	StrategyID     string
+	Symbol         string
+	Action         string
+	Quantity       int
+	FilledQuantity float64
+	Price          float64
+	Commission     float64
+	FillTime       time.Time
 }
 
-func NewOrderFilledEvent(orderID, strategyID, symbol, action string, quantity int, filledPrice, commission float64, fillTime time.Time) *OrderFilledEvent {
+func NewOrderFilledEvent(orderID, strategyID, symbol, action string, quantity int, filledQuantity, price, commission float64, fillTime time.Time) *OrderFilledEvent {
 	return &OrderFilledEvent{
 		BaseEvent: BaseEvent{
 			EventType: EventTypeOrderFilled,
 			EventTime: time.Now(),
 		},
-		OrderID:     orderID,
-		StrategyID:  strategyID,
-		Symbol:      symbol,
-		Action:      action,
-		Quantity:    quantity,
-		FilledPrice: filledPrice,
-		Commission:  commission,
-		FillTime:    fillTime,
+		OrderID:        orderID,
+		StrategyID:     strategyID,
+		Symbol:         symbol,
+		Action:         action,
+		Quantity:       quantity,
+		FilledQuantity: filledQuantity,
+		Price:          price,
+		Commission:     commission,
+		FillTime:       fillTime,
 	}
+}
+
+// PortfolioUpdateEvent represents a portfolio state change
+type PortfolioUpdateEvent struct {
+	BaseEvent
+	TotalValue   float64
+	Cash         float64
+	TotalPnL     float64
+	BuyingPower  float64
 }
 
 // SystemStatusEvent represents system status changes
