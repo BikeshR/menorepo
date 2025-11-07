@@ -13,12 +13,18 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/bikeshrana/pi5-trading-system-go/internal/api/handlers"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/audit"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/auth"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/circuitbreaker"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/metrics"
+	custommiddleware "github.com/bikeshrana/pi5-trading-system-go/internal/middleware"
 )
 
 // Server wraps the HTTP server
@@ -29,9 +35,12 @@ type Server struct {
 	wsHandler *handlers.WebSocketHandler
 }
 
-// NewServer creates a new HTTP server with repositories and event bus
-func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timescale.Client, eventBus *events.EventBus, logger zerolog.Logger) *Server {
+// NewServer creates a new HTTP server with repositories, event bus, and circuit breaker manager
+func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timescale.Client, eventBus *events.EventBus, auditLogger *audit.AuditLogger, cbManager *circuitbreaker.Manager, logger zerolog.Logger) *Server {
 	r := chi.NewRouter()
+
+	// Initialize Prometheus metrics
+	tradingMetrics := metrics.NewTradingMetrics("pi5_trading")
 
 	// Initialize repositories
 	portfolioRepo := data.NewPortfolioRepository(db.GetPool(), logger)
@@ -60,11 +69,17 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 	// Initialize auth middleware
 	authMiddleware := auth.NewAuthMiddleware(jwtService, logger)
 
+	// Initialize rate limiter
+	rateLimiterConfig := custommiddleware.GetDefaultConfig()
+	rateLimiter := custommiddleware.NewRateLimiter(rateLimiterConfig, logger)
+
 	// Middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(LoggingMiddleware(logger))
 	r.Use(middleware.Recoverer)
+	r.Use(rateLimiter.Limit)  // Add rate limiting
+	r.Use(metrics.HTTPMetricsMiddleware(tradingMetrics))  // Add Prometheus metrics
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	// CORS middleware for development
@@ -78,11 +93,15 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 	strategiesHandler := handlers.NewStrategiesHandler(strategiesRepo, eventBus, logger)
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioRepo, logger)
 	ordersHandler := handlers.NewOrdersHandler(ordersRepo, eventBus, logger)
-	systemHandler := handlers.NewSystemHandler(logger)
+	systemHandler := handlers.NewSystemHandler(cbManager, logger)
+	auditHandler := handlers.NewAuditHandler(auditLogger, logger)
 	wsHandler := handlers.NewWebSocketHandler(logger, eventBus)
 
 	// Routes
 	r.Get("/health", healthHandler.Handle)
+
+	// Prometheus metrics endpoint (no auth required for VictoriaMetrics scraping)
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// Authentication routes (no auth required)
 	r.Route("/auth", func(r chi.Router) {
@@ -139,7 +158,14 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 			r.Get("/health", systemHandler.GetSystemHealth)
 			r.Get("/metrics", systemHandler.GetSystemMetrics)
 			r.Get("/status", systemHandler.GetSystemStatus)
+			r.Get("/circuit-breakers", systemHandler.GetCircuitBreakers)
 			r.Post("/restart", systemHandler.RestartSystem)
+		})
+
+		// Audit routes (admin only)
+		r.Route("/audit", func(r chi.Router) {
+			r.Use(authMiddleware.RequireRole("admin"))
+			r.Get("/logs", auditHandler.GetAuditLogs)
 		})
 	})
 

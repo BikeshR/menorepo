@@ -9,6 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
+	"github.com/bikeshrana/pi5-trading-system-go/internal/audit"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/circuitbreaker"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
@@ -42,6 +44,8 @@ type ExecutionEngine struct {
 	ordersRepo    *data.OrdersRepository
 	portfolioRepo *data.PortfolioRepository
 	riskManager   *risk.RiskManager
+	auditLogger   *audit.AuditLogger
+	cbManager     *circuitbreaker.Manager
 	demoMode      bool
 	paperTrading  bool
 
@@ -90,6 +94,8 @@ func NewExecutionEngine(
 	ordersRepo *data.OrdersRepository,
 	portfolioRepo *data.PortfolioRepository,
 	riskManager *risk.RiskManager,
+	auditLogger *audit.AuditLogger,
+	cbManager *circuitbreaker.Manager,
 	demoMode bool,
 	paperTrading bool,
 	logger zerolog.Logger,
@@ -100,6 +106,8 @@ func NewExecutionEngine(
 		ordersRepo:    ordersRepo,
 		portfolioRepo: portfolioRepo,
 		riskManager:   riskManager,
+		auditLogger:   auditLogger,
+		cbManager:     cbManager,
 		demoMode:      demoMode,
 		paperTrading:  paperTrading,
 		marketData:    make(map[string]*MarketPrice),
@@ -291,12 +299,23 @@ func (e *ExecutionEngine) rejectOrder(ctx context.Context, orderID, reason strin
 	e.totalRejections++
 	e.metricsLock.Unlock()
 
-	// Update order status in database
-	if err := e.ordersRepo.UpdateOrderStatus(ctx, orderID, "REJECTED"); err != nil {
+	// Update order status in database with circuit breaker
+	dbBreaker := e.cbManager.GetOrCreate("db_orders", circuitbreaker.DefaultDatabaseConfig())
+	err := dbBreaker.Execute(func() error {
+		return e.ordersRepo.UpdateOrderStatus(ctx, orderID, "REJECTED")
+	})
+	if err != nil {
 		e.logger.Error().
 			Err(err).
 			Str("order_id", orderID).
 			Msg("Failed to update rejected order status")
+	}
+
+	// Audit log order rejection (non-critical, no circuit breaker)
+	if e.auditLogger != nil {
+		e.auditLogger.LogOrderRejected(ctx, orderID, "", "", reason, map[string]interface{}{
+			"rejection_reason": reason,
+		})
 	}
 
 	// Publish rejection event
@@ -431,15 +450,18 @@ func (e *ExecutionEngine) executeOrder(ctx context.Context, order *PendingOrder,
 		order.Status = OrderStatusPartial
 	}
 
-	// Update database
-	if err := e.ordersRepo.FillOrder(ctx, order.OrderID, float64(quantity), price); err != nil {
+	// Update database with circuit breaker
+	dbBreaker := e.cbManager.GetOrCreate("db_orders", circuitbreaker.DefaultDatabaseConfig())
+	if err := dbBreaker.Execute(func() error {
+		return e.ordersRepo.FillOrder(ctx, order.OrderID, float64(quantity), price)
+	}); err != nil {
 		e.logger.Error().
 			Err(err).
 			Str("order_id", order.OrderID).
 			Msg("Failed to update order in database")
 	}
 
-	// Create trade record
+	// Create trade record with circuit breaker
 	trade := &data.Trade{
 		ID:         uuid.New().String(),
 		OrderID:    order.OrderID,
@@ -452,11 +474,23 @@ func (e *ExecutionEngine) executeOrder(ctx context.Context, order *PendingOrder,
 		PnL:        0, // Will be calculated when position is closed
 		ExecutedAt: time.Now(),
 	}
-	if err := e.ordersRepo.CreateTrade(ctx, trade); err != nil {
+	if err := dbBreaker.Execute(func() error {
+		return e.ordersRepo.CreateTrade(ctx, trade)
+	}); err != nil {
 		e.logger.Error().
 			Err(err).
 			Str("order_id", order.OrderID).
 			Msg("Failed to create trade record")
+	}
+
+	// Audit log trade execution
+	if e.auditLogger != nil {
+		e.auditLogger.LogTradeExecuted(ctx, trade.ID, order.OrderID, order.Symbol, order.Action, float64(quantity), price, 0)
+	}
+
+	// Audit log order fill
+	if e.auditLogger != nil {
+		e.auditLogger.LogOrderFilled(ctx, order.OrderID, order.Symbol, order.Action, quantity, price)
 	}
 
 	// Update portfolio position
@@ -502,9 +536,18 @@ func (e *ExecutionEngine) executeOrder(ctx context.Context, order *PendingOrder,
 
 // updatePortfolioPosition updates the portfolio position after an order fill
 func (e *ExecutionEngine) updatePortfolioPosition(ctx context.Context, symbol, action string, quantity int, price float64) error {
-	// Get current position
-	position, err := e.portfolioRepo.GetPosition(ctx, symbol)
-	if err != nil {
+	portfolioBreaker := e.cbManager.GetOrCreate("db_portfolio", circuitbreaker.DefaultDatabaseConfig())
+
+	var position *data.Position
+	var getErr error
+
+	// Get current position with circuit breaker
+	err := portfolioBreaker.Execute(func() error {
+		position, getErr = e.portfolioRepo.GetPosition(ctx, symbol)
+		return getErr
+	})
+
+	if err != nil || getErr != nil {
 		// Position doesn't exist, create new one
 		position = &data.Position{
 			Symbol:       symbol,
@@ -541,8 +584,10 @@ func (e *ExecutionEngine) updatePortfolioPosition(ctx context.Context, symbol, a
 	position.CurrentPrice = price
 	position.LastUpdated = time.Now()
 
-	// Upsert position
-	if err := e.portfolioRepo.UpsertPosition(ctx, position); err != nil {
+	// Upsert position with circuit breaker
+	if err := portfolioBreaker.Execute(func() error {
+		return e.portfolioRepo.UpsertPosition(ctx, position)
+	}); err != nil {
 		return fmt.Errorf("failed to upsert position: %w", err)
 	}
 

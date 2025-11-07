@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/bikeshrana/pi5-trading-system-go/internal/api"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/audit"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/circuitbreaker"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/execution"
@@ -75,6 +77,13 @@ func run() error {
 	ordersRepo := data.NewOrdersRepository(db.GetPool(), logger)
 	portfolioRepo := data.NewPortfolioRepository(db.GetPool(), logger)
 
+	// Initialize audit logger
+	auditLogger := audit.NewAuditLogger(db.GetPool(), logger)
+	if err := auditLogger.InitSchema(ctx); err != nil {
+		return fmt.Errorf("failed to initialize audit schema: %w", err)
+	}
+	logger.Info().Msg("Audit logger initialized")
+
 	// Initialize risk manager with default limits
 	riskLimits := risk.GetDefaultLimits()
 	riskManager := risk.NewRiskManager(riskLimits, portfolioRepo, ordersRepo, logger)
@@ -85,12 +94,18 @@ func run() error {
 		Float64("max_concentration", riskLimits.MaxConcentration).
 		Msg("Risk manager initialized")
 
+	// Initialize circuit breaker manager
+	cbManager := circuitbreaker.NewManager(logger)
+	logger.Info().Msg("Circuit breaker manager initialized")
+
 	// Initialize execution engine
 	executionEngine := execution.NewExecutionEngine(
 		eventBus,
 		ordersRepo,
 		portfolioRepo,
 		riskManager,
+		auditLogger,
+		cbManager,
 		cfg.Trading.DemoMode,
 		cfg.Trading.PaperTrading,
 		logger,
@@ -168,8 +183,8 @@ func run() error {
 			Msg("Strategy started")
 	}
 
-	// Create HTTP server with database, auth config, and event bus
-	server := api.NewServer(&cfg.Server, &cfg.Auth, db, eventBus, logger)
+	// Create HTTP server with database, auth config, audit logger, event bus, and circuit breaker manager
+	server := api.NewServer(&cfg.Server, &cfg.Auth, db, eventBus, auditLogger, cbManager, logger)
 
 	// Start HTTP server in a goroutine
 	serverErrChan := make(chan error, 1)
