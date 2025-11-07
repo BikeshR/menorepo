@@ -1,6 +1,8 @@
 import axios, { type AxiosInstance, type AxiosResponse } from "axios";
 import { toast } from "react-hot-toast";
 import type {
+  AuditEvent,
+  AuditFilters,
   CreateOrderFormData,
   CreateStrategyFormData,
   LoginFormData,
@@ -63,6 +65,15 @@ class ApiService {
       async (error) => {
         const originalRequest = error.config;
 
+        // Handle rate limiting (429)
+        if (error.response?.status === 429) {
+          const retryAfter = error.response.headers['retry-after'] || '1';
+          toast.error(`Rate limit exceeded. Please wait ${retryAfter} second(s) and try again.`, {
+            duration: 5000,
+          });
+          return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
@@ -101,24 +112,30 @@ class ApiService {
 
     // Type guard for axios error
     if (error && typeof error === "object" && "response" in error) {
-      const axiosError = error as { 
-        response?: { 
-          data?: { error?: { message?: string }; detail?: string }; 
-          status?: number; 
-        }; 
-        message?: string; 
+      const axiosError = error as {
+        response?: {
+          data?: {
+            error?: { message?: string };
+            message?: string;
+            detail?: string;
+          };
+          status?: number;
+        };
+        message?: string;
       };
-      
+
       if (axiosError.response?.data?.error?.message) {
         message = axiosError.response.data.error.message;
+      } else if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
       } else if (axiosError.response?.data?.detail) {
         message = axiosError.response.data.detail;
       } else if (axiosError.message) {
         message = axiosError.message;
       }
 
-      // Don't show toast for 401 errors (handled by interceptor)
-      if (axiosError.response?.status !== 401) {
+      // Don't show toast for 401 errors (handled by interceptor) or 429 (already handled)
+      if (axiosError.response?.status !== 401 && axiosError.response?.status !== 429) {
         toast.error(message);
       }
     } else if (error instanceof Error) {
@@ -338,6 +355,23 @@ class ApiService {
   createWebSocket(clientId: string): WebSocket {
     const wsUrl = `${this.baseURL.replace("http", "ws")}/ws/?client_id=${clientId}`;
     return new WebSocket(wsUrl);
+  }
+
+  // Audit Logs (admin only)
+  async getAuditLogs(filters?: AuditFilters): Promise<AuditEvent[]> {
+    const params = new URLSearchParams();
+    if (filters?.event_type) params.append("event_type", filters.event_type);
+    if (filters?.user_id) params.append("user_id", filters.user_id);
+    if (filters?.resource) params.append("resource", filters.resource);
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.start_time) params.append("start_time", filters.start_time);
+    if (filters?.end_time) params.append("end_time", filters.end_time);
+    if (filters?.limit) params.append("limit", filters.limit.toString());
+
+    const response = await this.client.get<AuditEvent[]>(
+      `/api/v1/audit/logs?${params.toString()}`
+    );
+    return response.data;
   }
 
   // Utility methods

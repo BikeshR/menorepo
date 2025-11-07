@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/bikeshrana/pi5-trading-system-go/internal/api/handlers"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/audit"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/auth"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
@@ -31,7 +32,7 @@ type Server struct {
 }
 
 // NewServer creates a new HTTP server with repositories and event bus
-func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timescale.Client, eventBus *events.EventBus, logger zerolog.Logger) *Server {
+func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timescale.Client, eventBus *events.EventBus, auditLogger *audit.AuditLogger, logger zerolog.Logger) *Server {
 	r := chi.NewRouter()
 
 	// Initialize repositories
@@ -85,6 +86,7 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioRepo, logger)
 	ordersHandler := handlers.NewOrdersHandler(ordersRepo, eventBus, logger)
 	systemHandler := handlers.NewSystemHandler(logger)
+	auditHandler := handlers.NewAuditHandler(auditLogger, logger)
 	wsHandler := handlers.NewWebSocketHandler(logger, eventBus)
 
 	// Routes
@@ -146,6 +148,12 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 			r.Get("/metrics", systemHandler.GetSystemMetrics)
 			r.Get("/status", systemHandler.GetSystemStatus)
 			r.Post("/restart", systemHandler.RestartSystem)
+		})
+
+		// Audit routes (admin only)
+		r.Route("/audit", func(r chi.Router) {
+			r.Use(authMiddleware.RequireRole("admin"))
+			r.Get("/logs", auditHandler.GetAuditLogs)
 		})
 	})
 
