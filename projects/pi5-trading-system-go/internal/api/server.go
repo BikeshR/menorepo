@@ -19,6 +19,7 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
+	custommiddleware "github.com/bikeshrana/pi5-trading-system-go/internal/middleware"
 )
 
 // Server wraps the HTTP server
@@ -60,11 +61,16 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 	// Initialize auth middleware
 	authMiddleware := auth.NewAuthMiddleware(jwtService, logger)
 
+	// Initialize rate limiter
+	rateLimiterConfig := custommiddleware.GetDefaultConfig()
+	rateLimiter := custommiddleware.NewRateLimiter(rateLimiterConfig, logger)
+
 	// Middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(LoggingMiddleware(logger))
 	r.Use(middleware.Recoverer)
+	r.Use(rateLimiter.Limit)  // Add rate limiting
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	// CORS middleware for development
