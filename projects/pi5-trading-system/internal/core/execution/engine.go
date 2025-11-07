@@ -275,7 +275,7 @@ func (e *ExecutionEngine) handleOrderEvent(ctx context.Context, event *events.Or
 		Quantity:    event.Quantity,
 		OrderType:   orderType,
 		LimitPrice:  event.LimitPrice,
-		StopPrice:   0, // TODO: Add stop price to OrderEvent
+		StopPrice:   event.StopPrice,
 		FilledQty:   0,
 		Status:      OrderStatusSubmitted,
 		SubmittedAt: time.Now(),
@@ -371,6 +371,7 @@ func (e *ExecutionEngine) matchOrders(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			e.checkLimitOrders(ctx)
+			e.checkStopOrders(ctx)
 
 		case <-ctx.Done():
 			e.logger.Info().Msg("Order matching engine stopped")
@@ -392,6 +393,22 @@ func (e *ExecutionEngine) checkLimitOrders(ctx context.Context) {
 
 	for _, order := range orders {
 		e.tryExecuteLimitOrder(ctx, order)
+	}
+}
+
+// checkStopOrders checks if any stop orders should be triggered
+func (e *ExecutionEngine) checkStopOrders(ctx context.Context) {
+	e.pendingOrdersMu.RLock()
+	orders := make([]*PendingOrder, 0, len(e.pendingOrders))
+	for _, order := range e.pendingOrders {
+		if order.OrderType == OrderTypeStop && order.Status == OrderStatusSubmitted {
+			orders = append(orders, order)
+		}
+	}
+	e.pendingOrdersMu.RUnlock()
+
+	for _, order := range orders {
+		e.tryExecuteStopOrder(ctx, order)
 	}
 }
 
@@ -424,6 +441,72 @@ func (e *ExecutionEngine) tryExecuteLimitOrder(ctx context.Context, order *Pendi
 	}
 
 	if canExecute {
+		e.executeOrder(ctx, order, executionPrice, order.Quantity-order.FilledQty)
+	}
+}
+
+// tryExecuteStopOrder attempts to execute a stop order
+// Stop orders become market orders when stop price is reached
+func (e *ExecutionEngine) tryExecuteStopOrder(ctx context.Context, order *PendingOrder) {
+	e.marketDataMu.RLock()
+	marketPrice, exists := e.marketData[order.Symbol]
+	e.marketDataMu.RUnlock()
+
+	if !exists {
+		return
+	}
+
+	// Check if stop price is triggered
+	triggered := false
+	var executionPrice float64
+
+	if order.Action == "BUY" {
+		// Buy stop: trigger if price rises to or above stop price (stop loss cover, breakout buy)
+		// Execute at ask price when triggered
+		if marketPrice.Last >= order.StopPrice {
+			triggered = true
+			executionPrice = marketPrice.Ask
+			e.logger.Debug().
+				Str("order_id", order.OrderID).
+				Str("symbol", order.Symbol).
+				Float64("stop_price", order.StopPrice).
+				Float64("last_price", marketPrice.Last).
+				Msg("Buy stop order triggered")
+		}
+	} else {
+		// Sell stop: trigger if price falls to or below stop price (stop loss)
+		// Execute at bid price when triggered
+		if marketPrice.Last <= order.StopPrice {
+			triggered = true
+			executionPrice = marketPrice.Bid
+			e.logger.Debug().
+				Str("order_id", order.OrderID).
+				Str("symbol", order.Symbol).
+				Float64("stop_price", order.StopPrice).
+				Float64("last_price", marketPrice.Last).
+				Msg("Sell stop order triggered")
+		}
+	}
+
+	if triggered {
+		// Apply slippage in demo mode (stop orders typically have more slippage)
+		if e.demoMode {
+			slippage := executionPrice * 0.0005 * 2 // Double slippage for stop orders
+			if order.Action == "BUY" {
+				executionPrice += slippage
+			} else {
+				executionPrice -= slippage
+			}
+		}
+
+		e.logger.Info().
+			Str("order_id", order.OrderID).
+			Str("symbol", order.Symbol).
+			Str("action", order.Action).
+			Float64("stop_price", order.StopPrice).
+			Float64("execution_price", executionPrice).
+			Msg("Stop order triggered, executing as market order")
+
 		e.executeOrder(ctx, order, executionPrice, order.Quantity-order.FilledQty)
 	}
 }

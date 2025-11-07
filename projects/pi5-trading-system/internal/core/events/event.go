@@ -107,11 +107,12 @@ type OrderEvent struct {
 	OrderID    string
 	StrategyID string
 	Symbol     string
-	Action     string // "BUY", "SELL"
+	Action     string  // "BUY", "SELL"
 	Quantity   int
 	Price      float64
 	LimitPrice float64 // For limit orders
-	OrderType  string  // "MARKET", "LIMIT"
+	StopPrice  float64 // For stop orders
+	OrderType  string  // "MARKET", "LIMIT", "STOP"
 	Status     string  // "PENDING", "SUBMITTED", "FILLED", "CANCELLED"
 }
 
@@ -128,6 +129,25 @@ func NewOrderEvent(orderID, strategyID, symbol, action string, quantity int, pri
 		Quantity:   quantity,
 		Price:      price,
 		OrderType:  orderType,
+		Status:     status,
+	}
+}
+
+// NewStopOrderEvent creates a stop order event
+func NewStopOrderEvent(orderID, strategyID, symbol, action string, quantity int, stopPrice float64, status string) *OrderEvent {
+	return &OrderEvent{
+		BaseEvent: BaseEvent{
+			EventType: EventTypeOrder,
+			EventTime: time.Now(),
+		},
+		OrderID:    orderID,
+		StrategyID: strategyID,
+		Symbol:     symbol,
+		Action:     action,
+		Quantity:   quantity,
+		Price:      0,
+		StopPrice:  stopPrice,
+		OrderType:  "STOP",
 		Status:     status,
 	}
 }

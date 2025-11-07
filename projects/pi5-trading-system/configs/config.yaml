@@ -51,16 +51,18 @@ trading:
         short_period: 20
         long_period: 50
 
-    - id: "rsi_strategy"
-      name: "RSI Mean Reversion"
-      enabled: false
-      symbols:
-        - "TSLA"
-        - "NVDA"
-      params:
-        rsi_period: 14
-        oversold: 30
-        overbought: 70
+    # Additional strategies can be added here
+    # Example RSI strategy (not yet implemented):
+    # - id: "rsi_strategy"
+    #   name: "RSI Mean Reversion"
+    #   enabled: false
+    #   symbols:
+    #     - "TSLA"
+    #     - "NVDA"
+    #   params:
+    #     rsi_period: 14
+    #     oversold: 30
+    #     overbought: 70
 
 logging:
   level: "info"  # debug, info, warn, error

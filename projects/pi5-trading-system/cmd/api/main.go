@@ -17,6 +17,7 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/execution"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/signal"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/strategy"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
@@ -120,6 +121,28 @@ func run() error {
 		Bool("demo_mode", cfg.Trading.DemoMode).
 		Bool("paper_trading", cfg.Trading.PaperTrading).
 		Msg("Execution engine started")
+
+	// Initialize signal-to-order converter for autonomous trading
+	signalConverter := signal.NewSignalToOrderConverter(
+		eventBus,
+		riskManager,
+		auditLogger,
+		signal.Config{
+			Enabled:       true,  // Enable autonomous trading
+			MinConfidence: 0.6,   // Only trade signals with >= 60% confidence
+		},
+		logger,
+	)
+
+	// Start signal converter
+	if err := signalConverter.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start signal converter: %w", err)
+	}
+
+	logger.Info().
+		Bool("enabled", true).
+		Float64("min_confidence", 0.6).
+		Msg("Signal-to-order converter started")
 
 	// Initialize strategies
 	strategies := make([]strategy.Strategy, 0)
