@@ -6,17 +6,21 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+
+	"github.com/bikeshrana/pi5-trading-system-go/internal/circuitbreaker"
 )
 
 // SystemHandler handles system-related requests
 type SystemHandler struct {
+	cbManager *circuitbreaker.Manager
 	logger    zerolog.Logger
 	startTime time.Time
 }
 
 // NewSystemHandler creates a new system handler
-func NewSystemHandler(logger zerolog.Logger) *SystemHandler {
+func NewSystemHandler(cbManager *circuitbreaker.Manager, logger zerolog.Logger) *SystemHandler {
 	return &SystemHandler{
+		cbManager: cbManager,
 		logger:    logger,
 		startTime: time.Now(),
 	}
@@ -175,4 +179,10 @@ func (h *SystemHandler) RestartSystem(w http.ResponseWriter, r *http.Request) {
 		"message": "System restart initiated",
 		"status":  "restarting",
 	})
+}
+
+// GetCircuitBreakers returns circuit breaker metrics
+func (h *SystemHandler) GetCircuitBreakers(w http.ResponseWriter, r *http.Request) {
+	metrics := h.cbManager.GetAllMetrics()
+	writeJSON(w, http.StatusOK, metrics)
 }
