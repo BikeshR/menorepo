@@ -3,20 +3,26 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/rs/zerolog"
+
+	"github.com/bikeshrana/pi5-trading-system-go/internal/auth"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 )
 
 // AuthHandler handles authentication requests
 type AuthHandler struct {
-	logger zerolog.Logger
+	userRepo   *data.UserRepository
+	jwtService *auth.JWTService
+	logger     zerolog.Logger
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(logger zerolog.Logger) *AuthHandler {
+func NewAuthHandler(userRepo *data.UserRepository, jwtService *auth.JWTService, logger zerolog.Logger) *AuthHandler {
 	return &AuthHandler{
-		logger: logger,
+		userRepo:   userRepo,
+		jwtService: jwtService,
+		logger:     logger,
 	}
 }
 
@@ -28,10 +34,11 @@ type LoginRequest struct {
 
 // LoginResponse represents the login response
 type LoginResponse struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	TokenType    string    `json:"token_type"`
-	User         UserInfo  `json:"user"`
+	AccessToken  string   `json:"access_token"`
+	RefreshToken string   `json:"refresh_token"`
+	TokenType    string   `json:"token_type"`
+	ExpiresIn    int64    `json:"expires_in"`
+	User         UserInfo `json:"user"`
 }
 
 // UserInfo represents basic user information
@@ -51,24 +58,46 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement actual authentication
-	// For now, accept any credentials for development
 	if req.Username == "" || req.Password == "" {
 		writeError(w, http.StatusBadRequest, "Username and password required")
 		return
 	}
 
-	// Mock authentication - replace with actual auth logic
+	// Validate credentials
+	user, err := h.userRepo.ValidatePassword(r.Context(), req.Username, req.Password)
+	if err != nil {
+		h.logger.Warn().Str("username", req.Username).Msg("Failed login attempt")
+		writeError(w, http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	// Generate JWT tokens
+	tokenPair, err := h.jwtService.GenerateTokenPair(r.Context(), user.ID, user.Username, user.Email, user.Role)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to generate tokens")
+		writeError(w, http.StatusInternalServerError, "Failed to generate authentication tokens")
+		return
+	}
+
+	// Update last login
+	if err := h.userRepo.UpdateLastLogin(r.Context(), user.ID); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to update last login")
+	}
+
+	h.logger.Info().Str("username", user.Username).Str("role", user.Role).Msg("User logged in")
+
+	// Return response
 	response := LoginResponse{
-		AccessToken:  "mock_access_token_" + time.Now().Format("20060102150405"),
-		RefreshToken: "mock_refresh_token_" + time.Now().Format("20060102150405"),
-		TokenType:    "Bearer",
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		TokenType:    tokenPair.TokenType,
+		ExpiresIn:    tokenPair.ExpiresIn,
 		User: UserInfo{
-			ID:       "1",
-			Username: req.Username,
-			Email:    req.Username + "@example.com",
-			FullName: "Trading User",
-			Role:     "trader",
+			ID:       user.ID,
+			Username: user.Username,
+			Email:    user.Email,
+			FullName: user.FullName,
+			Role:     user.Role,
 		},
 	}
 
@@ -77,23 +106,44 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 // Logout handles user logout
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement token invalidation
+	// In a more sophisticated system, you would:
+	// 1. Invalidate the refresh token in a blacklist/database
+	// 2. Clear any server-side sessions
+
+	// Get user from context (if authenticated)
+	claims := auth.GetUserFromContext(r.Context())
+	if claims != nil {
+		h.logger.Info().Str("username", claims.Username).Msg("User logged out")
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
 }
 
 // GetCurrentUser returns the current user info
 func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
-	// TODO: Extract user from token
-	// For now, return mock user
-	user := UserInfo{
-		ID:       "1",
-		Username: "trader",
-		Email:    "trader@example.com",
-		FullName: "Trading User",
-		Role:     "trader",
+	claims := auth.GetUserFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "Authentication required")
+		return
 	}
 
-	writeJSON(w, http.StatusOK, user)
+	// Get full user data from database
+	user, err := h.userRepo.GetByID(r.Context(), claims.UserID)
+	if err != nil {
+		h.logger.Error().Err(err).Str("user_id", claims.UserID).Msg("Failed to get user")
+		writeError(w, http.StatusInternalServerError, "Failed to retrieve user information")
+		return
+	}
+
+	userInfo := UserInfo{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		FullName: user.FullName,
+		Role:     user.Role,
+	}
+
+	writeJSON(w, http.StatusOK, userInfo)
 }
 
 // RefreshToken handles token refresh
@@ -104,12 +154,19 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement actual token refresh
-	response := map[string]string{
-		"access_token":  "new_mock_access_token_" + time.Now().Format("20060102150405"),
-		"refresh_token": "new_mock_refresh_token_" + time.Now().Format("20060102150405"),
-		"token_type":    "Bearer",
+	refreshToken, ok := req["refresh_token"]
+	if !ok || refreshToken == "" {
+		writeError(w, http.StatusBadRequest, "Refresh token required")
+		return
 	}
 
-	writeJSON(w, http.StatusOK, response)
+	// Generate new token pair
+	tokenPair, err := h.jwtService.RefreshAccessToken(r.Context(), refreshToken)
+	if err != nil {
+		h.logger.Warn().Err(err).Msg("Failed to refresh token")
+		writeError(w, http.StatusUnauthorized, "Invalid or expired refresh token")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, tokenPair)
 }

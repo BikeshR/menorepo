@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/bikeshrana/pi5-trading-system-go/internal/api/handlers"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/auth"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
@@ -29,13 +30,14 @@ type Server struct {
 }
 
 // NewServer creates a new HTTP server with repositories and event bus
-func NewServer(cfg *config.ServerConfig, db *timescale.Client, eventBus *events.EventBus, logger zerolog.Logger) *Server {
+func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timescale.Client, eventBus *events.EventBus, logger zerolog.Logger) *Server {
 	r := chi.NewRouter()
 
 	// Initialize repositories
 	portfolioRepo := data.NewPortfolioRepository(db.GetPool(), logger)
 	ordersRepo := data.NewOrdersRepository(db.GetPool(), logger)
 	strategiesRepo := data.NewStrategiesRepository(db.GetPool(), logger)
+	userRepo := data.NewUserRepository(db.GetPool(), logger)
 
 	// Initialize schemas
 	ctx := context.Background()
@@ -48,6 +50,15 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, eventBus *events.
 	if err := strategiesRepo.InitSchema(ctx); err != nil {
 		logger.Error().Err(err).Msg("Failed to initialize strategies schema")
 	}
+	if err := userRepo.InitSchema(ctx); err != nil {
+		logger.Error().Err(err).Msg("Failed to initialize user schema")
+	}
+
+	// Initialize JWT service
+	jwtService := auth.NewJWTService(authCfg.JWTSecret, logger)
+
+	// Initialize auth middleware
+	authMiddleware := auth.NewAuthMiddleware(jwtService, logger)
 
 	// Middleware
 	r.Use(middleware.RequestID)
@@ -63,7 +74,7 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, eventBus *events.
 
 	// Handlers
 	healthHandler := handlers.NewHealthHandler(db, logger)
-	authHandler := handlers.NewAuthHandler(logger)
+	authHandler := handlers.NewAuthHandler(userRepo, jwtService, logger)
 	strategiesHandler := handlers.NewStrategiesHandler(strategiesRepo, eventBus, logger)
 	portfolioHandler := handlers.NewPortfolioHandler(portfolioRepo, logger)
 	ordersHandler := handlers.NewOrdersHandler(ordersRepo, eventBus, logger)
@@ -81,26 +92,29 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, eventBus *events.
 		r.Get("/me", authHandler.GetCurrentUser)
 	})
 
-	// API routes (with auth - TODO: add auth middleware)
+	// API routes (with JWT authentication)
 	r.Route("/api/v1", func(r chi.Router) {
+		// Apply auth middleware to all API routes
+		r.Use(authMiddleware.Authenticate)
+
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"message": "Pi5 Trading System - Go API", "version": "1.0.0"}`))
 		})
 
-		// Strategies routes
+		// Strategies routes (require trader or admin role)
 		r.Route("/strategies", func(r chi.Router) {
 			r.Get("/", strategiesHandler.GetAvailableStrategies)
 			r.Get("/active", strategiesHandler.GetActiveStrategies)
-			r.Post("/", strategiesHandler.CreateStrategy)
+			r.With(authMiddleware.RequireRole("admin", "trader")).Post("/", strategiesHandler.CreateStrategy)
 			r.Get("/{strategyId}", strategiesHandler.GetStrategy)
-			r.Put("/{strategyId}", strategiesHandler.UpdateStrategy)
-			r.Delete("/{strategyId}", strategiesHandler.DeleteStrategy)
-			r.Post("/{strategyId}/action", strategiesHandler.ControlStrategy)
+			r.With(authMiddleware.RequireRole("admin", "trader")).Put("/{strategyId}", strategiesHandler.UpdateStrategy)
+			r.With(authMiddleware.RequireRole("admin")).Delete("/{strategyId}", strategiesHandler.DeleteStrategy)
+			r.With(authMiddleware.RequireRole("admin", "trader")).Post("/{strategyId}/action", strategiesHandler.ControlStrategy)
 			r.Get("/{strategyId}/performance", strategiesHandler.GetStrategyPerformance)
 		})
 
-		// Portfolio routes
+		// Portfolio routes (all authenticated users can view)
 		r.Route("/portfolio", func(r chi.Router) {
 			r.Get("/summary", portfolioHandler.GetPortfolioSummary)
 			r.Get("/positions", portfolioHandler.GetPositions)
@@ -110,17 +124,18 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, eventBus *events.
 			r.Get("/allocation", portfolioHandler.GetPortfolioAllocation)
 		})
 
-		// Orders routes
+		// Orders routes (require trader or admin role for creation/cancellation)
 		r.Route("/orders", func(r chi.Router) {
 			r.Get("/", ordersHandler.GetOrders)
-			r.Post("/", ordersHandler.CreateOrder)
+			r.With(authMiddleware.RequireRole("admin", "trader")).Post("/", ordersHandler.CreateOrder)
 			r.Get("/{orderId}", ordersHandler.GetOrder)
-			r.Delete("/{orderId}", ordersHandler.CancelOrder)
+			r.With(authMiddleware.RequireRole("admin", "trader")).Delete("/{orderId}", ordersHandler.CancelOrder)
 			r.Get("/trades/history", ordersHandler.GetTrades)
 		})
 
-		// System routes
+		// System routes (admin only)
 		r.Route("/system", func(r chi.Router) {
+			r.Use(authMiddleware.RequireRole("admin"))
 			r.Get("/health", systemHandler.GetSystemHealth)
 			r.Get("/metrics", systemHandler.GetSystemMetrics)
 			r.Get("/status", systemHandler.GetSystemStatus)

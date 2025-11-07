@@ -110,8 +110,9 @@ type OrderEvent struct {
 	Action     string // "BUY", "SELL"
 	Quantity   int
 	Price      float64
-	OrderType  string // "MARKET", "LIMIT"
-	Status     string // "PENDING", "SUBMITTED", "FILLED", "CANCELLED"
+	LimitPrice float64 // For limit orders
+	OrderType  string  // "MARKET", "LIMIT"
+	Status     string  // "PENDING", "SUBMITTED", "FILLED", "CANCELLED"
 }
 
 func NewOrderEvent(orderID, strategyID, symbol, action string, quantity int, price float64, orderType, status string) *OrderEvent {
