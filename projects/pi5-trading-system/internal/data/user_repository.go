@@ -58,12 +58,13 @@ func (r *UserRepository) InitSchema(ctx context.Context) error {
 		CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 		-- Insert default admin user (password: admin123)
+		-- SECURITY: Change this password immediately after first login!
 		INSERT INTO users (id, username, email, password_hash, full_name, role, is_active, created_at, updated_at)
 		VALUES (
 			'user-admin',
 			'admin',
 			'admin@pi5trading.local',
-			'$2a$10$YKQzJ7L.Hx5xXxY8mXxX8.qXqXqXqXqXqXqXqXqXqXqXqXqXqXqXq',
+			'$2a$10$4nfZ.jKFuyzIyKk8RjLN4ubatQMbsYTRA5Xh5F0/Bkwi7OYx2nQ5G',
 			'System Administrator',
 			'admin',
 			true,
@@ -73,12 +74,13 @@ func (r *UserRepository) InitSchema(ctx context.Context) error {
 		ON CONFLICT (username) DO NOTHING;
 
 		-- Insert default trader user (password: trader123)
+		-- SECURITY: Change this password immediately after first login!
 		INSERT INTO users (id, username, email, password_hash, full_name, role, is_active, created_at, updated_at)
 		VALUES (
 			'user-trader',
 			'trader',
 			'trader@pi5trading.local',
-			'$2a$10$YKQzJ7L.Hx5xXxY8mXxX8.qXqXqXqXqXqXqXqXqXqXqXqXqXqXqXq',
+			'$2a$10$1gCVau5B5ye/oSaWdmVcR.br0dUUlNSPMCzBcsn3W2kAG495o.tyu',
 			'Default Trader',
 			'trader',
 			true,

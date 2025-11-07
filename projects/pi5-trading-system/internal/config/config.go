@@ -19,11 +19,12 @@ type Config struct {
 
 // ServerConfig holds HTTP server configuration
 type ServerConfig struct {
-	Host         string        `mapstructure:"host"`
-	Port         int           `mapstructure:"port"`
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
-	IdleTimeout  time.Duration `mapstructure:"idle_timeout"`
+	Host              string        `mapstructure:"host"`
+	Port              int           `mapstructure:"port"`
+	ReadTimeout       time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout      time.Duration `mapstructure:"write_timeout"`
+	IdleTimeout       time.Duration `mapstructure:"idle_timeout"`
+	CORSAllowedOrigins string        `mapstructure:"cors_allowed_origins"` // Comma-separated list or "*"
 }
 
 // AuthConfig holds authentication configuration
@@ -105,6 +106,17 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	// Override from environment variables if present
+	// Server
+	if v.IsSet("CORS_ALLOWED_ORIGINS") {
+		config.Server.CORSAllowedOrigins = v.GetString("CORS_ALLOWED_ORIGINS")
+	}
+
+	// Authentication
+	if v.IsSet("JWT_SECRET") {
+		config.Auth.JWTSecret = v.GetString("JWT_SECRET")
+	}
+
+	// Database
 	if v.IsSet("DB_HOST") {
 		config.Database.Host = v.GetString("DB_HOST")
 	}
@@ -120,6 +132,8 @@ func Load(configPath string) (*Config, error) {
 	if v.IsSet("DB_NAME") {
 		config.Database.Database = v.GetString("DB_NAME")
 	}
+
+	// Redis
 	if v.IsSet("REDIS_HOST") {
 		config.Redis.Host = v.GetString("REDIS_HOST")
 	}
@@ -134,10 +148,11 @@ func Load(configPath string) (*Config, error) {
 func setDefaults(v *viper.Viper) {
 	// Server defaults
 	v.SetDefault("server.host", "0.0.0.0")
-	v.SetDefault("server.port", 8081)
+	v.SetDefault("server.port", 8080) // Fixed: was 8081, correct port is 8080
 	v.SetDefault("server.read_timeout", 30*time.Second)
 	v.SetDefault("server.write_timeout", 30*time.Second)
 	v.SetDefault("server.idle_timeout", 120*time.Second)
+	v.SetDefault("server.cors_allowed_origins", "*") // Allow all for development
 
 	// Database defaults
 	v.SetDefault("database.host", "localhost")

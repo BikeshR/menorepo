@@ -82,8 +82,8 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 	r.Use(metrics.HTTPMetricsMiddleware(tradingMetrics))  // Add Prometheus metrics
 	r.Use(middleware.Timeout(30 * time.Second))
 
-	// CORS middleware for development
-	r.Use(middleware.SetHeader("Access-Control-Allow-Origin", "*"))
+	// CORS middleware (configurable via environment)
+	r.Use(middleware.SetHeader("Access-Control-Allow-Origin", cfg.CORSAllowedOrigins))
 	r.Use(middleware.SetHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"))
 	r.Use(middleware.SetHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Authorization"))
 
@@ -169,8 +169,27 @@ func NewServer(cfg *config.ServerConfig, authCfg *config.AuthConfig, db *timesca
 		})
 	})
 
-	// WebSocket endpoint
-	r.Get("/ws", wsHandler.HandleConnection)
+	// WebSocket endpoint (with optional authentication)
+	// Clients can provide token via query param: /ws?token=<jwt_token>
+	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
+		// Optional authentication: check for token in query parameter
+		token := r.URL.Query().Get("token")
+		if token != "" {
+			// Validate token and add user context
+			if claims, err := jwtService.ValidateToken(token); err == nil {
+				// Add user info to request context for WebSocket handler
+				ctx := r.Context()
+				ctx = context.WithValue(ctx, "user_id", claims.UserID)
+				ctx = context.WithValue(ctx, "username", claims.Username)
+				ctx = context.WithValue(ctx, "role", claims.Role)
+				r = r.WithContext(ctx)
+				logger.Debug().Str("user", claims.Username).Msg("WebSocket authenticated")
+			} else {
+				logger.Warn().Err(err).Msg("WebSocket authentication failed, allowing anonymous connection")
+			}
+		}
+		wsHandler.HandleConnection(w, r)
+	})
 
 	// Serve static files from dashboard/dist (built React app)
 	workDir, _ := os.Getwd()
