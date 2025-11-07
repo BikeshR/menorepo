@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -36,28 +39,96 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, logger zerolog.Lo
 	// CORS middleware for development
 	r.Use(middleware.SetHeader("Access-Control-Allow-Origin", "*"))
 	r.Use(middleware.SetHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"))
-	r.Use(middleware.SetHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length"))
+	r.Use(middleware.SetHeader("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Authorization"))
 
 	// Handlers
 	healthHandler := handlers.NewHealthHandler(db, logger)
+	authHandler := handlers.NewAuthHandler(logger)
+	strategiesHandler := handlers.NewStrategiesHandler(logger)
+	portfolioHandler := handlers.NewPortfolioHandler(logger)
+	ordersHandler := handlers.NewOrdersHandler(logger)
+	systemHandler := handlers.NewSystemHandler(logger)
 
 	// Routes
 	r.Get("/health", healthHandler.Handle)
 
-	// API routes
-	r.Route("/api", func(r chi.Router) {
+	// Authentication routes (no auth required)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/login", authHandler.Login)
+		r.Post("/logout", authHandler.Logout)
+		r.Post("/refresh", authHandler.RefreshToken)
+		r.Get("/me", authHandler.GetCurrentUser)
+	})
+
+	// API routes (with auth - TODO: add auth middleware)
+	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"message": "Pi5 Trading System - Go API", "version": "1.0.0"}`))
 		})
 
-		// TODO: Add more routes
-		// r.Get("/strategies", strategiesHandler.List)
-		// r.Post("/strategies/{id}/start", strategiesHandler.Start)
-		// r.Post("/strategies/{id}/stop", strategiesHandler.Stop)
-		// r.Get("/portfolio", portfolioHandler.Get)
-		// r.Get("/orders", ordersHandler.List)
+		// Strategies routes
+		r.Route("/strategies", func(r chi.Router) {
+			r.Get("/", strategiesHandler.GetAvailableStrategies)
+			r.Get("/active", strategiesHandler.GetActiveStrategies)
+			r.Post("/", strategiesHandler.CreateStrategy)
+			r.Get("/{strategyId}", strategiesHandler.GetStrategy)
+			r.Put("/{strategyId}", strategiesHandler.UpdateStrategy)
+			r.Delete("/{strategyId}", strategiesHandler.DeleteStrategy)
+			r.Post("/{strategyId}/action", strategiesHandler.ControlStrategy)
+			r.Get("/{strategyId}/performance", strategiesHandler.GetStrategyPerformance)
+		})
+
+		// Portfolio routes
+		r.Route("/portfolio", func(r chi.Router) {
+			r.Get("/summary", portfolioHandler.GetPortfolioSummary)
+			r.Get("/positions", portfolioHandler.GetPositions)
+			r.Get("/positions/{symbol}", portfolioHandler.GetPosition)
+			r.Get("/performance", portfolioHandler.GetPortfolioPerformance)
+			r.Get("/history", portfolioHandler.GetPortfolioHistory)
+			r.Get("/allocation", portfolioHandler.GetPortfolioAllocation)
+		})
+
+		// Orders routes
+		r.Route("/orders", func(r chi.Router) {
+			r.Get("/", ordersHandler.GetOrders)
+			r.Post("/", ordersHandler.CreateOrder)
+			r.Get("/{orderId}", ordersHandler.GetOrder)
+			r.Delete("/{orderId}", ordersHandler.CancelOrder)
+			r.Get("/trades/history", ordersHandler.GetTrades)
+		})
+
+		// System routes
+		r.Route("/system", func(r chi.Router) {
+			r.Get("/health", systemHandler.GetSystemHealth)
+			r.Get("/metrics", systemHandler.GetSystemMetrics)
+			r.Get("/status", systemHandler.GetSystemStatus)
+			r.Post("/restart", systemHandler.RestartSystem)
+		})
 	})
+
+	// Serve static files from dashboard/dist (built React app)
+	workDir, _ := os.Getwd()
+	staticPath := filepath.Join(workDir, "dashboard", "dist")
+
+	// Check if dist directory exists
+	if _, err := os.Stat(staticPath); err == nil {
+		// Serve static files
+		fileServer := http.FileServer(http.Dir(staticPath))
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			// Try to serve the file
+			filePath := filepath.Join(staticPath, r.URL.Path)
+			if _, err := os.Stat(filePath); os.IsNotExist(err) || strings.HasSuffix(r.URL.Path, "/") {
+				// If file doesn't exist or is a directory, serve index.html (SPA)
+				http.ServeFile(w, r, filepath.Join(staticPath, "index.html"))
+				return
+			}
+			fileServer.ServeHTTP(w, r)
+		})
+		logger.Info().Str("path", staticPath).Msg("Serving static files from dashboard/dist")
+	} else {
+		logger.Warn().Str("path", staticPath).Msg("Dashboard dist directory not found - run 'cd dashboard && npm run build'")
+	}
 
 	// Create HTTP server
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)

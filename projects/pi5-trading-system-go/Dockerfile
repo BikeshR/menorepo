@@ -1,6 +1,23 @@
-# Multi-stage Dockerfile for Pi5 Trading System (Go)
-# Stage 1: Build the Go binary
-FROM golang:1.21-alpine AS builder
+# Multi-stage Dockerfile for Pi5 Trading System (Go) with Frontend
+# Stage 1: Build the React frontend
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app/dashboard
+
+# Copy package files
+COPY dashboard/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy dashboard source
+COPY dashboard/ ./
+
+# Build the React app
+RUN npm run build
+
+# Stage 2: Build the Go binary
+FROM golang:1.21-alpine AS backend-builder
 
 # Install build dependencies
 RUN apk add --no-cache git make
@@ -20,12 +37,12 @@ COPY . .
 # Build the application
 # CGO_ENABLED=0 creates a statically linked binary (no external dependencies)
 # This makes the binary portable and allows us to use a minimal base image
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags='-w -s -extldflags "-static"' \
     -o /app/bin/pi5-trading-api \
     ./cmd/api
 
-# Stage 2: Create minimal runtime image
+# Stage 3: Create minimal runtime image
 FROM alpine:latest
 
 # Install CA certificates for HTTPS requests
@@ -38,11 +55,14 @@ RUN addgroup -g 1000 trader && \
 # Set working directory
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder --chown=trader:trader /app/bin/pi5-trading-api /app/pi5-trading-api
+# Copy binary from backend builder
+COPY --from=backend-builder --chown=trader:trader /app/bin/pi5-trading-api /app/pi5-trading-api
 
 # Copy configuration
 COPY --chown=trader:trader configs/config.yaml /app/configs/config.yaml
+
+# Copy built frontend from frontend builder
+COPY --from=frontend-builder --chown=trader:trader /app/dashboard/dist /app/dashboard/dist
 
 # Create directories for logs
 RUN mkdir -p /app/logs && chown trader:trader /app/logs

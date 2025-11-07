@@ -48,13 +48,13 @@ func (e BaseEvent) Timestamp() time.Time {
 // MarketDataEvent represents market data updates
 type MarketDataEvent struct {
 	BaseEvent
-	Symbol    string
-	Open      float64
-	High      float64
-	Low       float64
-	Close     float64
-	Volume    int64
-	Timestamp time.Time
+	Symbol         string
+	Open           float64
+	High           float64
+	Low            float64
+	Close          float64
+	Volume         int64
+	DataTimestamp  time.Time // Timestamp of the market data point
 }
 
 func NewMarketDataEvent(symbol string, open, high, low, close float64, volume int64, timestamp time.Time) *MarketDataEvent {
@@ -63,13 +63,13 @@ func NewMarketDataEvent(symbol string, open, high, low, close float64, volume in
 			EventType: EventTypeMarketData,
 			EventTime: time.Now(),
 		},
-		Symbol:    symbol,
-		Open:      open,
-		High:      high,
-		Low:       low,
-		Close:     close,
-		Volume:    volume,
-		Timestamp: timestamp,
+		Symbol:        symbol,
+		Open:          open,
+		High:          high,
+		Low:           low,
+		Close:         close,
+		Volume:        volume,
+		DataTimestamp: timestamp,
 	}
 }
 

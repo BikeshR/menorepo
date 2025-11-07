@@ -1,6 +1,18 @@
 # Pi5 Trading System - Go Implementation
 
-A high-performance algorithmic trading system written in Go, featuring event-driven architecture with channels and goroutines. This is a learning-focused reimplementation of the Python version to master Go's concurrency patterns.
+A high-performance algorithmic trading system written in Go, featuring event-driven architecture with channels and goroutines, plus a modern React dashboard. This is a complete, standalone trading platform ready for deployment.
+
+## ✨ Features
+
+- 🚀 **High-Performance Go Backend** - Event-driven architecture with goroutines
+- 💻 **Modern React Dashboard** - Full-featured web UI with real-time updates
+- 📊 **TimescaleDB** - Time-series optimized PostgreSQL database
+- ⚡ **Redis** - High-speed caching and pub/sub
+- 🐳 **Docker** - Complete containerized deployment
+- 🔐 **Authentication** - JWT-based auth with token refresh
+- 📈 **Portfolio Tracking** - Real-time P&L and positions
+- 🎯 **Strategy Management** - Multi-strategy execution engine
+- 📝 **Order Management** - Complete order lifecycle tracking
 
 ## 🎯 Learning Goals
 
@@ -9,11 +21,24 @@ This project is designed to teach:
 - **Idiomatic Go HTTP**: Using Chi for clean, standard library-compatible web services
 - **Database Programming**: Direct SQL with pgx for maximum performance
 - **Event-Driven Architecture**: Building scalable systems with Go channels
+- **Full-Stack Development**: Go backend + React frontend integration
 - **Production Go**: Configuration, logging, graceful shutdown, and Docker deployment
 
-## 🚀 Quick Start (The Go Way)
+## 🚀 Quick Start
 
-**TL;DR** - Get running in 30 seconds:
+### Option 1: Docker (Recommended - Includes Frontend)
+
+```bash
+cd deployments
+docker compose up -d
+```
+
+Access the application:
+- **Dashboard**: http://localhost:8081/
+- **API**: http://localhost:8081/api/v1/
+- **Health**: http://localhost:8081/health
+
+### Option 2: Local Development (Backend Only)
 
 ```bash
 # 1. Start database
@@ -26,7 +51,21 @@ go run ./cmd/api
 curl http://localhost:8081/health
 ```
 
-**That's it!** No Make, no complex tools. Just standard Go commands.
+### Option 3: Full Local Development (Backend + Frontend)
+
+```bash
+# Terminal 1: Start database
+cd deployments && docker compose up timescaledb redis -d
+
+# Terminal 2: Start Go backend
+go run ./cmd/api
+
+# Terminal 3: Start React dev server
+cd dashboard && npm install && npm run dev
+```
+
+- **Frontend Dev Server**: http://localhost:5173/
+- **Backend API**: http://localhost:8081/
 
 👉 **See [QUICKSTART.md](QUICKSTART.md) for detailed instructions using only Go commands.**
 
@@ -59,12 +98,17 @@ make build                # Same as: go build ./cmd/api
 
 | Component | Technology | Why? |
 |-----------|-----------|------|
-| **Web Framework** | Chi | Idiomatic Go HTTP, standard library compatible |
+| **Backend Framework** | Chi | Idiomatic Go HTTP, standard library compatible |
+| **Frontend** | React 19 + TypeScript | Modern UI with type safety |
+| **Build Tool** | Vite | Fast dev server and optimized builds |
+| **Styling** | Tailwind CSS | Utility-first, responsive design |
+| **Charts** | Chart.js | Interactive data visualization |
 | **Database** | pgx + TimescaleDB | Raw SQL for performance, PostgreSQL time-series |
+| **Cache** | Redis | High-speed caching and pub/sub |
 | **Event Bus** | Go Channels | Learn Go's killer feature - native concurrency! |
 | **Configuration** | Viper | Flexible YAML + environment variables |
 | **Logging** | zerolog | Fast structured logging |
-| **Deployment** | Docker multi-stage | Tiny 10MB images vs 1GB+ for Python |
+| **Deployment** | Docker multi-stage | Tiny images with frontend included |
 
 ### Project Structure
 
@@ -74,9 +118,23 @@ pi5-trading-system-go/
 │   └── api/                    # Application entry points
 │       └── main.go            # Main server
 │
+├── dashboard/                  # React frontend
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   ├── services/          # API service layer
+│   │   └── types/             # TypeScript types
+│   ├── package.json
+│   └── vite.config.ts
+│
 ├── internal/                   # Private application code
 │   ├── api/
 │   │   ├── handlers/          # HTTP request handlers
+│   │   │   ├── auth.go        # Authentication
+│   │   │   ├── portfolio.go   # Portfolio management
+│   │   │   ├── strategies.go  # Strategy management
+│   │   │   ├── orders.go      # Order management
+│   │   │   ├── system.go      # System monitoring
+│   │   │   └── health.go      # Health checks
 │   │   ├── middleware/        # HTTP middleware
 │   │   └── server.go          # Server setup
 │   │
