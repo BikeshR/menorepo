@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 )
 
@@ -40,6 +41,7 @@ type ExecutionEngine struct {
 	eventBus      *events.EventBus
 	ordersRepo    *data.OrdersRepository
 	portfolioRepo *data.PortfolioRepository
+	riskManager   *risk.RiskManager
 	demoMode      bool
 	paperTrading  bool
 
@@ -87,6 +89,7 @@ func NewExecutionEngine(
 	eventBus *events.EventBus,
 	ordersRepo *data.OrdersRepository,
 	portfolioRepo *data.PortfolioRepository,
+	riskManager *risk.RiskManager,
 	demoMode bool,
 	paperTrading bool,
 	logger zerolog.Logger,
@@ -96,6 +99,7 @@ func NewExecutionEngine(
 		eventBus:      eventBus,
 		ordersRepo:    ordersRepo,
 		portfolioRepo: portfolioRepo,
+		riskManager:   riskManager,
 		demoMode:      demoMode,
 		paperTrading:  paperTrading,
 		marketData:    make(map[string]*MarketPrice),
@@ -194,6 +198,67 @@ func (e *ExecutionEngine) handleOrderEvent(ctx context.Context, event *events.Or
 		orderType = OrderType(event.OrderType)
 	}
 
+	// Get current market price for risk validation
+	var currentPrice float64
+	if event.Price > 0 {
+		currentPrice = event.Price
+	} else if event.LimitPrice > 0 {
+		currentPrice = event.LimitPrice
+	} else {
+		// Try to get from market data
+		e.marketDataMu.RLock()
+		if marketPrice, exists := e.marketData[event.Symbol]; exists {
+			if event.Action == "BUY" {
+				currentPrice = marketPrice.Ask
+			} else {
+				currentPrice = marketPrice.Bid
+			}
+		}
+		e.marketDataMu.RUnlock()
+	}
+
+	// Validate order through risk manager
+	if e.riskManager != nil {
+		orderRequest := &risk.OrderRequest{
+			Symbol:    event.Symbol,
+			Action:    event.Action,
+			Quantity:  event.Quantity,
+			Price:     currentPrice,
+			OrderType: event.OrderType,
+		}
+
+		riskResult, err := e.riskManager.ValidateOrder(ctx, orderRequest)
+		if err != nil {
+			e.logger.Error().
+				Err(err).
+				Str("order_id", event.OrderID).
+				Msg("Risk validation error")
+			e.rejectOrder(ctx, event.OrderID, "Risk validation error")
+			return
+		}
+
+		if !riskResult.Approved {
+			e.logger.Warn().
+				Str("order_id", event.OrderID).
+				Strs("rejections", riskResult.Rejections).
+				Msg("Order rejected by risk manager")
+			e.rejectOrder(ctx, event.OrderID, fmt.Sprintf("Risk check failed: %v", riskResult.Rejections))
+			return
+		}
+
+		// Record order for daily tracking
+		e.riskManager.RecordOrder(orderRequest)
+
+		// Log warnings if any
+		if len(riskResult.Warnings) > 0 {
+			e.logger.Info().
+				Str("order_id", event.OrderID).
+				Strs("warnings", riskResult.Warnings).
+				Float64("risk_score", riskResult.RiskScore).
+				Msg("Order approved with warnings")
+		}
+	}
+
 	// Create pending order
 	pendingOrder := &PendingOrder{
 		OrderID:     event.OrderID,
@@ -217,6 +282,29 @@ func (e *ExecutionEngine) handleOrderEvent(ctx context.Context, event *events.Or
 	if orderType == OrderTypeMarket {
 		e.tryExecuteMarketOrder(ctx, pendingOrder)
 	}
+}
+
+// rejectOrder rejects an order and updates the database
+func (e *ExecutionEngine) rejectOrder(ctx context.Context, orderID, reason string) {
+	// Update metrics
+	e.metricsLock.Lock()
+	e.totalRejections++
+	e.metricsLock.Unlock()
+
+	// Update order status in database
+	if err := e.ordersRepo.UpdateOrderStatus(ctx, orderID, "REJECTED"); err != nil {
+		e.logger.Error().
+			Err(err).
+			Str("order_id", orderID).
+			Msg("Failed to update rejected order status")
+	}
+
+	// Publish rejection event
+	// TODO: Create OrderRejectedEvent type
+	e.logger.Info().
+		Str("order_id", orderID).
+		Str("reason", reason).
+		Msg("Order rejected")
 }
 
 // tryExecuteMarketOrder attempts to execute a market order immediately

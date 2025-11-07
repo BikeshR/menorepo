@@ -14,6 +14,7 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/execution"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/strategy"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
@@ -74,11 +75,22 @@ func run() error {
 	ordersRepo := data.NewOrdersRepository(db.GetPool(), logger)
 	portfolioRepo := data.NewPortfolioRepository(db.GetPool(), logger)
 
+	// Initialize risk manager with default limits
+	riskLimits := risk.GetDefaultLimits()
+	riskManager := risk.NewRiskManager(riskLimits, portfolioRepo, ordersRepo, logger)
+
+	logger.Info().
+		Int("max_position_size", riskLimits.MaxPositionSize).
+		Float64("max_daily_loss", riskLimits.MaxDailyLoss).
+		Float64("max_concentration", riskLimits.MaxConcentration).
+		Msg("Risk manager initialized")
+
 	// Initialize execution engine
 	executionEngine := execution.NewExecutionEngine(
 		eventBus,
 		ordersRepo,
 		portfolioRepo,
+		riskManager,
 		cfg.Trading.DemoMode,
 		cfg.Trading.PaperTrading,
 		logger,
