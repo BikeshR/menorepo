@@ -7,17 +7,24 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 )
 
 // StrategiesHandler handles strategy-related requests
 type StrategiesHandler struct {
-	logger zerolog.Logger
+	repo     *data.StrategiesRepository
+	eventBus *events.EventBus
+	logger   zerolog.Logger
 }
 
 // NewStrategiesHandler creates a new strategies handler
-func NewStrategiesHandler(logger zerolog.Logger) *StrategiesHandler {
+func NewStrategiesHandler(repo *data.StrategiesRepository, eventBus *events.EventBus, logger zerolog.Logger) *StrategiesHandler {
 	return &StrategiesHandler{
-		logger: logger,
+		repo:     repo,
+		eventBus: eventBus,
+		logger:   logger,
 	}
 }
 

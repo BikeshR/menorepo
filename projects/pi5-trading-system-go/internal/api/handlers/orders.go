@@ -7,17 +7,24 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 )
 
 // OrdersHandler handles order-related requests
 type OrdersHandler struct {
-	logger zerolog.Logger
+	repo     *data.OrdersRepository
+	eventBus *events.EventBus
+	logger   zerolog.Logger
 }
 
 // NewOrdersHandler creates a new orders handler
-func NewOrdersHandler(logger zerolog.Logger) *OrdersHandler {
+func NewOrdersHandler(repo *data.OrdersRepository, eventBus *events.EventBus, logger zerolog.Logger) *OrdersHandler {
 	return &OrdersHandler{
-		logger: logger,
+		repo:     repo,
+		eventBus: eventBus,
+		logger:   logger,
 	}
 }
 

@@ -15,19 +15,39 @@ import (
 
 	"github.com/bikeshrana/pi5-trading-system-go/internal/api/handlers"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
 )
 
 // Server wraps the HTTP server
 type Server struct {
-	router *chi.Mux
-	server *http.Server
-	logger zerolog.Logger
+	router    *chi.Mux
+	server    *http.Server
+	logger    zerolog.Logger
+	wsHandler *handlers.WebSocketHandler
 }
 
-// NewServer creates a new HTTP server
-func NewServer(cfg *config.ServerConfig, db *timescale.Client, logger zerolog.Logger) *Server {
+// NewServer creates a new HTTP server with repositories and event bus
+func NewServer(cfg *config.ServerConfig, db *timescale.Client, eventBus *events.EventBus, logger zerolog.Logger) *Server {
 	r := chi.NewRouter()
+
+	// Initialize repositories
+	portfolioRepo := data.NewPortfolioRepository(db.GetPool(), logger)
+	ordersRepo := data.NewOrdersRepository(db.GetPool(), logger)
+	strategiesRepo := data.NewStrategiesRepository(db.GetPool(), logger)
+
+	// Initialize schemas
+	ctx := context.Background()
+	if err := portfolioRepo.InitSchema(ctx); err != nil {
+		logger.Error().Err(err).Msg("Failed to initialize portfolio schema")
+	}
+	if err := ordersRepo.InitSchema(ctx); err != nil {
+		logger.Error().Err(err).Msg("Failed to initialize orders schema")
+	}
+	if err := strategiesRepo.InitSchema(ctx); err != nil {
+		logger.Error().Err(err).Msg("Failed to initialize strategies schema")
+	}
 
 	// Middleware
 	r.Use(middleware.RequestID)
@@ -44,10 +64,11 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, logger zerolog.Lo
 	// Handlers
 	healthHandler := handlers.NewHealthHandler(db, logger)
 	authHandler := handlers.NewAuthHandler(logger)
-	strategiesHandler := handlers.NewStrategiesHandler(logger)
-	portfolioHandler := handlers.NewPortfolioHandler(logger)
-	ordersHandler := handlers.NewOrdersHandler(logger)
+	strategiesHandler := handlers.NewStrategiesHandler(strategiesRepo, eventBus, logger)
+	portfolioHandler := handlers.NewPortfolioHandler(portfolioRepo, logger)
+	ordersHandler := handlers.NewOrdersHandler(ordersRepo, eventBus, logger)
 	systemHandler := handlers.NewSystemHandler(logger)
+	wsHandler := handlers.NewWebSocketHandler(logger, eventBus)
 
 	// Routes
 	r.Get("/health", healthHandler.Handle)
@@ -107,6 +128,9 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, logger zerolog.Lo
 		})
 	})
 
+	// WebSocket endpoint
+	r.Get("/ws", wsHandler.HandleConnection)
+
 	// Serve static files from dashboard/dist (built React app)
 	workDir, _ := os.Getwd()
 	staticPath := filepath.Join(workDir, "dashboard", "dist")
@@ -140,10 +164,14 @@ func NewServer(cfg *config.ServerConfig, db *timescale.Client, logger zerolog.Lo
 		IdleTimeout:  cfg.IdleTimeout,
 	}
 
+	// Start WebSocket event listener
+	go wsHandler.StartEventListener(context.Background())
+
 	return &Server{
-		router: r,
-		server: httpServer,
-		logger: logger,
+		router:    r,
+		server:    httpServer,
+		logger:    logger,
+		wsHandler: wsHandler,
 	}
 }
 

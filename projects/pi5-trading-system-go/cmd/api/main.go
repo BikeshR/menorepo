@@ -130,8 +130,8 @@ func run() error {
 			Msg("Strategy started")
 	}
 
-	// Create HTTP server
-	server := api.NewServer(&cfg.Server, db, logger)
+	// Create HTTP server with database and event bus
+	server := api.NewServer(&cfg.Server, db, eventBus, logger)
 
 	// Start HTTP server in a goroutine
 	serverErrChan := make(chan error, 1)

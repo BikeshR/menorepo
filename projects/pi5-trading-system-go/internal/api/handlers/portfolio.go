@@ -6,16 +6,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 )
 
 // PortfolioHandler handles portfolio-related requests
 type PortfolioHandler struct {
+	repo   *data.PortfolioRepository
 	logger zerolog.Logger
 }
 
 // NewPortfolioHandler creates a new portfolio handler
-func NewPortfolioHandler(logger zerolog.Logger) *PortfolioHandler {
+func NewPortfolioHandler(repo *data.PortfolioRepository, logger zerolog.Logger) *PortfolioHandler {
 	return &PortfolioHandler{
+		repo:   repo,
 		logger: logger,
 	}
 }

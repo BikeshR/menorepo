@@ -134,31 +134,42 @@ func NewOrderEvent(orderID, strategyID, symbol, action string, quantity int, pri
 // OrderFilledEvent represents a filled order
 type OrderFilledEvent struct {
 	BaseEvent
-	OrderID      string
-	StrategyID   string
-	Symbol       string
-	Action       string
-	Quantity     int
-	FilledPrice  float64
-	Commission   float64
-	FillTime     time.Time
+	OrderID        string
+	StrategyID     string
+	Symbol         string
+	Action         string
+	Quantity       int
+	FilledQuantity float64
+	Price          float64
+	Commission     float64
+	FillTime       time.Time
 }
 
-func NewOrderFilledEvent(orderID, strategyID, symbol, action string, quantity int, filledPrice, commission float64, fillTime time.Time) *OrderFilledEvent {
+func NewOrderFilledEvent(orderID, strategyID, symbol, action string, quantity int, filledQuantity, price, commission float64, fillTime time.Time) *OrderFilledEvent {
 	return &OrderFilledEvent{
 		BaseEvent: BaseEvent{
 			EventType: EventTypeOrderFilled,
 			EventTime: time.Now(),
 		},
-		OrderID:     orderID,
-		StrategyID:  strategyID,
-		Symbol:      symbol,
-		Action:      action,
-		Quantity:    quantity,
-		FilledPrice: filledPrice,
-		Commission:  commission,
-		FillTime:    fillTime,
+		OrderID:        orderID,
+		StrategyID:     strategyID,
+		Symbol:         symbol,
+		Action:         action,
+		Quantity:       quantity,
+		FilledQuantity: filledQuantity,
+		Price:          price,
+		Commission:     commission,
+		FillTime:       fillTime,
 	}
+}
+
+// PortfolioUpdateEvent represents a portfolio state change
+type PortfolioUpdateEvent struct {
+	BaseEvent
+	TotalValue   float64
+	Cash         float64
+	TotalPnL     float64
+	BuyingPower  float64
 }
 
 // SystemStatusEvent represents system status changes
