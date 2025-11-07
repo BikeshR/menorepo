@@ -1,0 +1,185 @@
+# Docker Compose for Pi5 Trading System - Optimized for ARM64
+# Resource-constrained deployment for Raspberry Pi 5
+
+version: '3.8'
+
+services:
+  # Go Trading API with Frontend
+  trading_api_go:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        GOARCH: arm64  # Explicit ARM64 build
+    container_name: pi5_trading_go
+    environment:
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: pi5_trading
+      DB_USER: pi5trader
+      DB_PASSWORD: ${DB_PASSWORD:-trading_secure_2025}
+      PI5_LOGGING_LEVEL: info
+      PI5_LOGGING_FORMAT: json
+      GOMAXPROCS: "3"  # Leave 1 core for system
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../configs:/app/configs:ro
+      - ./logs:/app/logs
+      - ./data:/app/data  # For SQLite audit logs
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - pi5-trading-network
+
+  # TimescaleDB - Optimized for Pi5
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: pi5_trading_db
+    environment:
+      POSTGRES_DB: pi5_trading
+      POSTGRES_USER: pi5trader
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-trading_secure_2025}
+
+      # Pi5 Optimizations
+      POSTGRES_SHARED_BUFFERS: "256MB"          # Default: 2GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "1GB"      # Default: 4GB
+      POSTGRES_WORK_MEM: "4MB"                   # Default: 16MB
+      POSTGRES_MAINTENANCE_WORK_MEM: "64MB"      # Default: 256MB
+      POSTGRES_MAX_CONNECTIONS: "20"             # Limit connections
+      POSTGRES_RANDOM_PAGE_COST: "1.1"           # Optimize for SSD
+
+      # TimescaleDB optimizations
+      TIMESCALEDB_TELEMETRY: "off"
+      TS_TUNE_MAX_CONNS: "20"
+      TS_TUNE_MEMORY: "1GB"
+
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pi5trader -d pi5_trading"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pi5-trading-network
+    command:
+      - postgres
+      - -c
+      - max_connections=20
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - work_mem=4MB
+
+  # Redis - Lightweight caching (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: pi5_trading_redis
+    command:
+      - redis-server
+      - --maxmemory 256mb
+      - --maxmemory-policy allkeys-lru
+      - --save ""  # Disable persistence for speed
+      - --appendonly no
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - pi5-trading-network
+
+  # VictoriaMetrics - Lightweight Prometheus alternative
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: pi5_trading_metrics
+    command:
+      - --storageDataPath=/victoria-metrics-data
+      - --retentionPeriod=7d  # Keep only 7 days on Pi5
+      - --httpListenAddr=:8428
+      - --maxConcurrentInserts=2
+      - --memory.allowedPercent=60
+    ports:
+      - "8428:8428"  # Metrics UI at http://pi:8428
+    volumes:
+      - victoria_data:/victoria-metrics-data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 100M
+    networks:
+      - pi5-trading-network
+
+  # Gotify - Lightweight push notifications (Optional)
+  gotify:
+    image: gotify/server-arm64:latest
+    container_name: pi5_trading_alerts
+    environment:
+      GOTIFY_DEFAULTUSER_PASS: ${GOTIFY_PASSWORD:-admin}
+    ports:
+      - "8081:80"  # Alert UI at http://pi:8081
+    volumes:
+      - gotify_data:/app/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          memory: 50M
+    networks:
+      - pi5-trading-network
+
+volumes:
+  timescale_data:
+  victoria_data:
+  gotify_data:
+
+networks:
+  pi5-trading-network:
+    driver: bridge
