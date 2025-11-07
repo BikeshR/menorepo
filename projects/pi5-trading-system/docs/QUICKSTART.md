@@ -1,417 +1,223 @@
-# Quick Start - The Go Way
+# Quick Start Guide - Pi5 Trading System
 
-This guide uses **standard Go commands** - no Make, no external tools.
+Deploy the Pi5 Trading System on your Raspberry Pi 5 (8GB) in 5 minutes.
+
+---
 
 ## Prerequisites
 
-- Go 1.21+ installed ([Download](https://go.dev/dl/))
-- Docker (for database)
+- **Raspberry Pi 5** (8GB) with Ubuntu 24.04 LTS or Pi OS 64-bit
+- **Docker & Docker Compose** installed
+- **256GB NVMe SSD** recommended (or microSD Class 10 minimum)
+- **Internet connection**
 
-Check your Go installation:
-```bash
-go version  # Should show go1.21 or higher
-```
+---
 
-## 🚀 Start in 3 Steps
+## 🚀 Deploy in 3 Steps
 
-### Step 1: Get Dependencies
-
-```bash
-cd projects/pi5-trading-system-go
-
-# Download all dependencies
-go mod download
-```
-
-### Step 2: Start Database (Docker)
+### Step 1: Clone & Configure
 
 ```bash
-# Start TimescaleDB and Redis
-cd deployments
-docker compose up timescaledb redis -d
+# Clone repository
+git clone <your-repo-url>
+cd menorepo/projects/pi5-trading-system/deployments
 
-# Verify they're running
-docker compose ps
-```
-
-### Step 3: Run the Application
-
-```bash
-# Go back to project root
-cd ..
-
-# Run the application
-go run ./cmd/api
-```
-
-That's it! Your Go trading system is running on `http://localhost:8081`
-
-## 🧪 Test It
-
-```bash
-# In another terminal
-curl http://localhost:8081/health
-```
-
-You should see:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-10-31T...",
-  "version": "1.0.0",
-  "checks": {
-    "database": {
-      "status": "healthy"
-    }
-  }
-}
-```
-
-## 📝 Common Commands
-
-### Development
-
-```bash
-# Run the application (with hot reload on save)
-go run ./cmd/api
-
-# Run with specific config file
-go run ./cmd/api -config configs/config.yaml
-
-# Run tests
-go test ./...
-
-# Run tests with verbose output
-go test -v ./...
-
-# Run tests with race detector
-go test -race ./...
-
-# Run tests with coverage
-go test -cover ./...
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out  # View in browser
-```
-
-### Building
-
-```bash
-# Build binary (outputs to current directory)
-go build ./cmd/api
-
-# Build with custom output name
-go build -o bin/pi5-trading-api ./cmd/api
-
-# Build for Raspberry Pi 5 (ARM64)
-GOOS=linux GOARCH=arm64 go build -o bin/pi5-trading-api-arm64 ./cmd/api
-
-# Build optimized binary (smaller size)
-go build -ldflags="-s -w" -o bin/pi5-trading-api ./cmd/api
-
-# Run the built binary
-./bin/pi5-trading-api
-```
-
-### Dependencies
-
-```bash
-# Download dependencies
-go mod download
-
-# Add missing dependencies and remove unused ones
-go mod tidy
-
-# Verify dependencies
-go mod verify
-
-# View dependency graph
-go mod graph
-
-# Upgrade dependencies
-go get -u ./...
-go mod tidy
-```
-
-### Code Quality
-
-```bash
-# Format code (Go's built-in formatter)
-go fmt ./...
-
-# Vet code (catch common mistakes)
-go vet ./...
-
-# Run both
-go fmt ./... && go vet ./...
-```
-
-### Docker (Standard Docker Commands)
-
-```bash
-# Build Docker image
-docker build -t pi5-trading-go .
-
-# Build for ARM64 (Raspberry Pi 5)
-docker buildx build --platform linux/arm64 -t pi5-trading-go .
-
-# Run Docker container
-docker run -p 8081:8081 \
-  -e DB_HOST=timescaledb \
-  -e DB_PASSWORD=trading_secure_2025 \
-  pi5-trading-go
-
-# Full stack with docker compose
-cd deployments
-docker compose up -d
-
-# View logs
-docker compose logs -f
-
-# Stop everything
-docker compose down
-```
-
-## 📁 Project Navigation
-
-```bash
-# View project structure
-ls -la
-
-# Key directories:
-cmd/api/          # Application entry point
-internal/         # Private application code
-pkg/              # Public libraries
-configs/          # Configuration files
-deployments/      # Docker files
-```
-
-## 🔧 Configuration
-
-### Option 1: Edit config.yaml
-
-```bash
-# Edit configuration
-nano configs/config.yaml
-
-# Or with vim
-vim configs/config.yaml
-```
-
-### Option 2: Use Environment Variables
-
-```bash
-# Set environment variables (override config.yaml)
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_PASSWORD=your_password
-export PI5_LOGGING_LEVEL=debug
-
-# Run with env vars
-go run ./cmd/api
-```
-
-### Option 3: Create .env file
-
-```bash
-# Copy example
+# Create environment file
 cp .env.example .env
-
-# Edit .env
-nano .env
-
-# Variables in .env will be picked up by Docker Compose
+nano .env  # Set DB_PASSWORD and other variables
 ```
 
-## 🐛 Troubleshooting
-
-### "Cannot connect to database"
-
-Make sure TimescaleDB is running:
+**Minimum required in `.env`:**
 ```bash
-cd deployments
-docker compose ps timescaledb
-
-# If not running, start it:
-docker compose up timescaledb -d
-
-# Check logs:
-docker compose logs timescaledb
+DB_PASSWORD=your_secure_password_change_this
+INITIAL_CASH=100000.0
+DEMO_MODE=true
+PAPER_TRADING=true
 ```
 
-### "Port 8081 already in use"
-
-Find what's using the port:
-```bash
-# On Mac/Linux:
-lsof -i :8081
-
-# Kill the process or change port in config.yaml
-```
-
-### "Module not found"
-
-Download dependencies:
-```bash
-go mod download
-go mod tidy
-```
-
-### Running Locally Without Docker
-
-If you want to run everything locally (no Docker), you need:
-
-1. **Install PostgreSQL with TimescaleDB extension**
-2. **Install Redis**
-3. **Update config.yaml:**
-
-```yaml
-database:
-  host: "localhost"  # Changed from "timescaledb"
-  port: 5432
-
-redis:
-  host: "localhost"  # Changed from "redis"
-  port: 6379
-```
-
-Then:
-```bash
-go run ./cmd/api
-```
-
-## 🎯 Development Workflow
-
-Typical development session:
+### Step 2: Deploy
 
 ```bash
-# 1. Start database
-cd deployments
-docker compose up timescaledb redis -d
-cd ..
+# Deploy with Pi5-optimized configuration
+docker-compose -f docker-compose.pi5-optimized.yml up -d
 
-# 2. Run application
-go run ./cmd/api
-
-# 3. In another terminal, make code changes
-# The app will need to be restarted manually
-
-# 4. Run tests
-go test ./...
-
-# 5. Format code before committing
-go fmt ./...
-
-# 6. Stop database when done
-cd deployments
-docker compose down
+# Wait ~30 seconds for services to start
 ```
 
-## 🚀 Deploying to Raspberry Pi 5
-
-### Method 1: Binary
+### Step 3: Access Web Interface
 
 ```bash
-# On your Mac/PC: Build ARM64 binary
-GOOS=linux GOARCH=arm64 go build -o bin/pi5-trading-api-arm64 ./cmd/api
+# Find your Pi5 IP address
+hostname -I
 
-# Copy to Raspberry Pi
-scp bin/pi5-trading-api-arm64 pi@raspberrypi:/home/pi/
-scp configs/config.yaml pi@raspberrypi:/home/pi/configs/
-
-# SSH to Pi and run
-ssh pi@raspberrypi
-chmod +x pi5-trading-api-arm64
-./pi5-trading-api-arm64
+# Open browser to: http://YOUR_PI5_IP:8080
 ```
 
-### Method 2: Docker (Recommended)
+**Default login:**
+- Username: `admin`
+- Password: `admin123`
+
+**⚠️ Change default password immediately after first login!**
+
+---
+
+## ✅ Verify Deployment
+
+### Check Containers Running
 
 ```bash
-# On your Mac/PC: Build ARM64 Docker image
-docker buildx build --platform linux/arm64 -t pi5-trading-go .
+docker ps
 
-# Save image to file
-docker save pi5-trading-go | gzip > pi5-trading-go.tar.gz
-
-# Copy to Pi
-scp pi5-trading-go.tar.gz pi@raspberrypi:/home/pi/
-
-# On Pi: Load and run
-ssh pi@raspberrypi
-docker load < pi5-trading-go.tar.gz
-docker run -p 8081:8081 pi5-trading-go
+# Should see 5 containers:
+# - pi5_trading_api
+# - pi5_trading_db
+# - pi5_trading_redis
+# - victoriametrics
+# - gotify
 ```
 
-### Method 3: docker-compose (Easiest)
+### Test Web Interface
+
+1. Login at `http://YOUR_PI5_IP:8080`
+2. View Portfolio page
+3. View Strategies page
+4. Check System Health page
+
+### Test API
 
 ```bash
-# Copy project to Pi
-scp -r deployments configs pi@raspberrypi:/home/pi/pi5-trading-go/
+# Health check
+curl http://localhost:8080/health
 
-# SSH to Pi
-ssh pi@raspberrypi
-cd /home/pi/pi5-trading-go/deployments
-
-# Start everything
-docker compose up -d
-
-# Check logs
-docker compose logs -f
-```
-
-## 📚 Next Steps
-
-1. **Understand the code**: Start with `cmd/api/main.go`
-2. **Study concurrency**: Read `internal/core/events/bus.go`
-3. **Modify strategy**: Edit `internal/core/strategy/moving_average.go`
-4. **Add features**: Create your own strategy
-5. **Run tests**: `go test ./...`
-
-## 🎓 Learning Resources
-
-- Run `go help` - see all Go commands
-- Run `go help build` - detailed help on any command
-- [Effective Go](https://go.dev/doc/effective_go)
-- [Go by Example](https://gobyexample.com)
-
-## 💡 Pro Tips
-
-```bash
-# Watch mode (rerun on file changes) - install air first
-go install github.com/cosmtrek/air@latest
-air
-
-# Install useful tools
-go install golang.org/x/tools/cmd/goimports@latest  # Better imports
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest  # Linter
-
-# Use goimports (better than go fmt)
-goimports -w .
-
-# Run linter
-golangci-lint run
-```
-
-## 🔄 Comparing with Python Version
-
-```bash
-# Run both at the same time:
-
-# Terminal 1: Python version (port 8080)
-cd ../pi5-trading-system
-# ... start Python version
-
-# Terminal 2: Go version (port 8081)
-cd ../pi5-trading-system-go
-go run ./cmd/api
-
-# Terminal 3: Compare
-curl http://localhost:8080/health  # Python
-curl http://localhost:8081/health  # Go
+# Prometheus metrics
+curl http://localhost:8080/metrics
 ```
 
 ---
 
-**That's it!** No Make, no complex tools. Just Go. 🚀
+## 🔧 Quick Management
 
-Need help? Check the main README.md for more details.
+### View Logs
+
+```bash
+cd deployments
+
+# View all logs
+docker-compose -f docker-compose.pi5-optimized.yml logs -f
+
+# View specific service
+docker-compose -f docker-compose.pi5-optimized.yml logs -f trading_api
+```
+
+### Restart Services
+
+```bash
+# Restart all
+docker-compose -f docker-compose.pi5-optimized.yml restart
+
+# Restart specific service
+docker-compose -f docker-compose.pi5-optimized.yml restart trading_api
+```
+
+### Stop/Start System
+
+```bash
+# Stop all services
+docker-compose -f docker-compose.pi5-optimized.yml down
+
+# Start all services
+docker-compose -f docker-compose.pi5-optimized.yml up -d
+```
+
+---
+
+## 📚 Next Steps
+
+### Post-Deployment Setup
+
+1. **Create your admin user**
+   - See [DEPLOYMENT.md](DEPLOYMENT.md#step-6-post-deployment-setup)
+
+2. **Enable TimescaleDB compression** (after 1 day)
+   ```bash
+   cd /home/user/menorepo/projects/pi5-trading-system
+   docker exec -i pi5_trading_db psql -U pi5trader -d pi5_trading < scripts/enable_compression.sql
+   ```
+
+3. **Setup automated backups**
+   ```bash
+   ./scripts/setup_cron.sh
+   ```
+
+4. **Optimize Pi5 performance**
+   - See [PI5-OPTIMIZATION.md](PI5-OPTIMIZATION.md)
+
+### Configure Trading Strategies
+
+Edit `configs/config.yaml` to:
+- Enable/disable strategies
+- Adjust strategy parameters
+- Set risk limits
+- Configure position sizing
+
+Then restart:
+```bash
+docker-compose -f deployments/docker-compose.pi5-optimized.yml restart trading_api
+```
+
+---
+
+## 🛠️ Troubleshooting
+
+### Containers Won't Start
+
+```bash
+# Check logs
+docker-compose -f deployments/docker-compose.pi5-optimized.yml logs
+
+# Common fixes:
+docker-compose -f deployments/docker-compose.pi5-optimized.yml down
+docker-compose -f deployments/docker-compose.pi5-optimized.yml up -d
+```
+
+### Web Interface Not Loading
+
+```bash
+# Check if API is running
+curl http://localhost:8080/health
+
+# Check firewall
+sudo ufw allow 8080/tcp
+```
+
+### Database Connection Error
+
+```bash
+# Check database is running
+docker exec pi5_trading_db pg_isready -U pi5trader
+
+# Verify password in .env
+cat .env | grep DB_PASSWORD
+```
+
+---
+
+## 📖 Full Documentation
+
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide (Docker + systemd)
+- **[SYSTEM_DESIGN.md](SYSTEM_DESIGN.md)** - Architecture overview
+- **[PI5-OPTIMIZATION.md](PI5-OPTIMIZATION.md)** - Performance tuning
+- **[../scripts/README.md](../scripts/README.md)** - Backup & maintenance
+
+---
+
+## 🆘 Need Help?
+
+1. Check logs: `docker-compose logs -f`
+2. Review [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting)
+3. Check [PI5-OPTIMIZATION.md](PI5-OPTIMIZATION.md) for performance issues
+4. Report issues on GitHub
+
+---
+
+**🎉 System deployed! Start trading at `http://YOUR_PI5_IP:8080`**
