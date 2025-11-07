@@ -14,6 +14,7 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/metrics"
 )
 
 // OrderType represents the type of order
@@ -37,17 +38,33 @@ const (
 	OrderStatusRejected  OrderStatus = "rejected"
 )
 
+// Execution constants
+const (
+	// OrderMatchTickerInterval is how often the matching engine checks for fills
+	OrderMatchTickerInterval = 1 * time.Second
+
+	// MarketSlippageBasisPoints is the simulated slippage for market orders (0.05%)
+	MarketSlippageBasisPoints = 0.0005
+
+	// StopOrderSlippageBasisPoints is the simulated slippage for stop orders (0.10%, 2x market)
+	StopOrderSlippageBasisPoints = 0.0010
+
+	// DefaultCommissionBasisPoints is the commission rate (0 in demo mode)
+	DefaultCommissionBasisPoints = 0.0
+)
+
 // ExecutionEngine handles order execution and fills
 type ExecutionEngine struct {
-	logger        zerolog.Logger
-	eventBus      *events.EventBus
-	ordersRepo    *data.OrdersRepository
-	portfolioRepo *data.PortfolioRepository
-	riskManager   *risk.RiskManager
-	auditLogger   *audit.AuditLogger
-	cbManager     *circuitbreaker.Manager
-	demoMode      bool
-	paperTrading  bool
+	logger         zerolog.Logger
+	eventBus       *events.EventBus
+	ordersRepo     *data.OrdersRepository
+	portfolioRepo  *data.PortfolioRepository
+	riskManager    *risk.RiskManager
+	auditLogger    *audit.AuditLogger
+	cbManager      *circuitbreaker.Manager
+	tradingMetrics *metrics.TradingMetrics
+	demoMode       bool
+	paperTrading   bool
 
 	// Market data cache for execution
 	marketDataMu sync.RWMutex
@@ -57,7 +74,7 @@ type ExecutionEngine struct {
 	pendingOrdersMu sync.RWMutex
 	pendingOrders   map[string]*PendingOrder
 
-	// Execution metrics
+	// Execution metrics (legacy, kept for GetMetrics())
 	metricsLock     sync.RWMutex
 	totalExecutions int64
 	totalRejections int64
@@ -96,22 +113,24 @@ func NewExecutionEngine(
 	riskManager *risk.RiskManager,
 	auditLogger *audit.AuditLogger,
 	cbManager *circuitbreaker.Manager,
+	tradingMetrics *metrics.TradingMetrics,
 	demoMode bool,
 	paperTrading bool,
 	logger zerolog.Logger,
 ) *ExecutionEngine {
 	return &ExecutionEngine{
-		logger:        logger,
-		eventBus:      eventBus,
-		ordersRepo:    ordersRepo,
-		portfolioRepo: portfolioRepo,
-		riskManager:   riskManager,
-		auditLogger:   auditLogger,
-		cbManager:     cbManager,
-		demoMode:      demoMode,
-		paperTrading:  paperTrading,
-		marketData:    make(map[string]*MarketPrice),
-		pendingOrders: make(map[string]*PendingOrder),
+		logger:         logger,
+		eventBus:       eventBus,
+		ordersRepo:     ordersRepo,
+		portfolioRepo:  portfolioRepo,
+		riskManager:    riskManager,
+		auditLogger:    auditLogger,
+		cbManager:      cbManager,
+		tradingMetrics: tradingMetrics,
+		demoMode:       demoMode,
+		paperTrading:   paperTrading,
+		marketData:     make(map[string]*MarketPrice),
+		pendingOrders:  make(map[string]*PendingOrder),
 	}
 }
 
@@ -348,9 +367,9 @@ func (e *ExecutionEngine) tryExecuteMarketOrder(ctx context.Context, order *Pend
 		executionPrice = marketPrice.Bid
 	}
 
-	// Add slippage in demo mode (0.05%)
+	// Add slippage in demo mode
 	if e.demoMode {
-		slippage := executionPrice * 0.0005
+		slippage := executionPrice * MarketSlippageBasisPoints
 		if order.Action == "BUY" {
 			executionPrice += slippage
 		} else {
@@ -362,9 +381,9 @@ func (e *ExecutionEngine) tryExecuteMarketOrder(ctx context.Context, order *Pend
 	e.executeOrder(ctx, order, executionPrice, order.Quantity)
 }
 
-// matchOrders continuously matches pending limit orders
+// matchOrders continuously matches pending limit and stop orders
 func (e *ExecutionEngine) matchOrders(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(OrderMatchTickerInterval)
 	defer ticker.Stop()
 
 	for {
@@ -491,7 +510,7 @@ func (e *ExecutionEngine) tryExecuteStopOrder(ctx context.Context, order *Pendin
 	if triggered {
 		// Apply slippage in demo mode (stop orders typically have more slippage)
 		if e.demoMode {
-			slippage := executionPrice * 0.0005 * 2 // Double slippage for stop orders
+			slippage := executionPrice * StopOrderSlippageBasisPoints
 			if order.Action == "BUY" {
 				executionPrice += slippage
 			} else {

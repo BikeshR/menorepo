@@ -21,6 +21,7 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/strategy"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/metrics"
 )
 
 func main() {
@@ -99,6 +100,10 @@ func run() error {
 	cbManager := circuitbreaker.NewManager(logger)
 	logger.Info().Msg("Circuit breaker manager initialized")
 
+	// Initialize Prometheus metrics
+	tradingMetrics := metrics.NewTradingMetrics("pi5_trading")
+	logger.Info().Msg("Prometheus metrics initialized")
+
 	// Initialize execution engine
 	executionEngine := execution.NewExecutionEngine(
 		eventBus,
@@ -107,6 +112,7 @@ func run() error {
 		riskManager,
 		auditLogger,
 		cbManager,
+		tradingMetrics,
 		cfg.Trading.DemoMode,
 		cfg.Trading.PaperTrading,
 		logger,
@@ -222,7 +228,19 @@ func run() error {
 	}()
 
 	// Demo: Simulate market data events
-	// In a real system, this would come from a market data provider
+	// TODO (Phase 3): Replace with real market data provider integration
+	// Options to consider:
+	//   - Alpaca Markets API (free tier available)
+	//   - Interactive Brokers TWS API
+	//   - TD Ameritrade API
+	//   - Polygon.io (real-time + historical data)
+	//   - Yahoo Finance (webscraping, rate limits)
+	// Implementation requirements:
+	//   - WebSocket connection for real-time data
+	//   - Reconnection logic with exponential backoff
+	//   - Rate limiting to avoid API throttling
+	//   - Data validation and sanitization
+	//   - Historical data backfill on startup
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
