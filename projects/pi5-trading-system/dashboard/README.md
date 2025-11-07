@@ -1,6 +1,6 @@
-# Pi5 Trading System - React Dashboard
+# Pi5 Trading System - Web Interface
 
-React-based dashboard for the Pi5 Trading System Go implementation.
+Production React 19 web interface for the Pi5 Trading System.
 
 ## Tech Stack
 
@@ -16,8 +16,8 @@ React-based dashboard for the Pi5 Trading System Go implementation.
 
 ## Features
 
-### Dashboard Pages
-- 🏠 **Dashboard** - Overview with key metrics and charts
+### Pages
+- 🏠 **Overview** - Dashboard with key metrics and charts
 - 📊 **Portfolio** - Portfolio tracking, positions, and P&L
 - 🎯 **Strategies** - Strategy management and performance
 - 📝 **Orders** - Order history and execution details
@@ -51,7 +51,7 @@ npm install
 npm run dev
 ```
 
-The dashboard will be available at `http://localhost:5173` and will proxy API requests to the Go backend on `http://localhost:8081`.
+The Web Interface will be available at `http://localhost:5173` and will proxy API requests to the Go backend on `http://localhost:8080`.
 
 ### Build for Production
 
@@ -88,15 +88,15 @@ this.baseURL =
   process.env.REACT_APP_API_URL ||
   (process.env.NODE_ENV === "production"
     ? window.location.origin
-    : "http://localhost:8081");
+    : "http://localhost:8080");
 ```
 
-**Development**: API requests go to `http://localhost:8081`
+**Development**: API requests go to `http://localhost:8080`
 **Production**: API requests go to the same origin (served by Go backend)
 
 You can override with environment variable:
 ```bash
-REACT_APP_API_URL=http://custom-api:8081 npm run dev
+REACT_APP_API_URL=http://custom-api:8080 npm run dev
 ```
 
 ## Project Structure
@@ -125,7 +125,7 @@ dashboard/
 
 ## API Integration
 
-The dashboard expects the following API endpoints:
+The Web Interface connects to the following Go API endpoints:
 
 ### Authentication
 - `POST /auth/login` - User login
@@ -166,7 +166,7 @@ The dashboard expects the following API endpoints:
 
 ## Authentication
 
-The dashboard uses JWT authentication:
+The Web Interface uses JWT authentication:
 
 1. Login with credentials
 2. Receive `access_token` and `refresh_token`
@@ -188,7 +188,7 @@ Vite provides instant HMR - changes appear without full page reload.
 
 **CORS errors**: Make sure the Go backend has CORS enabled for development.
 
-**API connection refused**: Ensure the Go backend is running on port 8081.
+**API connection refused**: Ensure the Go backend is running on port 8080.
 
 **Build errors**: Run `npm install` to ensure all dependencies are installed.
 
@@ -204,18 +204,17 @@ npm test -- --coverage
 
 ## Production Deployment
 
-The dashboard is automatically built and served by the Go backend when using Docker:
+The Web Interface is automatically built and served by the Go backend when using Docker:
 
 ```bash
-# Build Docker image (includes frontend build)
-docker build -t pi5-trading-go .
-
-# Or use docker-compose
+# Deploy with Pi5-optimized configuration
 cd deployments
-docker compose up -d
+docker-compose -f docker-compose.pi5-optimized.yml up -d
 ```
 
-Access the dashboard at `http://localhost:8081/`
+Access the Web Interface at `http://YOUR_PI5_IP:8080`
+
+**See [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md) for complete deployment guide.**
 
 ## License
 
