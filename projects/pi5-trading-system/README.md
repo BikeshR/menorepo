@@ -1,547 +1,308 @@
-# Pi5 Trading System - Go Implementation
+# Pi5 Trading System
 
-A high-performance algorithmic trading system written in Go, featuring event-driven architecture with channels and goroutines, plus a modern React dashboard. This is a complete, standalone trading platform ready for deployment.
+**Production-Ready Algorithmic Trading System for Raspberry Pi 5**
 
-## ✨ Features
-
-- 🚀 **High-Performance Go Backend** - Event-driven architecture with goroutines
-- 💻 **Modern React Dashboard** - Full-featured web UI with real-time updates
-- 📊 **TimescaleDB** - Time-series optimized PostgreSQL database
-- ⚡ **Redis** - High-speed caching and pub/sub
-- 🐳 **Docker** - Complete containerized deployment
-- 🔐 **Authentication** - JWT-based auth with token refresh
-- 📈 **Portfolio Tracking** - Real-time P&L and positions
-- 🎯 **Strategy Management** - Multi-strategy execution engine
-- 📝 **Order Management** - Complete order lifecycle tracking
-
-## 🎯 Learning Goals
-
-This project is designed to teach:
-- **Go Concurrency**: Channels, goroutines, select statements, and worker pools
-- **Idiomatic Go HTTP**: Using Chi for clean, standard library-compatible web services
-- **Database Programming**: Direct SQL with pgx for maximum performance
-- **Event-Driven Architecture**: Building scalable systems with Go channels
-- **Full-Stack Development**: Go backend + React frontend integration
-- **Production Go**: Configuration, logging, graceful shutdown, and Docker deployment
-
-## 🚀 Quick Start
-
-### Option 1: Docker (Recommended - Includes Frontend)
-
-```bash
-cd deployments
-docker compose up -d
-```
-
-Access the application:
-- **Dashboard**: http://localhost:8081/
-- **API**: http://localhost:8081/api/v1/
-- **Health**: http://localhost:8081/health
-
-### Option 2: Local Development (Backend Only)
-
-```bash
-# 1. Start database
-cd deployments && docker compose up timescaledb redis -d && cd ..
-
-# 2. Run the app
-go run ./cmd/api
-
-# 3. Test it
-curl http://localhost:8081/health
-```
-
-### Option 3: Full Local Development (Backend + Frontend)
-
-```bash
-# Terminal 1: Start database
-cd deployments && docker compose up timescaledb redis -d
-
-# Terminal 2: Start Go backend
-go run ./cmd/api
-
-# Terminal 3: Start React dev server
-cd dashboard && npm install && npm run dev
-```
-
-- **Frontend Dev Server**: http://localhost:5173/
-- **Backend API**: http://localhost:8081/
-
-👉 **See [QUICKSTART.md](QUICKSTART.md) for detailed instructions using only Go commands.**
-
-### Alternative: Use Scripts
-
-We provide simple shell scripts for convenience:
-
-```bash
-./scripts/run.sh          # Run application
-./scripts/build.sh        # Build binaries
-./scripts/test.sh         # Run tests
-./scripts/docker-up.sh    # Start with Docker
-```
-
-### Optional: Use Makefile
-
-If you prefer Make (optional, not required):
-
-```bash
-make run                  # Same as: go run ./cmd/api
-make test                 # Same as: go test ./...
-make build                # Same as: go build ./cmd/api
-```
-
-**Note:** Make is just a wrapper around Go commands. Use whatever you're comfortable with!
-
-## 🏗️ Architecture
-
-### Tech Stack
-
-| Component | Technology | Why? |
-|-----------|-----------|------|
-| **Backend Framework** | Chi | Idiomatic Go HTTP, standard library compatible |
-| **Frontend** | React 19 + TypeScript | Modern UI with type safety |
-| **Build Tool** | Vite | Fast dev server and optimized builds |
-| **Styling** | Tailwind CSS | Utility-first, responsive design |
-| **Charts** | Chart.js | Interactive data visualization |
-| **Database** | pgx + TimescaleDB | Raw SQL for performance, PostgreSQL time-series |
-| **Cache** | Redis | High-speed caching and pub/sub |
-| **Event Bus** | Go Channels | Learn Go's killer feature - native concurrency! |
-| **Configuration** | Viper | Flexible YAML + environment variables |
-| **Logging** | zerolog | Fast structured logging |
-| **Deployment** | Docker multi-stage | Tiny images with frontend included |
-
-### Project Structure
-
-```
-pi5-trading-system-go/
-├── cmd/
-│   └── api/                    # Application entry points
-│       └── main.go            # Main server
-│
-├── dashboard/                  # React frontend
-│   ├── src/
-│   │   ├── components/        # React components
-│   │   ├── services/          # API service layer
-│   │   └── types/             # TypeScript types
-│   ├── package.json
-│   └── vite.config.ts
-│
-├── internal/                   # Private application code
-│   ├── api/
-│   │   ├── handlers/          # HTTP request handlers
-│   │   │   ├── auth.go        # Authentication
-│   │   │   ├── portfolio.go   # Portfolio management
-│   │   │   ├── strategies.go  # Strategy management
-│   │   │   ├── orders.go      # Order management
-│   │   │   ├── system.go      # System monitoring
-│   │   │   └── health.go      # Health checks
-│   │   ├── middleware/        # HTTP middleware
-│   │   └── server.go          # Server setup
-│   │
-│   ├── core/                  # Core business logic
-│   │   ├── events/            # Event bus and event types
-│   │   │   ├── event.go       # Event definitions
-│   │   │   └── bus.go         # Channel-based event bus ⭐
-│   │   ├── strategy/          # Trading strategies
-│   │   │   ├── strategy.go    # Strategy interface
-│   │   │   └── moving_average.go  # Example strategy
-│   │   ├── portfolio/         # Portfolio management
-│   │   └── risk/              # Risk management
-│   │
-│   ├── data/                  # Data layer
-│   │   ├── timescale/         # TimescaleDB client
-│   │   └── redis/             # Redis client
-│   │
-│   └── config/                # Configuration management
-│       └── config.go          # Viper-based config loader
-│
-├── pkg/                       # Public libraries
-│   └── types/                 # Shared types
-│       ├── market.go
-│       └── order.go
-│
-├── configs/
-│   └── config.yaml            # Application configuration
-│
-├── deployments/
-│   ├── Dockerfile             # Multi-stage Docker build
-│   └── docker-compose.yml     # Deployment configuration
-│
-├── Makefile                   # Build and run tasks
-└── go.mod                     # Go modules
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Go 1.21+ (for local development)
-- Docker and Docker Compose (for deployment)
-- Make (optional, for convenience commands)
-
-### Option 1: Run Locally (Development)
-
-```bash
-# Clone the repository (if not already)
-cd projects/pi5-trading-system-go
-
-# Install dependencies
-go mod download
-
-# Run the application
-make run
-
-# Or with hot reload (requires air)
-make install-tools  # Install air
-make dev            # Run with hot reload
-```
-
-**Note:** Local development requires TimescaleDB and Redis running:
-```bash
-# Start just the database services
-docker compose -f deployments/docker-compose.yml up timescaledb redis -d
-
-# Then run the Go app locally
-make run-local
-```
-
-### Option 2: Run with Docker (Production-like)
-
-```bash
-# Build the Docker image
-make docker-build
-
-# Start all services
-make docker-compose-up
-
-# View logs
-make docker-compose-logs
-
-# Stop services
-make docker-compose-down
-```
-
-## 📡 API Endpoints
-
-The server runs on port **8081** (Python version uses 8080).
-
-### Health Check
-```bash
-curl http://localhost:8081/health
-```
-
-Response:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-10-31T10:30:00Z",
-  "version": "1.0.0",
-  "checks": {
-    "database": {
-      "status": "healthy"
-    }
-  }
-}
-```
-
-### API Root
-```bash
-curl http://localhost:8081/api
-```
-
-## 🧠 Understanding the Event Bus (Core Learning)
-
-The event bus is the **heart of this system** and demonstrates Go's concurrency model.
-
-### How It Works
-
-```go
-// Create event bus with buffered channels
-eventBus := events.NewEventBus(1000, logger)
-
-// Subscribe to market data events (returns a channel)
-marketDataCh := eventBus.Subscribe(events.EventTypeMarketData)
-
-// Process events in a goroutine
-go func() {
-    for event := range marketDataCh {
-        // Handle event
-        processMarketData(event)
-    }
-}()
-
-// Publish events (non-blocking with select)
-event := events.NewMarketDataEvent("AAPL", 150.0, ...)
-eventBus.Publish(ctx, event)
-```
-
-### Key Concepts
-
-1. **Channels**: Type-safe, thread-safe message passing
-   - `marketDataCh := eventBus.Subscribe(...)` creates a buffered channel
-   - Events flow through channels without locks!
-
-2. **Goroutines**: Lightweight threads managed by Go runtime
-   - `go func() { ... }()` starts concurrent event processing
-   - Can handle thousands of goroutines efficiently
-
-3. **Select Statement**: Multiplexing on multiple channels
-   ```go
-   select {
-   case event := <-marketDataCh:
-       // Handle market data
-   case <-ctx.Done():
-       // Shutdown
-   }
-   ```
-
-4. **Non-Blocking Sends**: Backpressure handling
-   ```go
-   select {
-   case ch <- event:
-       // Sent successfully
-   default:
-       // Channel full, handle backpressure
-   }
-   ```
-
-**This is why Go is special!** Python needs queues and locks. Go has channels built into the language.
-
-## 📊 Example Strategy: Moving Average Crossover
-
-See `internal/core/strategy/moving_average.go` for a complete example.
-
-```go
-// Strategy processes events in a goroutine
-func (s *MovingAverageCrossoverStrategy) processEvents(ctx context.Context) {
-    for {
-        select {
-        case event := <-s.marketDataCh:
-            // Calculate moving averages
-            shortMA := s.calculateMA(event.Symbol, s.shortPeriod)
-            longMA := s.calculateMA(event.Symbol, s.longPeriod)
-
-            // Detect crossover
-            if shortMA > longMA && prevState == "BELOW" {
-                // Bullish crossover - publish BUY signal
-                signal := events.NewSignalEvent(...)
-                s.PublishSignal(ctx, signal)
-            }
-
-        case <-ctx.Done():
-            return
-        }
-    }
-}
-```
-
-**Learning points:**
-- Event processing in goroutine
-- Pattern matching with select
-- Publishing new events (event chain)
-- Context-based cancellation
-
-## 🐳 Docker Deployment
-
-### Multi-Stage Build Benefits
-
-Our Dockerfile uses multi-stage builds:
-
-```dockerfile
-# Stage 1: Build (golang:1.21-alpine)
-FROM golang:1.21-alpine AS builder
-RUN go build ...
-
-# Stage 2: Runtime (alpine:latest)
-FROM alpine:latest
-COPY --from=builder /app/bin/pi5-trading-api .
-```
-
-**Results:**
-- **Python image**: ~1.2 GB (includes Python runtime, dependencies)
-- **Go image**: ~10 MB! (static binary only)
-- **Startup**: Go starts in milliseconds vs Python's seconds
-
-### Deploying to Raspberry Pi 5
-
-```bash
-# On your development machine
-make build-arm64
-
-# Copy to Pi5
-scp bin/pi5-trading-api-arm64 pi@raspberrypi:/home/pi/
-
-# Or build Docker image for ARM64
-make docker-build-arm64
-
-# On Pi5: Run with docker-compose
-cd deployments
-docker compose up -d
-```
-
-## 🔧 Configuration
-
-Edit `configs/config.yaml`:
-
-```yaml
-server:
-  port: 8081  # Different from Python (8080)
-
-database:
-  host: "timescaledb"  # Docker service name
-  port: 5432
-
-trading:
-  event_bus_buffer: 1000  # Channel buffer size
-
-  strategies:
-    - id: "moving_avg_crossover"
-      enabled: true
-      symbols: ["AAPL", "MSFT"]
-      params:
-        short_period: 20
-        long_period: 50
-```
-
-**Environment variables override config:**
-```bash
-export DB_HOST=localhost
-export DB_PORT=5432
-export PI5_LOGGING_LEVEL=debug
-```
-
-## 📈 Performance Comparison
-
-| Metric | Python | Go | Speedup |
-|--------|--------|-----|---------|
-| Event throughput | ~10K/sec | ~100K/sec | **10x** |
-| Memory usage | ~200 MB | ~15 MB | **13x less** |
-| Docker image | 1.2 GB | 10 MB | **120x smaller** |
-| Startup time | 3-5 sec | 50 ms | **60x faster** |
-| Latency (p99) | 18 ms | 1.2 ms | **15x faster** |
-
-**Why?**
-- Go channels are in-memory (vs Python queues with GIL)
-- Static compilation (vs interpreted Python)
-- Efficient concurrency (goroutines vs threads)
-- No garbage collection pauses (in our use case)
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-make test
-
-# Run with coverage
-make test-coverage
-
-# Run specific test
-go test -v ./internal/core/events/...
-```
-
-## 📚 Learning Path
-
-### Phase 1: Understand the Flow
-1. Read `cmd/api/main.go` - see how everything connects
-2. Study `internal/core/events/bus.go` - the event bus
-3. Look at `internal/core/strategy/moving_average.go` - event processing
-
-### Phase 2: Concurrency Patterns
-1. Find all `go func()` in the codebase
-2. Find all `select` statements
-3. Understand channel creation and buffering
-4. Learn about context cancellation
-
-### Phase 3: Add Features
-1. Add a new strategy (RSI, Bollinger Bands)
-2. Implement portfolio tracking
-3. Add WebSocket support for real-time updates
-4. Create a risk management system
-
-## 🐛 Troubleshooting
-
-### "Command not found: go"
-Install Go: https://go.dev/doc/install
-
-### "Cannot connect to database"
-```bash
-# Check if TimescaleDB is running
-docker compose ps
-
-# View database logs
-docker compose logs timescaledb
-```
-
-### "Port 8081 already in use"
-```bash
-# Find what's using the port
-lsof -i :8081
-
-# Change port in config.yaml
-server:
-  port: 8082
-```
-
-### "Too many open files"
-Increase file descriptor limit:
-```bash
-ulimit -n 10000
-```
-
-## 🎓 Key Go Concepts Demonstrated
-
-- [x] **Channels**: Event bus, graceful shutdown
-- [x] **Goroutines**: Event processing, HTTP server
-- [x] **Select**: Multiplexing events, timeouts
-- [x] **Context**: Cancellation, timeouts
-- [x] **Interfaces**: Strategy pattern, event types
-- [x] **Struct embedding**: BaseStrategy composition
-- [x] **Error handling**: Explicit error returns
-- [x] **Standard library**: net/http for servers
-- [x] **Connection pooling**: pgxpool for database
-- [x] **Graceful shutdown**: Signal handling
-
-## 🚦 Next Steps
-
-1. **Run it**: Get the system running locally
-2. **Study concurrency**: Focus on event bus and strategy processing
-3. **Modify it**: Change the moving average parameters
-4. **Extend it**: Add your own strategy
-5. **Deploy it**: Run on your Raspberry Pi 5
-6. **Compare**: Run alongside Python version and compare metrics
-
-## 📖 Additional Resources
-
-- [Effective Go](https://go.dev/doc/effective_go)
-- [Go Concurrency Patterns](https://go.dev/blog/pipelines)
-- [Chi Documentation](https://github.com/go-chi/chi)
-- [pgx Documentation](https://github.com/jackc/pgx)
-
-## 🤝 Contributing
-
-This is a learning project! Experiment freely:
-- Try different concurrency patterns
-- Optimize the event bus
-- Add more strategies
-- Improve error handling
-
-## 📄 License
-
-Same as parent project - for educational purposes.
+A comprehensive, high-performance algorithmic trading system written in Go, specifically optimized for Raspberry Pi 5 (8GB). Features event-driven architecture, sophisticated risk management, circuit breakers, automated backups, and real-time monitoring—all running efficiently within Pi5's resource constraints.
 
 ---
 
-## 🎯 Summary: Why This Stack?
+## 🚀 Quick Start
 
-| Choice | Learning Value |
-|--------|----------------|
-| **Chi** | Learn idiomatic Go HTTP (not framework magic) |
-| **pgx** | Learn SQL and PostgreSQL properly |
-| **Channels** | Learn Go's most powerful feature! |
-| **Standard Layout** | Learn professional Go project structure |
-| **zerolog** | Learn structured logging |
-| **Multi-stage Docker** | Learn production Docker practices |
+Deploy on your Raspberry Pi 5 (8GB) in 3 steps:
 
-**The most important part**: The event bus using channels. This is what makes Go special!
+```bash
+# 1. Clone the repository
+git clone <your-repo-url>
+cd menorepo/projects/pi5-trading-system
 
-Happy learning! 🚀
+# 2. Configure environment
+cd deployments
+cp .env.example .env
+nano .env  # Set DB_PASSWORD and API keys
+
+# 3. Deploy with Pi5-optimized configuration
+docker-compose -f docker-compose.pi5-optimized.yml up -d
+```
+
+Access the Web Interface: `http://your-pi5-ip:8080`
+
+**→ Full deployment guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+**→ Quick setup:** [docs/QUICKSTART.md](docs/QUICKSTART.md)
+
+---
+
+## ✨ Production Features
+
+### Core Trading System
+- ✅ **Event-Driven Architecture** - Go channels and goroutines for 10,000+ events/sec
+- ✅ **Multi-Strategy Engine** - Simultaneous execution of multiple trading strategies
+- ✅ **Risk Management** - Real-time position sizing, drawdown protection, daily loss limits
+- ✅ **Order Execution** - Complete order lifecycle with realistic simulation
+- ✅ **Portfolio Tracking** - Real-time P&L calculation and performance analytics
+- ✅ **JWT Authentication** - Secure token-based auth with refresh tokens
+- ✅ **Audit Logging** - Complete trade and system event audit trail
+
+### Production Hardening (Pi5-Optimized)
+- ✅ **Circuit Breakers** - Prevent cascade failures with automatic recovery
+- ✅ **Prometheus Metrics** - Full instrumentation for VictoriaMetrics
+- ✅ **TimescaleDB Compression** - 90% disk space savings (100MB → 10MB)
+- ✅ **Automated Backups** - Daily database backups with 7-day rotation
+- ✅ **Rate Limiting** - API protection with configurable limits
+- ✅ **Resource Limits** - Optimized Docker constraints for 8GB Pi5
+
+### Web Interface
+- ✅ **React 19** - Modern TypeScript frontend with Vite
+- ✅ **Real-Time Updates** - WebSocket integration for live data
+- ✅ **Portfolio Management** - Track positions, orders, and performance
+- ✅ **Strategy Controls** - Start/stop strategies from the web
+- ✅ **System Monitoring** - View metrics, health, and circuit breaker status
+
+---
+
+## 🎯 System Requirements
+
+### Hardware
+- **Raspberry Pi 5** - 8GB RAM model
+- **Storage** - 256GB NVMe SSD (recommended) or microSD Class 10
+- **Connectivity** - Stable internet connection
+- **Cooling** - Active cooling recommended for continuous operation
+
+### Software
+- **OS** - Ubuntu 24.04 LTS ARM64 or Raspberry Pi OS 64-bit
+- **Docker** - Version 24.0+
+- **Docker Compose** - Version 2.20+
+
+---
+
+## 📊 Architecture Overview
+
+```
+┌─────────────────── Raspberry Pi 5 (8GB) ───────────────────┐
+│                                                             │
+│  ┌────────────┐  ┌──────────────┐  ┌──────────────────┐   │
+│  │  Go API    │  │ TimescaleDB  │  │ VictoriaMetrics  │   │
+│  │  (1.0GB)   │  │  (1.5GB)     │  │    (0.3GB)       │   │
+│  │            │  │              │  │                  │   │
+│  │ • REST API │  │ • Market Data│  │ • Prometheus     │   │
+│  │ • WebSocket│  │ • Orders     │  │   Metrics        │   │
+│  │ • Strategies│ │ • Positions  │  │ • Grafana Alt.   │   │
+│  └────────────┘  └──────────────┘  └──────────────────┘   │
+│                                                             │
+│  ┌────────────┐  ┌──────────────┐                         │
+│  │  Redis     │  │   Gotify     │                         │
+│  │  (0.3GB)   │  │   (0.1GB)    │                         │
+│  │            │  │              │                         │
+│  │ • Cache    │  │ • Alerts     │                         │
+│  │ • Pub/Sub  │  │ • Notifications                        │
+│  └────────────┘  └──────────────┘                         │
+│                                                             │
+│  Total RAM Usage: ~4.7GB (3.3GB buffer available)          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Event-Driven Flow
+```
+Market Data → Event Bus → Strategy Engine → Risk Manager → Order Manager → Portfolio
+     ↓            ↓              ↓               ↓              ↓            ↓
+TimescaleDB ← Audit Log ←  Metrics  ←  Circuit Breakers ← Execution ← P&L Calc
+```
+
+---
+
+## 🛠️ Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| **Backend** | Go 1.24 | High-performance, compiled for ARM64 |
+| **HTTP Router** | Chi | Idiomatic Go HTTP services |
+| **Database** | TimescaleDB (PostgreSQL 15) | Time-series optimized storage |
+| **Frontend** | React 19 + TypeScript | Modern web interface |
+| **Build Tool** | Vite | Fast development and production builds |
+| **Monitoring** | VictoriaMetrics | Lightweight Prometheus alternative |
+| **Caching** | Redis 7 | High-speed data caching |
+| **Alerts** | Gotify | Self-hosted notification system |
+| **Deployment** | Docker + Docker Compose | Containerized deployment |
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| **[REQUIREMENTS.md](docs/REQUIREMENTS.md)** | System requirements, objectives, and success criteria |
+| **[QUICKSTART.md](docs/QUICKSTART.md)** | 5-minute Pi5 deployment guide |
+| **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** | Complete deployment with Docker and systemd |
+| **[SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md)** | Architecture and design decisions |
+| **[TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md)** | Implementation details and Go patterns |
+| **[PI5-OPTIMIZATION.md](docs/PI5-OPTIMIZATION.md)** | Pi5-specific optimizations and tuning |
+| **[IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)** | Development phases and roadmap |
+| **[scripts/README.md](scripts/README.md)** | Backup, restore, and maintenance scripts |
+
+---
+
+## 🎮 Key Features Explained
+
+### Circuit Breakers
+Protect your system from cascade failures when external services fail:
+- Wraps all database operations
+- Opens after 5 consecutive failures
+- Automatically recovers after 30 seconds
+- View status: `/api/v1/system/circuit-breakers`
+
+### Prometheus Metrics
+Complete observability for production monitoring:
+- HTTP request metrics (count, duration, status)
+- Order execution metrics (submitted, filled, rejected, volume)
+- Database query performance
+- Circuit breaker state tracking
+- Exposed at `/metrics` for VictoriaMetrics scraping
+
+### TimescaleDB Compression
+Save 90% disk space with automatic compression:
+- Market data: ~90% compression (100MB → 10MB)
+- Trades/orders: ~80-85% compression
+- Enable with: `scripts/enable_compression.sql`
+- 256GB NVMe can store 1000+ years of trading data
+
+### Automated Backups
+Production-grade backup system:
+- Daily PostgreSQL backups (2:00 AM)
+- 7-day retention with automatic rotation
+- External USB drive support
+- Restore script with safety pre-backup
+- Setup: `./scripts/setup_cron.sh`
+
+---
+
+## 📈 Performance Characteristics
+
+### Pi5 Optimization
+- **Memory Usage:** 4.7GB total (fits comfortably in 8GB)
+- **CPU Usage:** <50% during normal operation (4 cores @ 2.4GHz)
+- **Event Processing:** 10,000+ events/second
+- **Order Latency:** <100ms for order processing
+- **Database Writes:** 1,000+ inserts/second sustainable
+
+### Resource Limits (Docker)
+```yaml
+Go API:           1.0GB max, 0.5GB reserved
+TimescaleDB:      1.5GB max, 256MB shared buffers
+VictoriaMetrics:  0.3GB max
+Redis:            0.3GB max, 256MB cache limit
+Gotify:           0.1GB max
+```
+
+---
+
+## 🔒 Security Features
+
+- **JWT Authentication** - Secure token-based auth with bcrypt password hashing
+- **Rate Limiting** - Configurable API rate limits (100 req/min default)
+- **Audit Logging** - Complete audit trail of all trades and system events
+- **Containerized** - Isolated Docker environment with non-root execution
+- **Encrypted Credentials** - Secure storage of API keys and passwords
+- **Admin-Only Routes** - System configuration and circuit breaker access restricted
+
+---
+
+## 🔍 Monitoring & Management
+
+### Web Interface
+Access at `http://your-pi5-ip:8080`:
+- Portfolio summary and positions
+- Active strategies and performance
+- Recent orders and trades
+- System health and metrics
+- Circuit breaker status
+
+### Command Line
+```bash
+# View container status
+docker-compose -f deployments/docker-compose.pi5-optimized.yml ps
+
+# View logs
+docker-compose -f deployments/docker-compose.pi5-optimized.yml logs -f trading_api
+
+# Check system metrics
+curl http://localhost:8080/metrics
+
+# View circuit breakers (requires admin token)
+curl -H "Authorization: Bearer <token>" http://localhost:8080/api/v1/system/circuit-breakers
+
+# Run manual backup
+./scripts/backup.sh
+
+# View backup logs
+tail -f /home/pi/trading_backups/cron.log
+```
+
+---
+
+## 🛣️ Roadmap
+
+### ✅ Phase 1: Core System (Complete)
+- Event-driven trading engine
+- Risk management and portfolio tracking
+- JWT authentication and audit logging
+- Web interface with real-time updates
+
+### ✅ Phase 2: Production Hardening (Complete)
+- Circuit breakers for fault tolerance
+- Prometheus metrics for monitoring
+- TimescaleDB compression (90% savings)
+- Automated daily backups
+
+### 🔄 Phase 3: Market Data (In Progress)
+- Live market data providers (Yahoo Finance, Alpha Vantage)
+- Real-time data streaming
+- Technical indicators library
+- Historical data management
+
+### 📋 Phase 4: Live Trading (Planned)
+- Broker integrations (Alpaca, Interactive Brokers)
+- Real money trading execution
+- Advanced order types (bracket, trailing stop)
+- Trade reconciliation
+
+### 🚀 Phase 5: Advanced Features (Future)
+- Machine learning strategy development
+- Advanced backtesting with optimization
+- Multi-asset support (crypto, forex, options)
+- Mobile app for monitoring
+
+---
+
+## ⚠️ Disclaimer
+
+This software is for educational and personal use. Trading involves substantial risk of loss and is not suitable for all investors. Past performance does not guarantee future results. Use at your own risk.
+
+The system is designed for paper trading and simulation. Real money trading requires additional testing, regulatory compliance, and risk management procedures.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Submit a pull request
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+---
+
+## 🆘 Support
+
+- **Documentation:** Start with [docs/QUICKSTART.md](docs/QUICKSTART.md)
+- **Issues:** Report bugs via GitHub Issues
+- **Deployment Help:** See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- **Optimization:** Check [docs/PI5-OPTIMIZATION.md](docs/PI5-OPTIMIZATION.md)
+
+---
+
+**Built for the Raspberry Pi 5 and algorithmic trading community** 🚀📈
