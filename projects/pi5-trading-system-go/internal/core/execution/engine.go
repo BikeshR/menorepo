@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
+	"github.com/bikeshrana/pi5-trading-system-go/internal/audit"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
@@ -42,6 +43,7 @@ type ExecutionEngine struct {
 	ordersRepo    *data.OrdersRepository
 	portfolioRepo *data.PortfolioRepository
 	riskManager   *risk.RiskManager
+	auditLogger   *audit.AuditLogger
 	demoMode      bool
 	paperTrading  bool
 
@@ -90,6 +92,7 @@ func NewExecutionEngine(
 	ordersRepo *data.OrdersRepository,
 	portfolioRepo *data.PortfolioRepository,
 	riskManager *risk.RiskManager,
+	auditLogger *audit.AuditLogger,
 	demoMode bool,
 	paperTrading bool,
 	logger zerolog.Logger,
@@ -100,6 +103,7 @@ func NewExecutionEngine(
 		ordersRepo:    ordersRepo,
 		portfolioRepo: portfolioRepo,
 		riskManager:   riskManager,
+		auditLogger:   auditLogger,
 		demoMode:      demoMode,
 		paperTrading:  paperTrading,
 		marketData:    make(map[string]*MarketPrice),
@@ -299,6 +303,13 @@ func (e *ExecutionEngine) rejectOrder(ctx context.Context, orderID, reason strin
 			Msg("Failed to update rejected order status")
 	}
 
+	// Audit log order rejection
+	if e.auditLogger != nil {
+		e.auditLogger.LogOrderRejected(ctx, orderID, "", "", reason, map[string]interface{}{
+			"rejection_reason": reason,
+		})
+	}
+
 	// Publish rejection event
 	// TODO: Create OrderRejectedEvent type
 	e.logger.Info().
@@ -457,6 +468,16 @@ func (e *ExecutionEngine) executeOrder(ctx context.Context, order *PendingOrder,
 			Err(err).
 			Str("order_id", order.OrderID).
 			Msg("Failed to create trade record")
+	}
+
+	// Audit log trade execution
+	if e.auditLogger != nil {
+		e.auditLogger.LogTradeExecuted(ctx, trade.ID, order.OrderID, order.Symbol, order.Action, float64(quantity), price, 0)
+	}
+
+	// Audit log order fill
+	if e.auditLogger != nil {
+		e.auditLogger.LogOrderFilled(ctx, order.OrderID, order.Symbol, order.Action, quantity, price)
 	}
 
 	// Update portfolio position

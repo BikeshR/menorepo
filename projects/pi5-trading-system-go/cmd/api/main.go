@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/bikeshrana/pi5-trading-system-go/internal/api"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/audit"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/config"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/execution"
@@ -75,6 +76,13 @@ func run() error {
 	ordersRepo := data.NewOrdersRepository(db.GetPool(), logger)
 	portfolioRepo := data.NewPortfolioRepository(db.GetPool(), logger)
 
+	// Initialize audit logger
+	auditLogger := audit.NewAuditLogger(db.GetPool(), logger)
+	if err := auditLogger.InitSchema(ctx); err != nil {
+		return fmt.Errorf("failed to initialize audit schema: %w", err)
+	}
+	logger.Info().Msg("Audit logger initialized")
+
 	// Initialize risk manager with default limits
 	riskLimits := risk.GetDefaultLimits()
 	riskManager := risk.NewRiskManager(riskLimits, portfolioRepo, ordersRepo, logger)
@@ -91,6 +99,7 @@ func run() error {
 		ordersRepo,
 		portfolioRepo,
 		riskManager,
+		auditLogger,
 		cfg.Trading.DemoMode,
 		cfg.Trading.PaperTrading,
 		logger,
