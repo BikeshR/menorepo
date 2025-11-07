@@ -17,7 +17,7 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/events"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/execution"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/risk"
-	"github.com/bikeshrana/pi5-trading-system-go/internal/core/signal"
+	signalconverter "github.com/bikeshrana/pi5-trading-system-go/internal/core/signal"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/strategy"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
@@ -129,11 +129,11 @@ func run() error {
 		Msg("Execution engine started")
 
 	// Initialize signal-to-order converter for autonomous trading
-	signalConverter := signal.NewSignalToOrderConverter(
+	signalConverter := signalconverter.NewSignalToOrderConverter(
 		eventBus,
 		riskManager,
 		auditLogger,
-		signal.Config{
+		signalconverter.Config{
 			Enabled:       true,  // Enable autonomous trading
 			MinConfidence: 0.6,   // Only trade signals with >= 60% confidence
 		},

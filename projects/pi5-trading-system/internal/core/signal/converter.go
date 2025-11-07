@@ -3,7 +3,6 @@ package signal
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -155,7 +154,16 @@ func (s *SignalToOrderConverter) handleSignal(ctx context.Context, signal *event
 
 	// Check risk limits before creating order
 	if s.riskManager != nil {
-		if err := s.riskManager.CheckOrderRisk(ctx, signal.Symbol, signal.Action, signal.Quantity, signal.Price); err != nil {
+		orderReq := &risk.OrderRequest{
+			Symbol:    signal.Symbol,
+			Action:    signal.Action,
+			Quantity:  signal.Quantity,
+			Price:     signal.Price,
+			OrderType: orderType,
+		}
+
+		riskResult, err := s.riskManager.ValidateOrder(ctx, orderReq)
+		if err != nil || !riskResult.Approved {
 			s.logger.Warn().
 				Err(err).
 				Str("strategy_id", signal.StrategyID).
@@ -166,19 +174,23 @@ func (s *SignalToOrderConverter) handleSignal(ctx context.Context, signal *event
 
 			// Audit the rejection
 			if s.auditLogger != nil {
-				_ = s.auditLogger.LogEvent(ctx, "signal_to_order", "order_rejected",
-					fmt.Sprintf("Signal from %s for %s %d %s rejected by risk manager: %v",
-						signal.StrategyID, signal.Symbol, signal.Quantity, signal.Action, err),
-					map[string]interface{}{
+				auditEvent := &audit.AuditEvent{
+					EventType: audit.EventTypeOrderCreated,
+					Resource:  fmt.Sprintf("signal:%s", signal.StrategyID),
+					Action:    "order_rejected",
+					Status:    "failure",
+					Details: map[string]interface{}{
 						"strategy_id": signal.StrategyID,
 						"symbol":      signal.Symbol,
 						"action":      signal.Action,
 						"quantity":    signal.Quantity,
-						"reason":      err.Error(),
-					})
+						"reason":      riskResult.Reason,
+					},
+				}
+				_ = s.auditLogger.LogEvent(ctx, auditEvent)
 			}
 
-			return fmt.Errorf("risk check failed: %w", err)
+			return fmt.Errorf("risk check failed: %s", riskResult.Reason)
 		}
 	}
 
@@ -195,13 +207,7 @@ func (s *SignalToOrderConverter) handleSignal(ctx context.Context, signal *event
 	)
 
 	// Publish order event to event bus
-	if err := s.eventBus.Publish(orderEvent); err != nil {
-		s.logger.Error().
-			Err(err).
-			Str("order_id", orderID).
-			Msg("Failed to publish order event")
-		return fmt.Errorf("failed to publish order: %w", err)
-	}
+	s.eventBus.Publish(ctx, orderEvent)
 
 	// Log and audit the conversion
 	s.logger.Info().
@@ -216,10 +222,12 @@ func (s *SignalToOrderConverter) handleSignal(ctx context.Context, signal *event
 		Msg("Converted signal to order")
 
 	if s.auditLogger != nil {
-		_ = s.auditLogger.LogEvent(ctx, "signal_to_order", "order_created",
-			fmt.Sprintf("Signal from %s converted to %s order for %s %d %s (confidence: %.2f)",
-				signal.StrategyID, orderType, signal.Symbol, signal.Quantity, signal.Action, signal.Confidence),
-			map[string]interface{}{
+		auditEvent := &audit.AuditEvent{
+			EventType: audit.EventTypeOrderCreated,
+			Resource:  fmt.Sprintf("order:%s", orderID),
+			Action:    "order_created",
+			Status:    "success",
+			Details: map[string]interface{}{
 				"order_id":    orderID,
 				"strategy_id": signal.StrategyID,
 				"symbol":      signal.Symbol,
@@ -229,7 +237,9 @@ func (s *SignalToOrderConverter) handleSignal(ctx context.Context, signal *event
 				"limit_price": limitPrice,
 				"confidence":  signal.Confidence,
 				"reason":      signal.Reason,
-			})
+			},
+		}
+		_ = s.auditLogger.LogEvent(ctx, auditEvent)
 	}
 
 	return nil
