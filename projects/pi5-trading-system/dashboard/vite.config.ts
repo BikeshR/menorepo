@@ -21,15 +21,16 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173,
+    host: true, // Listen on all interfaces for Docker
     open: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://localhost:8080",
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://localhost:8000",
+        target: "ws://localhost:8080",
         ws: true,
         changeOrigin: true,
       },
@@ -37,7 +38,7 @@ export default defineConfig({
   },
   build: {
     target: "esnext",
-    outDir: "build",
+    outDir: "dist",
     sourcemap: true,
     rollupOptions: {
       output: {
