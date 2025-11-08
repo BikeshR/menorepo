@@ -64,6 +64,47 @@ trading:
     #     oversold: 30
     #     overbought: 70
 
+# Market Data Configuration
+market_data:
+  # Provider: "alpaca" or "simulated"
+  provider: "alpaca"
+
+  # Alpaca API credentials (get free account at alpaca.markets)
+  # IMPORTANT: Set ALPACA_API_KEY and ALPACA_API_SECRET environment variables!
+  # Never commit real API keys to version control
+  alpaca:
+    api_key: ""  # Set via ALPACA_API_KEY env var
+    api_secret: ""  # Set via ALPACA_API_SECRET env var
+    data_url: "https://data.alpaca.markets"
+    stream_url: "wss://stream.data.alpaca.markets"
+    paper_trading: true  # Use paper trading endpoint
+    feed_type: "iex"  # "iex" (free) or "sip" (paid, $99+/month)
+
+  # Reconnection settings
+  reconnection:
+    max_attempts: 10
+    initial_delay: 2s
+    max_delay: 30s
+
+  # Historical data backfill on startup
+  backfill:
+    enabled: true
+    lookback_days: 7  # Load 7 days of historical data
+    timeframe: "1Min"  # "1Min", "5Min", "15Min", "1H", "1D"
+    publish_events: true  # Publish to event bus for strategy warm-up
+
+  # Simulated data settings (when provider: "simulated")
+  simulated:
+    enabled: false
+    tick_interval: 5s
+    symbols:
+      - symbol: "AAPL"
+        base_price: 150.0
+      - symbol: "MSFT"
+        base_price: 350.0
+      - symbol: "GOOGL"
+        base_price: 140.0
+
 logging:
   level: "info"  # debug, info, warn, error
   format: "json"  # json or console

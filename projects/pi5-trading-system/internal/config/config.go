@@ -9,12 +9,13 @@ import (
 
 // Config holds all application configuration
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Auth     AuthConfig     `mapstructure:"auth"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	Trading  TradingConfig  `mapstructure:"trading"`
-	Logging  LoggingConfig  `mapstructure:"logging"`
+	Server     ServerConfig     `mapstructure:"server"`
+	Auth       AuthConfig       `mapstructure:"auth"`
+	Database   DatabaseConfig   `mapstructure:"database"`
+	Redis      RedisConfig      `mapstructure:"redis"`
+	Trading    TradingConfig    `mapstructure:"trading"`
+	MarketData MarketDataConfig `mapstructure:"market_data"`
+	Logging    LoggingConfig    `mapstructure:"logging"`
 }
 
 // ServerConfig holds HTTP server configuration
@@ -79,6 +80,53 @@ type LoggingConfig struct {
 	TimeFormat string `mapstructure:"time_format"`
 }
 
+// MarketDataConfig holds market data provider configuration
+type MarketDataConfig struct {
+	Provider     string                       `mapstructure:"provider"` // "alpaca" or "simulated"
+	Alpaca       AlpacaConfig                 `mapstructure:"alpaca"`
+	Reconnection ReconnectionConfig           `mapstructure:"reconnection"`
+	Backfill     BackfillConfig               `mapstructure:"backfill"`
+	Simulated    SimulatedMarketDataConfig    `mapstructure:"simulated"`
+}
+
+// AlpacaConfig holds Alpaca-specific configuration
+type AlpacaConfig struct {
+	APIKey       string `mapstructure:"api_key"`
+	APISecret    string `mapstructure:"api_secret"`
+	DataURL      string `mapstructure:"data_url"`
+	StreamURL    string `mapstructure:"stream_url"`
+	PaperTrading bool   `mapstructure:"paper_trading"`
+	FeedType     string `mapstructure:"feed_type"` // "iex" or "sip"
+}
+
+// ReconnectionConfig holds reconnection settings
+type ReconnectionConfig struct {
+	MaxAttempts  int           `mapstructure:"max_attempts"`
+	InitialDelay time.Duration `mapstructure:"initial_delay"`
+	MaxDelay     time.Duration `mapstructure:"max_delay"`
+}
+
+// BackfillConfig holds historical data backfill settings
+type BackfillConfig struct {
+	Enabled       bool   `mapstructure:"enabled"`
+	LookbackDays  int    `mapstructure:"lookback_days"`
+	Timeframe     string `mapstructure:"timeframe"`
+	PublishEvents bool   `mapstructure:"publish_events"`
+}
+
+// SimulatedMarketDataConfig holds simulated data settings
+type SimulatedMarketDataConfig struct {
+	Enabled      bool                        `mapstructure:"enabled"`
+	TickInterval time.Duration               `mapstructure:"tick_interval"`
+	Symbols      []SimulatedSymbolConfig     `mapstructure:"symbols"`
+}
+
+// SimulatedSymbolConfig holds configuration for a simulated symbol
+type SimulatedSymbolConfig struct {
+	Symbol    string  `mapstructure:"symbol"`
+	BasePrice float64 `mapstructure:"base_price"`
+}
+
 // Load reads configuration from file and environment variables
 func Load(configPath string) (*Config, error) {
 	v := viper.New()
@@ -139,6 +187,14 @@ func Load(configPath string) (*Config, error) {
 	}
 	if v.IsSet("REDIS_PORT") {
 		config.Redis.Port = v.GetInt("REDIS_PORT")
+	}
+
+	// Market Data - Alpaca
+	if v.IsSet("ALPACA_API_KEY") {
+		config.MarketData.Alpaca.APIKey = v.GetString("ALPACA_API_KEY")
+	}
+	if v.IsSet("ALPACA_API_SECRET") {
+		config.MarketData.Alpaca.APISecret = v.GetString("ALPACA_API_SECRET")
 	}
 
 	return &config, nil

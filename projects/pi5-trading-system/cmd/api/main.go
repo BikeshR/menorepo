@@ -21,6 +21,7 @@ import (
 	"github.com/bikeshrana/pi5-trading-system-go/internal/core/strategy"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/data/timescale"
+	"github.com/bikeshrana/pi5-trading-system-go/internal/marketdata"
 	"github.com/bikeshrana/pi5-trading-system-go/internal/metrics"
 )
 
@@ -227,60 +228,157 @@ func run() error {
 		}
 	}()
 
-	// Demo: Simulate market data events
-	// TODO (Phase 3): Replace with real market data provider integration
-	// Options to consider:
-	//   - Alpaca Markets API (free tier available)
-	//   - Interactive Brokers TWS API
-	//   - TD Ameritrade API
-	//   - Polygon.io (real-time + historical data)
-	//   - Yahoo Finance (webscraping, rate limits)
-	// Implementation requirements:
-	//   - WebSocket connection for real-time data
-	//   - Reconnection logic with exponential backoff
-	//   - Rate limiting to avoid API throttling
-	//   - Data validation and sanitization
-	//   - Historical data backfill on startup
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
+	// Initialize Market Data Provider
+	var marketDataProvider marketdata.Provider
 
-		symbols := []string{"AAPL", "MSFT", "GOOGL"}
-		basePrice := map[string]float64{
-			"AAPL":  150.0,
-			"MSFT":  350.0,
-			"GOOGL": 140.0,
+	// Collect all unique symbols from strategies
+	symbolsMap := make(map[string]bool)
+	for _, s := range strategies {
+		for _, sym := range s.(*strategy.MovingAverageCrossoverStrategy).Symbols() {
+			symbolsMap[sym] = true
 		}
+	}
+	symbols := make([]string, 0, len(symbolsMap))
+	for sym := range symbolsMap {
+		symbols = append(symbols, sym)
+	}
 
-		for {
-			select {
-			case <-ticker.C:
-				// Publish market data events for each symbol
-				for _, symbol := range symbols {
-					price := basePrice[symbol] + (float64(time.Now().Unix()%10) - 5)
-					event := events.NewMarketDataEvent(
-						symbol,
-						price-0.5,
-						price+1.0,
-						price-1.0,
-						price,
-						1000000,
-						time.Now(),
-					)
+	logger.Info().
+		Str("provider", cfg.MarketData.Provider).
+		Strs("symbols", symbols).
+		Msg("Initializing market data provider")
 
-					eventBus.Publish(ctx, event)
+	switch cfg.MarketData.Provider {
+	case "alpaca":
+		// Check if API credentials are set
+		if cfg.MarketData.Alpaca.APIKey == "" || cfg.MarketData.Alpaca.APISecret == "" {
+			logger.Warn().Msg("Alpaca API credentials not set, falling back to simulated data")
+			logger.Warn().Msg("Set ALPACA_API_KEY and ALPACA_API_SECRET environment variables")
+			cfg.MarketData.Provider = "simulated"
+			cfg.MarketData.Simulated.Enabled = true
+		} else {
+			// Create Alpaca market data config
+			alpacaConfig := &marketdata.Config{
+				Provider:             "alpaca",
+				APIKey:               cfg.MarketData.Alpaca.APIKey,
+				APISecret:            cfg.MarketData.Alpaca.APISecret,
+				DataURL:              cfg.MarketData.Alpaca.DataURL,
+				StreamURL:            cfg.MarketData.Alpaca.StreamURL,
+				PaperTrading:         cfg.MarketData.Alpaca.PaperTrading,
+				FeedType:             cfg.MarketData.Alpaca.FeedType,
+				MaxReconnectAttempts: cfg.MarketData.Reconnection.MaxAttempts,
+				ReconnectDelay:       cfg.MarketData.Reconnection.InitialDelay,
+				MaxReconnectDelay:    cfg.MarketData.Reconnection.MaxDelay,
+			}
 
-					logger.Debug().
-						Str("symbol", symbol).
-						Float64("price", price).
-						Msg("Published market data event")
+			// Create Alpaca client
+			alpacaClient, err := marketdata.NewAlpacaClient(alpacaConfig, eventBus, logger)
+			if err != nil {
+				return fmt.Errorf("failed to create Alpaca client: %w", err)
+			}
+
+			// Connect to Alpaca
+			if err := alpacaClient.Connect(ctx); err != nil {
+				logger.Error().Err(err).Msg("Failed to connect to Alpaca, falling back to simulated data")
+				cfg.MarketData.Provider = "simulated"
+				cfg.MarketData.Simulated.Enabled = true
+			} else {
+				marketDataProvider = alpacaClient
+
+				// Subscribe to symbols
+				if err := alpacaClient.Subscribe(symbols); err != nil {
+					logger.Error().Err(err).Msg("Failed to subscribe to symbols")
+				} else {
+					logger.Info().
+						Strs("symbols", symbols).
+						Str("feed_type", cfg.MarketData.Alpaca.FeedType).
+						Msg("Subscribed to real-time market data from Alpaca")
 				}
 
-			case <-ctx.Done():
-				return
+				// Historical data backfill if enabled
+				if cfg.MarketData.Backfill.Enabled {
+					logger.Info().
+						Int("lookback_days", cfg.MarketData.Backfill.LookbackDays).
+						Str("timeframe", cfg.MarketData.Backfill.Timeframe).
+						Msg("Starting historical data backfill")
+
+					backfillConfig := &marketdata.BackfillConfig{
+						LookbackDays:  cfg.MarketData.Backfill.LookbackDays,
+						Timeframe:     cfg.MarketData.Backfill.Timeframe,
+						PublishEvents: cfg.MarketData.Backfill.PublishEvents,
+						BatchSize:     100,
+					}
+
+					backfillManager := marketdata.NewBackfillManager(
+						alpacaClient,
+						eventBus,
+						backfillConfig,
+						logger,
+					)
+
+					// Run backfill in background
+					go func() {
+						if err := backfillManager.BackfillSymbols(ctx, symbols); err != nil {
+							logger.Error().Err(err).Msg("Backfill failed")
+						} else {
+							logger.Info().Msg("Historical data backfill completed")
+						}
+					}()
+				}
 			}
 		}
-	}()
+	}
+
+	// Fallback to simulated data if Alpaca is not configured or failed
+	if cfg.MarketData.Provider == "simulated" || marketDataProvider == nil {
+		logger.Info().Msg("Using simulated market data")
+
+		// Start simulated market data generator
+		go func() {
+			ticker := time.NewTicker(cfg.MarketData.Simulated.TickInterval)
+			defer ticker.Stop()
+
+			// Use configured symbols or defaults
+			simulatedSymbols := cfg.MarketData.Simulated.Symbols
+			if len(simulatedSymbols) == 0 {
+				// Default simulated symbols
+				simulatedSymbols = []config.SimulatedSymbolConfig{
+					{Symbol: "AAPL", BasePrice: 150.0},
+					{Symbol: "MSFT", BasePrice: 350.0},
+					{Symbol: "GOOGL", BasePrice: 140.0},
+				}
+			}
+
+			for {
+				select {
+				case <-ticker.C:
+					// Publish market data events for each symbol
+					for _, symCfg := range simulatedSymbols {
+						price := symCfg.BasePrice + (float64(time.Now().Unix()%10) - 5)
+						event := events.NewMarketDataEvent(
+							symCfg.Symbol,
+							price-0.5,
+							price+1.0,
+							price-1.0,
+							price,
+							1000000,
+							time.Now(),
+						)
+
+						eventBus.Publish(ctx, event)
+
+						logger.Debug().
+							Str("symbol", symCfg.Symbol).
+							Float64("price", price).
+							Msg("Published simulated market data")
+					}
+
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
 
 	// Wait for termination signal or server error
 	select {
@@ -302,6 +400,16 @@ func run() error {
 	// Create shutdown context with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
+
+	// Disconnect market data provider
+	if marketDataProvider != nil {
+		logger.Info().Msg("Disconnecting market data provider")
+		if err := marketDataProvider.Disconnect(); err != nil {
+			logger.Error().
+				Err(err).
+				Msg("Error disconnecting market data provider")
+		}
+	}
 
 	// Stop execution engine
 	if err := executionEngine.Stop(shutdownCtx); err != nil {
