@@ -11,6 +11,32 @@ export interface User {
   last_login?: string;
 }
 
+// Audit Log Types
+export interface AuditEvent {
+  id: string;
+  event_type: string;
+  timestamp: string;
+  user_id?: string;
+  username?: string;
+  ip_address?: string;
+  resource?: string;
+  action?: string;
+  status: "success" | "failure" | "violation";
+  details?: Record<string, unknown>;
+  error_msg?: string;
+  duration_ms?: number;
+}
+
+export interface AuditFilters {
+  event_type?: string;
+  user_id?: string;
+  resource?: string;
+  status?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
+}
+
 export interface AuthTokens {
   access_token: string;
   refresh_token: string;

@@ -1,423 +1,50 @@
-# Pi5 Trading System - Git Ignore
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
 
-# ================================
-# Environment and Configuration
-# ================================
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Environment variables
 .env
 .env.local
-.env.production
-.env.staging
-.env.test
-*.env
+.env.*.local
 
-# Local configuration overrides
-config/local_*.yaml
-config/local_*.yml
-config/production_*.yaml
-config/production_*.yml
-
-# Secrets and API keys
-secrets/
-api_keys/
-credentials/
-*.key
-*.pem
-*.p12
-*.keystore
-
-# ================================
-# Python
-# ================================
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyc
-*.pyo
-*.pyd
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# poetry
-poetry.lock
-
-# pdm
-.pdm.toml
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# ================================
-# Trading System Specific
-# ================================
-
-# Log files
-logs/
-*.log
-*.log.*
-*.out
-*.err
-
-# Trading data
-data/
-historical_data/
-market_data/
-tick_data/
-*.csv
-*.parquet
-*.h5
-*.hdf5
-
-# Backup files
-backups/
-*.backup
-*.bak
-*.sql.gz
-
-# Strategy development
-strategies/experimental/
-strategies/research/
-notebooks/
-*.ipynb
-
-# Performance data
-performance_reports/
-backtesting_results/
-optimization_results/
-*.pickle
-*.pkl
-
-# Temporary trading files
-temp/
-tmp/
-*.tmp
-positions_*.json
-orders_*.json
-
-# Strategy configurations (sensitive)
-config/strategies/production_*.yaml
-config/strategies/live_*.yaml
-
-# ================================
-# Database
-# ================================
-# SQLite
-*.db
-*.sqlite
-*.sqlite3
-
-# PostgreSQL
-*.sql.backup
-*.dump
-
-# Database migrations (keep structure, ignore data)
-migrations/data/
-migrations/backups/
-
-# ================================
-# Docker
-# ================================
-# Docker override files
-docker-compose.override.yml
-docker-compose.override.yaml
-docker-compose.*.yml
-docker-compose.*.yaml
-!docker-compose.yml
-
-# Docker volumes
-docker_data/
-postgres_data/
-redis_data/
-timescaledb_data/
-
-# ================================
-# IDE and Editors
-# ================================
-# Visual Studio Code
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
-
-# Local History for Visual Studio Code
-.history/
-
-# Built Visual Studio Code Extensions
-*.vsix
-
-# PyCharm
+# IDE
 .idea/
-*.iws
-*.iml
-*.ipr
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# Vim
+.vscode/
 *.swp
 *.swo
 *~
 
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# ================================
-# Operating System
-# ================================
-# macOS
+# OS
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon?
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-# Windows
 Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-*.stackdump
-[Dd]esktop.ini
-$RECYCLE.BIN/
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-*.lnk
 
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
+# Logs
+*.log
+logs/
+tmp/
 
-# ================================
-# Monitoring and Metrics
-# ================================
-# Prometheus
-prometheus_data/
-*.metrics
+# Air (hot reload)
+tmp/
 
-# Grafana
-grafana_data/
-
-# System monitoring
-system_metrics/
-performance_logs/
-
-# ================================
-# Security and Certificates
-# ================================
-# SSL Certificates
-*.crt
-*.csr
-*.der
-*.p7b
-*.p7c
-*.pfx
-*.cer
-
-# SSH keys
-id_rsa
-id_rsa.pub
-id_ed25519
-id_ed25519.pub
-
-# ================================
-# Miscellaneous
-# ================================
-# Compressed files
-*.zip
+# Build artifacts
 *.tar.gz
-*.tar.bz2
-*.rar
-*.7z
-
-# Temporary files
-*.temp
-*.temporary
-
-# Lock files
-*.lock
-.lock
-
-# Cache directories
-.cache/
-cache/
-
-# Node.js (if used for frontend)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# ================================
-# Project Specific Exclusions
-# ================================
-# Exclude any sensitive trading configurations
-config/live_trading.yaml
-config/production_api_keys.yaml
-
-# Exclude large data files
-*.large
-historical_data_*.csv
-market_data_*.parquet
-
-# Exclude development databases
-dev.db
-test.db
-local.db
-
-# Exclude compiled binaries
-*.exe
-*.dll
-
-# Exclude deployment artifacts
-deployment_artifacts/
-release_packages/
+*.zip
