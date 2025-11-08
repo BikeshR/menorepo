@@ -1,311 +1,418 @@
 #!/bin/bash
-#
-# Setup script for Raspberry Pi deployment
-# Run this once on your Raspberry Pi to prepare for automated deployments
-#
 
 set -e
 
-echo "🚀 Setting up Pi5 Trading System on Raspberry Pi"
+echo "🚀 Pi5 Trading System - Unified Setup"
+echo "======================================"
 echo ""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Helper functions
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC}  $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
 
 # Check if running on Raspberry Pi
-if [ ! -f /proc/device-tree/model ] || ! grep -q "Raspberry Pi" /proc/device-tree/model; then
-    echo "⚠️  Warning: This doesn't appear to be a Raspberry Pi"
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null && ! grep -q "BCM" /proc/cpuinfo 2>/dev/null; then
+    print_warning "This doesn't appear to be a Raspberry Pi, but continuing anyway..."
 fi
 
-# Variables
+# ============================================================================
+# 1. INSTALL DOCKER
+# ============================================================================
+
+echo "📦 Step 1: Docker Installation"
+echo "------------------------------"
+
+if command -v docker &> /dev/null; then
+    print_success "Docker is already installed ($(docker --version))"
+else
+    echo "Installing Docker..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    sudo usermod -aG docker $USER
+    rm get-docker.sh
+    print_success "Docker installed"
+
+    print_warning "You need to LOG OUT and LOG BACK IN for Docker permissions"
+    print_warning "After logging back in, run this script again"
+    echo ""
+    echo "Run: exit"
+    echo "Then SSH back in and run: ./deployment/setup-pi.sh"
+    exit 0
+fi
+
+# Check if user is in docker group
+if ! groups | grep -q docker; then
+    print_error "User not in docker group. Please log out and back in."
+    exit 1
+fi
+
+# Install docker-compose if not present
+if ! command -v docker-compose &> /dev/null; then
+    echo "Installing Docker Compose..."
+    sudo apt update
+    sudo apt install -y docker-compose
+    print_success "Docker Compose installed"
+else
+    print_success "Docker Compose is already installed ($(docker-compose --version))"
+fi
+
+echo ""
+
+# ============================================================================
+# 2. SETUP DIRECTORIES
+# ============================================================================
+
+echo "📁 Step 2: Directory Setup"
+echo "--------------------------"
+
 DEPLOY_DIR="$HOME/pi5-trading-system"
-BACKUP_DIR="$HOME/pi5-trading-backups"
-LOG_DIR="$DEPLOY_DIR/logs"
+mkdir -p $DEPLOY_DIR/{logs,backups}
+print_success "Created $DEPLOY_DIR"
 
-echo "📁 Creating directories..."
-mkdir -p $DEPLOY_DIR
-mkdir -p $BACKUP_DIR
-mkdir -p $LOG_DIR
-echo "✓ Directories created"
-
-# Install Go if not present
-if ! command -v go &> /dev/null; then
-    echo ""
-    echo "📦 Installing Go..."
-
-    GO_VERSION="1.21.6"
-    GO_ARCH="arm64"
-    GO_TAR="go${GO_VERSION}.linux-${GO_ARCH}.tar.gz"
-
-    cd /tmp
-    wget -q https://go.dev/dl/$GO_TAR
-    sudo rm -rf /usr/local/go
-    sudo tar -C /usr/local -xzf $GO_TAR
-    rm $GO_TAR
-
-    # Add to PATH
-    if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-        export PATH=$PATH:/usr/local/go/bin
-    fi
-
-    echo "✓ Go installed: $(go version)"
-else
-    echo "✓ Go already installed: $(go version)"
-fi
-
-# Setup systemd user service
-echo ""
-echo "🔧 Setting up systemd service..."
-
-# Copy service file
-SERVICE_FILE="$HOME/.config/systemd/user/pi5-trading.service"
-mkdir -p "$(dirname $SERVICE_FILE)"
-
-cat > $SERVICE_FILE << 'EOF'
-[Unit]
-Description=Pi5 Trading System
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=%h/pi5-trading-system
-ExecStart=%h/pi5-trading-system/api
-Restart=always
-RestartSec=10
-StandardOutput=append:%h/pi5-trading-system/logs/trading.log
-StandardError=append:%h/pi5-trading-system/logs/trading-error.log
-
-# Environment
-Environment="PATH=/usr/local/go/bin:/usr/bin:/bin"
-EnvironmentFile=%h/pi5-trading-system/.env
-
-# Resource limits
-LimitNOFILE=65536
-
-[Install]
-WantedBy=default.target
-EOF
-
-# Enable lingering (keep user services running after logout)
-loginctl enable-linger $USER
-
-# Reload systemd
-systemctl --user daemon-reload
-
-echo "✓ Systemd service configured"
-
-# Setup SSH for GitHub Actions (if needed)
-echo ""
-echo "🔑 SSH Key Setup"
-echo "For automated deployment, GitHub Actions needs SSH access to this Pi."
 echo ""
 
-if [ ! -f ~/.ssh/authorized_keys ] || ! grep -q "github-actions" ~/.ssh/authorized_keys; then
-    echo "📝 To enable automated deployment:"
-    echo "1. Generate SSH key on your development machine:"
-    echo "   ssh-keygen -t ed25519 -f ~/.ssh/pi5_deploy_key -C 'github-actions'"
-    echo ""
-    echo "2. Add the PUBLIC key to ~/.ssh/authorized_keys on this Pi:"
-    echo "   cat ~/.ssh/pi5_deploy_key.pub >> ~/.ssh/authorized_keys"
-    echo ""
-    echo "3. Add these secrets to your GitHub repository (Settings > Secrets):"
-    echo "   PI5_SSH_KEY: Contents of ~/.ssh/pi5_deploy_key (PRIVATE key)"
-    echo "   PI5_HOST: IP address or hostname of this Pi"
-    echo "   PI5_USER: $USER"
-    echo ""
-else
-    echo "✓ SSH keys appear to be configured"
-fi
+# ============================================================================
+# 3. CREATE ENVIRONMENT FILE
+# ============================================================================
 
-# Create default .env if not exists
+echo "🔧 Step 3: Environment Configuration"
+echo "------------------------------------"
+
 if [ ! -f "$DEPLOY_DIR/.env" ]; then
-    echo ""
-    echo "📝 Creating default .env file..."
-
-    cat > "$DEPLOY_DIR/.env" << 'EOF'
-# Alpaca API Credentials
+    cat > "$DEPLOY_DIR/.env" <<'EOF'
+# Alpaca API Configuration
+# Get free paper trading credentials at https://alpaca.markets
 ALPACA_API_KEY=your_api_key_here
-ALPACA_API_SECRET=your_api_secret_here
+ALPACA_SECRET_KEY=your_secret_key_here
+ALPACA_BASE_URL=https://paper-api.alpaca.markets
 
-# Database (if using PostgreSQL)
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=pi5trader
-DB_PASSWORD=change_me
-DB_NAME=pi5_trading
+# Database Password
+DB_PASSWORD=SecurePassword123!
 
-# Server
-SERVER_PORT=8080
-
-# Environment
-ENVIRONMENT=production
+# Application Settings
+TRADING_ENABLED=false
+INITIAL_CAPITAL=100000.00
 EOF
+    print_success "Created .env file at $DEPLOY_DIR/.env"
+    print_warning "IMPORTANT: Edit $DEPLOY_DIR/.env with your Alpaca credentials"
 
-    echo "✓ Default .env created at $DEPLOY_DIR/.env"
-    echo "⚠️  IMPORTANT: Edit $DEPLOY_DIR/.env with your actual credentials"
+    echo ""
+    echo "Get Alpaca API keys:"
+    echo "1. Sign up at https://alpaca.markets"
+    echo "2. Go to Paper Trading section"
+    echo "3. Generate API keys"
+    echo ""
+    read -p "Press Enter to edit .env now, or Ctrl+C to edit later..."
+    nano "$DEPLOY_DIR/.env"
+else
+    print_success ".env file already exists"
 fi
 
-# Setup log rotation
 echo ""
-echo "📄 Setting up log rotation..."
 
-sudo tee /etc/logrotate.d/pi5-trading > /dev/null << EOF
-$LOG_DIR/*.log {
+# ============================================================================
+# 4. CREATE HELPER SCRIPTS
+# ============================================================================
+
+echo "📝 Step 4: Helper Scripts"
+echo "-------------------------"
+
+# Backup script
+cat > "$DEPLOY_DIR/backup.sh" <<'EOF'
+#!/bin/bash
+BACKUP_DIR="$HOME/pi5-trading-backups"
+mkdir -p $BACKUP_DIR
+BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S).sql"
+
+echo "Creating database backup..."
+if docker ps | grep -q pi5-trading-postgres; then
+    docker exec pi5-trading-postgres pg_dump -U pi5trader pi5_trading > "$BACKUP_DIR/$BACKUP_NAME"
+
+    # Keep only last 7 backups
+    cd $BACKUP_DIR
+    ls -t *.sql 2>/dev/null | tail -n +8 | xargs -r rm
+
+    echo "✓ Backup complete: $BACKUP_DIR/$BACKUP_NAME"
+else
+    echo "✗ PostgreSQL container not running"
+    exit 1
+fi
+EOF
+
+# Monitor script
+cat > "$DEPLOY_DIR/monitor.sh" <<'EOF'
+#!/bin/bash
+
+echo "======================================"
+echo "Pi5 Trading System - Status"
+echo "======================================"
+echo ""
+
+cd ~/menorepo/projects/pi5-trading-system
+
+echo "📦 Containers:"
+docker-compose -f docker-compose.prod.yml ps
+
+echo ""
+echo "💾 Resource Usage:"
+docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+echo ""
+echo "📊 Recent Logs (last 20 lines):"
+docker logs pi5-trading-api --tail 20 2>/dev/null || echo "API container not running"
+
+echo ""
+echo "🔍 Health Check:"
+curl -s http://localhost:8080/api/v1/system/health 2>/dev/null || echo "API not responding"
+
+echo ""
+EOF
+
+# Update script
+cat > "$DEPLOY_DIR/update.sh" <<'EOF'
+#!/bin/bash
+set -e
+
+echo "🔄 Updating Pi5 Trading System..."
+
+cd ~/menorepo/projects/pi5-trading-system
+
+# Pull latest code
+echo "📥 Pulling latest code..."
+git pull
+
+# Create backup
+echo "💾 Creating backup..."
+~/pi5-trading-system/backup.sh || true
+
+# Rebuild and restart
+echo "🔨 Rebuilding containers..."
+docker-compose -f docker-compose.prod.yml build
+
+echo "🚀 Restarting services..."
+docker-compose -f docker-compose.prod.yml up -d
+
+echo "⏳ Waiting for services..."
+sleep 10
+
+# Verify
+echo "🔍 Verifying deployment..."
+docker-compose -f docker-compose.prod.yml ps
+
+echo ""
+echo "✅ Update complete!"
+EOF
+
+chmod +x "$DEPLOY_DIR/backup.sh"
+chmod +x "$DEPLOY_DIR/monitor.sh"
+chmod +x "$DEPLOY_DIR/update.sh"
+
+print_success "Created backup.sh, monitor.sh, update.sh"
+
+echo ""
+
+# ============================================================================
+# 5. SETUP LOG ROTATION
+# ============================================================================
+
+echo "📄 Step 5: Log Rotation"
+echo "-----------------------"
+
+cat > /tmp/pi5-trading-docker <<EOF
+$HOME/pi5-trading-system/logs/*.log {
     daily
     rotate 7
     compress
     delaycompress
+    missingok
     notifempty
-    create 0644 $USER $USER
-    sharedscripts
-    postrotate
-        systemctl --user reload-or-restart pi5-trading.service > /dev/null 2>&1 || true
-    endscript
+    copytruncate
 }
 EOF
 
-echo "✓ Log rotation configured"
+sudo mv /tmp/pi5-trading-docker /etc/logrotate.d/pi5-trading-docker
+sudo chmod 644 /etc/logrotate.d/pi5-trading-docker
+print_success "Configured log rotation"
 
-# Setup monitoring script
-echo ""
-echo "📊 Creating monitoring script..."
-
-cat > "$DEPLOY_DIR/monitor.sh" << 'EOFMON'
-#!/bin/bash
-# Quick status check for trading system
-
-echo "Pi5 Trading System Status"
-echo "=========================="
 echo ""
 
-# System info
-echo "System:"
-uptime
+# ============================================================================
+# 6. SETUP CRON JOBS
+# ============================================================================
+
+echo "⏰ Step 6: Cron Jobs"
+echo "--------------------"
+
+# Daily backup at 2 AM
+CRON_BACKUP="0 2 * * * $DEPLOY_DIR/backup.sh >> $DEPLOY_DIR/logs/backup.log 2>&1"
+# Weekly cleanup on Sunday at 3 AM
+CRON_CLEANUP="0 3 * * 0 docker system prune -f >> $DEPLOY_DIR/logs/cleanup.log 2>&1"
+
+(crontab -l 2>/dev/null | grep -v "$DEPLOY_DIR/backup.sh" | grep -v "docker system prune"; echo "$CRON_BACKUP"; echo "$CRON_CLEANUP") | crontab -
+
+print_success "Configured daily backups (2 AM) and weekly cleanup (Sunday 3 AM)"
+
 echo ""
 
-# Service status
-echo "Service Status:"
-if systemctl --user is-active --quiet pi5-trading.service; then
-    echo "✓ Trading service is RUNNING"
-    systemctl --user status pi5-trading.service --no-pager | head -10
+# ============================================================================
+# 7. SETUP GITHUB ACTIONS RUNNER
+# ============================================================================
+
+echo "🤖 Step 7: GitHub Actions Runner"
+echo "---------------------------------"
+echo ""
+
+if systemctl --user list-units --type=service | grep -q "actions.runner"; then
+    print_success "GitHub Actions runner is already installed"
+    echo ""
+    echo "To check runner status:"
+    echo "  systemctl --user status actions.runner.*"
 else
-    echo "✗ Trading service is STOPPED"
+    echo "Setting up GitHub Actions self-hosted runner..."
+    echo ""
+
+    # Detect architecture
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+        RUNNER_ARCH="arm64"
+    elif [ "$ARCH" = "x86_64" ]; then
+        RUNNER_ARCH="x64"
+    else
+        print_error "Unsupported architecture: $ARCH"
+        exit 1
+    fi
+
+    RUNNER_VERSION="2.311.0"
+    RUNNER_DIR="$HOME/actions-runner"
+
+    # Create runner directory
+    mkdir -p $RUNNER_DIR
+    cd $RUNNER_DIR
+
+    # Download runner
+    if [ ! -f "run.sh" ]; then
+        echo "Downloading GitHub Actions runner..."
+        curl -o actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz \
+            -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz
+
+        tar xzf actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz
+        rm actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz
+    fi
+
+    echo ""
+    echo "=========================================="
+    echo "GitHub Runner Configuration"
+    echo "=========================================="
+    echo ""
+    echo "You need a registration token from GitHub:"
+    echo ""
+    echo "1. Go to: https://github.com/YOUR_USERNAME/menorepo/settings/actions/runners/new"
+    echo "2. Select: Linux, $RUNNER_ARCH"
+    echo "3. Copy the token from the config command"
+    echo ""
+    read -p "Repository owner (e.g., BikeshR): " REPO_OWNER
+    read -p "Repository name (e.g., menorepo): " REPO_NAME
+    read -p "Registration token: " REGISTRATION_TOKEN
+
+    # Configure runner
+    ./config.sh \
+        --url https://github.com/$REPO_OWNER/$REPO_NAME \
+        --token $REGISTRATION_TOKEN \
+        --name "pi5-trading-runner" \
+        --labels pi5,arm64,raspberry-pi,docker \
+        --work _work \
+        --replace
+
+    # Install as service
+    sudo ./svc.sh install $USER
+    sudo ./svc.sh start
+
+    print_success "GitHub Actions runner installed and started"
+
+    echo ""
+    echo "Runner status:"
+    sudo ./svc.sh status
 fi
+
+cd ~
+
 echo ""
 
-# Recent logs
-echo "Recent Logs (last 20 lines):"
-tail -20 ~/pi5-trading-system/logs/trading.log 2>/dev/null || echo "No logs yet"
+# ============================================================================
+# 8. CONFIGURE GITHUB SECRETS
+# ============================================================================
+
+echo "🔐 Step 8: GitHub Secrets"
+echo "-------------------------"
 echo ""
 
-# Disk space
-echo "Disk Space:"
-df -h ~ | tail -1
+DB_PASSWORD=$(grep "DB_PASSWORD=" "$DEPLOY_DIR/.env" | cut -d'=' -f2)
+
+echo "Add this secret to your GitHub repository:"
+echo ""
+echo "Go to: https://github.com/YOUR_USERNAME/menorepo/settings/secrets/actions"
+echo ""
+echo "Secret Name:  DB_PASSWORD"
+echo "Secret Value: $DB_PASSWORD"
 echo ""
 
-# Memory usage
-echo "Memory Usage:"
-free -h | grep Mem
-EOFMON
+read -p "Press Enter when you've added the secret..."
 
-chmod +x "$DEPLOY_DIR/monitor.sh"
-
-echo "✓ Monitoring script created"
-
-# Create maintenance scripts
 echo ""
-echo "🛠️  Creating maintenance scripts..."
 
-# Backup script
-cat > "$DEPLOY_DIR/backup.sh" << 'EOFBACK'
-#!/bin/bash
-# Backup trading system configuration and logs
+# ============================================================================
+# SETUP COMPLETE
+# ============================================================================
 
-BACKUP_DIR="$HOME/pi5-trading-backups/manual"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_NAME="manual_backup_$TIMESTAMP"
-
-mkdir -p $BACKUP_DIR
-cd $HOME
-
-echo "Creating backup: $BACKUP_NAME"
-tar -czf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" \
-    pi5-trading-system/.env \
-    pi5-trading-system/logs \
-    pi5-trading-system/backtest_results \
-    pi5-trading-system/optimization_results \
-    2>/dev/null
-
-echo "Backup created: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
-ls -lh "$BACKUP_DIR/$BACKUP_NAME.tar.gz"
-EOFBACK
-
-chmod +x "$DEPLOY_DIR/backup.sh"
-
-# Cleanup script
-cat > "$DEPLOY_DIR/cleanup.sh" << 'EOFCLEAN'
-#!/bin/bash
-# Cleanup old logs and backups
-
-echo "Cleaning up old files..."
-
-# Remove logs older than 30 days
-find ~/pi5-trading-system/logs -name "*.log.*" -mtime +30 -delete
-echo "✓ Removed logs older than 30 days"
-
-# Remove backtest results older than 60 days
-find ~/pi5-trading-system/backtest_results -type f -mtime +60 -delete
-echo "✓ Removed backtest results older than 60 days"
-
-# Keep only last 10 backups
-cd ~/pi5-trading-backups
-ls -t | tail -n +11 | xargs -r rm -rf
-echo "✓ Kept only last 10 backups"
-
-echo "Cleanup complete!"
-EOFCLEAN
-
-chmod +x "$DEPLOY_DIR/cleanup.sh"
-
-echo "✓ Maintenance scripts created"
-
-# Setup cron jobs
 echo ""
-echo "⏰ Setting up cron jobs..."
-
-# Add cron job for cleanup (weekly)
-(crontab -l 2>/dev/null; echo "0 3 * * 0 $DEPLOY_DIR/cleanup.sh") | crontab -
-
-echo "✓ Cron jobs configured (cleanup runs weekly)"
-
-# Final summary
+echo "=========================================="
+echo "✅ Setup Complete!"
+echo "=========================================="
 echo ""
-echo "✅ Setup complete!"
+
+print_success "Docker & Docker Compose installed"
+print_success "Helper scripts created in $DEPLOY_DIR"
+print_success "GitHub Actions runner configured"
+print_success "Cron jobs configured (backups & cleanup)"
+
 echo ""
 echo "📋 Next Steps:"
-echo "1. Configure your .env file:"
+echo ""
+echo "1. Verify .env configuration:"
 echo "   nano $DEPLOY_DIR/.env"
 echo ""
-echo "2. Set up GitHub secrets for automated deployment:"
-echo "   - PI5_SSH_KEY"
-echo "   - PI5_HOST ($(hostname -I | awk '{print $1}'))"
-echo "   - PI5_USER ($USER)"
+echo "2. Deploy the system via git push:"
+echo "   cd /path/to/menorepo"
+echo "   git push origin main"
 echo ""
-echo "3. Test the service manually:"
-echo "   systemctl --user start pi5-trading.service"
-echo "   systemctl --user status pi5-trading.service"
+echo "3. Monitor deployment:"
+echo "   https://github.com/YOUR_USERNAME/menorepo/actions"
 echo ""
-echo "4. View logs:"
-echo "   tail -f $LOG_DIR/trading.log"
+echo "4. After deployment, access dashboard:"
+echo "   http://$(hostname -I | awk '{print $1}'):8080"
 echo ""
-echo "5. Monitor the system:"
-echo "   $DEPLOY_DIR/monitor.sh"
+echo "5. Use helper scripts:"
+echo "   $DEPLOY_DIR/monitor.sh    # View system status"
+echo "   $DEPLOY_DIR/backup.sh     # Create manual backup"
+echo "   $DEPLOY_DIR/update.sh     # Manual update (or just git push)"
 echo ""
-echo "6. Enable service to start on boot:"
-echo "   systemctl --user enable pi5-trading.service"
+echo "📚 Documentation:"
+echo "   deployment/README.md      # Complete guide"
+echo "   DEVELOPMENT.md            # Local development"
 echo ""
-echo "📚 See deployment/README.md for more information"
+echo "🎉 Happy Trading!"
