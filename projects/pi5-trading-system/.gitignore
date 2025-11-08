@@ -7,6 +7,10 @@
 bin/
 dist/
 
+# Go compiled binaries (from go build)
+api
+/api
+
 # Test binary, built with `go test -c`
 *.test
 
