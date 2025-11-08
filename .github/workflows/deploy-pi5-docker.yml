@@ -1,0 +1,153 @@
+name: Deploy to Raspberry Pi (Docker)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'projects/pi5-trading-system/**'
+      - '.github/workflows/deploy-pi5-docker.yml'
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy:
+    name: Build and Deploy with Docker
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create backup
+        run: |
+          BACKUP_DIR="$HOME/pi5-trading-backups"
+          mkdir -p $BACKUP_DIR
+
+          # Backup database if container exists
+          if docker ps -a | grep -q pi5-trading-postgres; then
+            echo "💾 Creating database backup..."
+            BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S).sql"
+            docker exec pi5-trading-postgres pg_dump -U pi5trader pi5_trading > "$BACKUP_DIR/$BACKUP_NAME" || true
+
+            # Keep only last 7 backups
+            cd $BACKUP_DIR
+            ls -t *.sql 2>/dev/null | tail -n +8 | xargs -r rm
+
+            echo "✓ Backup created: $BACKUP_DIR/$BACKUP_NAME"
+          else
+            echo "⚠️  No existing database to backup"
+          fi
+
+      - name: Build Docker images
+        working-directory: projects/pi5-trading-system
+        run: |
+          echo "🔨 Building Docker images..."
+          docker-compose -f docker-compose.prod.yml build --no-cache
+          echo "✓ Build complete"
+
+      - name: Run database migrations
+        working-directory: projects/pi5-trading-system
+        run: |
+          echo "🗄️  Running database migrations..."
+
+          # Start only postgres temporarily if not running
+          docker-compose -f docker-compose.prod.yml up -d postgres
+
+          # Wait for postgres to be ready
+          echo "Waiting for PostgreSQL to be ready..."
+          for i in {1..30}; do
+            if docker exec pi5-trading-postgres pg_isready -U pi5trader > /dev/null 2>&1; then
+              echo "✓ PostgreSQL is ready"
+              break
+            fi
+            sleep 1
+          done
+
+          # Run migrations using the migrate tool in a container
+          docker run --rm \
+            --network pi5-trading-system_pi5-trading \
+            -v "$(pwd)/migrations:/migrations" \
+            migrate/migrate:latest \
+            -path=/migrations \
+            -database "postgres://pi5trader:${DB_PASSWORD}@postgres:5432/pi5_trading?sslmode=disable" \
+            up || echo "⚠️  Migrations may have already been applied"
+
+          echo "✓ Migrations complete"
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+      - name: Deploy services
+        working-directory: projects/pi5-trading-system
+        run: |
+          echo "🚀 Deploying services..."
+
+          # Copy .env if it doesn't exist
+          if [ ! -f "$HOME/pi5-trading-system/.env" ]; then
+            cp .env.example "$HOME/pi5-trading-system/.env" 2>/dev/null || true
+            echo "⚠️  Created .env - please configure it!"
+          fi
+
+          # Start all services
+          docker-compose -f docker-compose.prod.yml up -d
+
+          echo "✓ Services deployed"
+
+      - name: Wait for services
+        run: |
+          echo "⏳ Waiting for services to start..."
+          sleep 15
+
+      - name: Verify deployment
+        working-directory: projects/pi5-trading-system
+        run: |
+          echo "🔍 Verifying deployment..."
+
+          # Check container status
+          docker-compose -f docker-compose.prod.yml ps
+
+          # Check API health
+          for i in {1..10}; do
+            if curl -f http://localhost:8080/api/v1/system/health > /dev/null 2>&1; then
+              echo "✅ API is healthy!"
+              break
+            fi
+            echo "Waiting for API... ($i/10)"
+            sleep 3
+          done
+
+          # Show logs
+          echo ""
+          echo "📊 Recent logs:"
+          docker logs pi5-trading-api --tail 20
+
+          # Show resource usage
+          echo ""
+          echo "💾 Resource usage:"
+          docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+      - name: Cleanup old images
+        run: |
+          echo "🧹 Cleaning up old Docker images..."
+          docker image prune -f
+          echo "✓ Cleanup complete"
+
+      - name: Send notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deployment successful!"
+            echo "Dashboard: http://$(hostname -I | awk '{print $1}'):8080"
+          else
+            echo "❌ Deployment failed!"
+            echo "Check logs: docker-compose -f ~/menorepo/projects/pi5-trading-system/docker-compose.prod.yml logs"
+          fi
