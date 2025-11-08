@@ -40,9 +40,10 @@ trading:
   event_bus_buffer: 1000  # Channel buffer size for event bus
 
   strategies:
+    # Moving Average Crossover (original strategy)
     - id: "moving_avg_crossover"
       name: "Moving Average Crossover"
-      enabled: true
+      enabled: false  # Disable to test new strategies
       symbols:
         - "AAPL"
         - "MSFT"
@@ -51,18 +52,65 @@ trading:
         short_period: 20
         long_period: 50
 
-    # Additional strategies can be added here
-    # Example RSI strategy (not yet implemented):
-    # - id: "rsi_strategy"
-    #   name: "RSI Mean Reversion"
-    #   enabled: false
-    #   symbols:
-    #     - "TSLA"
-    #     - "NVDA"
-    #   params:
-    #     rsi_period: 14
-    #     oversold: 30
-    #     overbought: 70
+    # RSI Mean Reversion (Day Trading)
+    # Entry: RSI < 30 (oversold) → BUY
+    # Exit: RSI > 70 (overbought) OR RSI > 50 → SELL
+    # Best for: 1-5 min bars, high volume stocks
+    - id: "rsi_mean_reversion"
+      name: "RSI Mean Reversion"
+      enabled: true
+      symbols:
+        - "SPY"   # S&P 500 ETF (very liquid)
+        - "QQQ"   # NASDAQ ETF (very liquid)
+      params:
+        rsi_period: 14
+        oversold_threshold: 30
+        overbought_threshold: 70
+
+    # Bollinger Band Bounce (Day Trading)
+    # Entry: Price touches lower band → BUY (bounce)
+    # Exit: Price returns to middle OR touches upper band → SELL
+    # Best for: 5 min bars, volatile stocks
+    - id: "bollinger_bounce"
+      name: "Bollinger Band Bounce"
+      enabled: false
+      symbols:
+        - "AAPL"
+        - "TSLA"
+      params:
+        period: 20
+        std_dev: 2.0
+
+    # VWAP Bounce (Intraday Trading)
+    # Entry: Price bounces off VWAP in uptrend → BUY
+    # Exit: Target profit OR price crosses below VWAP → SELL
+    # Best for: 1-5 min bars, trending stocks
+    - id: "vwap_bounce"
+      name: "VWAP Bounce"
+      enabled: false
+      symbols:
+        - "AAPL"
+        - "MSFT"
+        - "GOOGL"
+      params:
+        bounce_tolerance: 0.3  # % from VWAP to consider bounce
+        target_profit: 1.0     # % profit target
+        ema_period: 20         # For trend detection
+
+    # Opening Range Breakout (Market Open Strategy)
+    # Entry: Price breaks above first 15-min high → BUY
+    # Exit: Stop loss OR end of day (3:55 PM)
+    # Best for: Market open (9:30-10:00 AM ET), volatile stocks
+    - id: "opening_range_breakout"
+      name: "Opening Range Breakout"
+      enabled: false
+      symbols:
+        - "SPY"
+        - "QQQ"
+        - "AAPL"
+      params:
+        range_minutes: 15  # 15 or 30 minutes
+        atr_period: 14     # For stop loss calculation
 
 # Market Data Configuration
 market_data:

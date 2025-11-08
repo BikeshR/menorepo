@@ -179,6 +179,62 @@ func run() error {
 				logger,
 			)
 
+		case "rsi_mean_reversion":
+			rsiPeriod := int(stratCfg.Params["rsi_period"].(float64))
+			oversoldThreshold := stratCfg.Params["oversold_threshold"].(float64)
+			overboughtThreshold := stratCfg.Params["overbought_threshold"].(float64)
+
+			strat = strategy.NewRSIMeanReversionStrategy(
+				stratCfg.ID,
+				stratCfg.Symbols,
+				rsiPeriod,
+				oversoldThreshold,
+				overboughtThreshold,
+				eventBus,
+				logger,
+			)
+
+		case "bollinger_bounce":
+			period := int(stratCfg.Params["period"].(float64))
+			stdDev := stratCfg.Params["std_dev"].(float64)
+
+			strat = strategy.NewBollingerBandStrategy(
+				stratCfg.ID,
+				stratCfg.Symbols,
+				period,
+				stdDev,
+				eventBus,
+				logger,
+			)
+
+		case "vwap_bounce":
+			bounceTolerance := stratCfg.Params["bounce_tolerance"].(float64)
+			targetProfit := stratCfg.Params["target_profit"].(float64)
+			emaPeriod := int(stratCfg.Params["ema_period"].(float64))
+
+			strat = strategy.NewVWAPBounceStrategy(
+				stratCfg.ID,
+				stratCfg.Symbols,
+				bounceTolerance,
+				targetProfit,
+				emaPeriod,
+				eventBus,
+				logger,
+			)
+
+		case "opening_range_breakout":
+			rangeMinutes := int(stratCfg.Params["range_minutes"].(float64))
+			atrPeriod := int(stratCfg.Params["atr_period"].(float64))
+
+			strat = strategy.NewOpeningRangeBreakoutStrategy(
+				stratCfg.ID,
+				stratCfg.Symbols,
+				rangeMinutes,
+				atrPeriod,
+				eventBus,
+				logger,
+			)
+
 		default:
 			logger.Warn().
 				Str("strategy_id", stratCfg.ID).

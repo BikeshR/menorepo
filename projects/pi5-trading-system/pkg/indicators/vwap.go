@@ -2,7 +2,6 @@ package indicators
 
 import (
 	"fmt"
-	"time"
 )
 
 // VWAP (Volume Weighted Average Price) is the average price weighted by volume
