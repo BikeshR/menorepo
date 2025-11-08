@@ -2,7 +2,6 @@ package indicators
 
 import (
 	"fmt"
-	"time"
 )
 
 // ATR (Average True Range) measures market volatility

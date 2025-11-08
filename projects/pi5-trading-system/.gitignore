@@ -10,6 +10,8 @@ dist/
 # Go compiled binaries (from go build)
 api
 /api
+/backtest
+/optimize
 
 # Test binary, built with `go test -c`
 *.test
@@ -45,6 +47,10 @@ Thumbs.db
 *.log
 logs/
 tmp/
+
+# Backtest and optimization results
+backtest_results/
+optimization_results/
 
 # Air (hot reload)
 tmp/
