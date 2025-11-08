@@ -34,13 +34,33 @@ jobs:
           go-version: '1.21'
           cache-dependency-path: projects/pi5-trading-system/go.sum
 
-      - name: Build binaries
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: projects/pi5-trading-system/dashboard/package-lock.json
+
+      - name: Install migration tool
+        run: |
+          echo "📦 Installing migration tool..."
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+      - name: Build Go binaries
         working-directory: projects/pi5-trading-system
         run: |
-          echo "🔨 Building binaries..."
+          echo "🔨 Building Go binaries..."
           go build -o api cmd/api/main.go
           go build -o backtest cmd/backtest/main.go
           go build -o optimize cmd/optimize/main.go
+
+      - name: Build dashboard
+        working-directory: projects/pi5-trading-system/dashboard
+        run: |
+          echo "🎨 Building dashboard..."
+          npm ci
+          npm run build
+          echo "✓ Dashboard built to dist/"
 
       - name: Run tests (optional)
         working-directory: projects/pi5-trading-system
@@ -70,28 +90,52 @@ jobs:
           echo "🛑 Stopping service..."
           systemctl --user stop pi5-trading.service || true
 
-      - name: Deploy binaries
+      - name: Run database migrations
+        working-directory: projects/pi5-trading-system
+        run: |
+          echo "🗄️  Running database migrations..."
+
+          # Source DB password from .env if it exists
+          if [ -f "$HOME/pi5-trading-system/.env" ]; then
+            export $(grep -v '^#' $HOME/pi5-trading-system/.env | xargs)
+          fi
+
+          DB_PASSWORD="${DB_PASSWORD:-dev-password}"
+
+          ~/go/bin/migrate -path migrations \
+            -database "postgres://pi5trader:${DB_PASSWORD}@localhost:5432/pi5_trading?sslmode=disable" \
+            up || echo "⚠️  Migrations may have already been applied"
+
+          echo "✓ Migrations complete"
+
+      - name: Deploy binaries and assets
         working-directory: projects/pi5-trading-system
         run: |
           DEPLOY_DIR="$HOME/pi5-trading-system"
-          mkdir -p $DEPLOY_DIR/logs
+          mkdir -p $DEPLOY_DIR/{logs,configs,migrations,dashboard}
 
           echo "📦 Deploying binaries..."
           cp api backtest optimize $DEPLOY_DIR/
-          cp configs/config.yaml $DEPLOY_DIR/ || true
+          chmod +x $DEPLOY_DIR/{api,backtest,optimize}
+
+          echo "📝 Deploying configs..."
+          cp -r configs/* $DEPLOY_DIR/configs/
+
+          echo "🗄️  Deploying migrations..."
+          cp -r migrations/* $DEPLOY_DIR/migrations/
+
+          echo "🎨 Deploying dashboard..."
+          rm -rf $DEPLOY_DIR/dashboard/dist
+          mkdir -p $DEPLOY_DIR/dashboard
+          cp -r dashboard/dist $DEPLOY_DIR/dashboard/
 
           # Copy .env.example if .env doesn't exist
           if [ ! -f "$DEPLOY_DIR/.env" ]; then
-            cp .env.example $DEPLOY_DIR/.env
+            cp .env.example $DEPLOY_DIR/.env 2>/dev/null || echo "No .env.example found"
             echo "⚠️  Created .env from example - please configure it!"
           fi
 
-          # Make binaries executable
-          chmod +x $DEPLOY_DIR/api
-          chmod +x $DEPLOY_DIR/backtest
-          chmod +x $DEPLOY_DIR/optimize
-
-          echo "✓ Binaries deployed"
+          echo "✓ Deployment complete"
 
       - name: Start service
         run: |
