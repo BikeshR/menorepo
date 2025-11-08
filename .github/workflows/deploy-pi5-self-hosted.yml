@@ -1,0 +1,126 @@
+name: Deploy to Raspberry Pi (Self-Hosted)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'projects/pi5-trading-system/**'
+      - '.github/workflows/deploy-pi5-self-hosted.yml'
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: self-hosted  # Runs on your Raspberry Pi!
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: projects/pi5-trading-system/go.sum
+
+      - name: Build binaries
+        working-directory: projects/pi5-trading-system
+        run: |
+          echo "🔨 Building binaries..."
+          go build -o api cmd/api/main.go
+          go build -o backtest cmd/backtest/main.go
+          go build -o optimize cmd/optimize/main.go
+
+      - name: Run tests (optional)
+        working-directory: projects/pi5-trading-system
+        run: |
+          echo "🧪 Running tests..."
+          go test ./... -short || true
+
+      - name: Create backup
+        run: |
+          DEPLOY_DIR="$HOME/pi5-trading-system"
+          BACKUP_DIR="$HOME/pi5-trading-backups"
+
+          if [ -d "$DEPLOY_DIR" ]; then
+            echo "💾 Creating backup..."
+            mkdir -p $BACKUP_DIR
+            BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S)"
+            cp -r $DEPLOY_DIR "$BACKUP_DIR/$BACKUP_NAME"
+            echo "✓ Backup created: $BACKUP_DIR/$BACKUP_NAME"
+
+            # Keep only last 5 backups
+            cd $BACKUP_DIR
+            ls -t | tail -n +6 | xargs -r rm -rf
+          fi
+
+      - name: Stop service
+        run: |
+          echo "🛑 Stopping service..."
+          systemctl --user stop pi5-trading.service || true
+
+      - name: Deploy binaries
+        working-directory: projects/pi5-trading-system
+        run: |
+          DEPLOY_DIR="$HOME/pi5-trading-system"
+          mkdir -p $DEPLOY_DIR/logs
+
+          echo "📦 Deploying binaries..."
+          cp api backtest optimize $DEPLOY_DIR/
+          cp configs/config.yaml $DEPLOY_DIR/ || true
+
+          # Copy .env.example if .env doesn't exist
+          if [ ! -f "$DEPLOY_DIR/.env" ]; then
+            cp .env.example $DEPLOY_DIR/.env
+            echo "⚠️  Created .env from example - please configure it!"
+          fi
+
+          # Make binaries executable
+          chmod +x $DEPLOY_DIR/api
+          chmod +x $DEPLOY_DIR/backtest
+          chmod +x $DEPLOY_DIR/optimize
+
+          echo "✓ Binaries deployed"
+
+      - name: Start service
+        run: |
+          echo "🚀 Starting service..."
+          systemctl --user start pi5-trading.service
+          sleep 3
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+
+          if systemctl --user is-active --quiet pi5-trading.service; then
+            echo "✅ Service is running"
+            systemctl --user status pi5-trading.service --no-pager | head -10
+          else
+            echo "❌ Service failed to start"
+            journalctl --user -u pi5-trading.service -n 20 --no-pager
+            exit 1
+          fi
+
+          echo ""
+          echo "📊 Deployment Summary:"
+          ls -lh $HOME/pi5-trading-system/{api,backtest,optimize}
+
+      - name: Send notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi
