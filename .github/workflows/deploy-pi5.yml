@@ -1,0 +1,188 @@
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'projects/pi5-trading-system/**'
+      - '.github/workflows/deploy-pi5.yml'
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  build:
+    name: Build ARM64 Binary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: projects/pi5-trading-system/go.sum
+
+      - name: Build for ARM64
+        working-directory: projects/pi5-trading-system
+        run: |
+          GOOS=linux GOARCH=arm64 go build -o api cmd/api/main.go
+          GOOS=linux GOARCH=arm64 go build -o backtest cmd/backtest/main.go
+          GOOS=linux GOARCH=arm64 go build -o optimize cmd/optimize/main.go
+
+      - name: Create deployment package
+        working-directory: projects/pi5-trading-system
+        run: |
+          mkdir -p deploy
+          cp api backtest optimize deploy/
+          cp configs/config.yaml deploy/
+          cp .env.example deploy/
+          tar -czf pi5-trading-system.tar.gz -C deploy .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi5-trading-system
+          path: projects/pi5-trading-system/pi5-trading-system.tar.gz
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Raspberry Pi
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pi5-trading-system
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PI5_SSH_KEY }}
+          SSH_HOST: ${{ secrets.PI5_HOST }}
+          SSH_USER: ${{ secrets.PI5_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+
+      - name: Copy deployment package
+        env:
+          SSH_HOST: ${{ secrets.PI5_HOST }}
+          SSH_USER: ${{ secrets.PI5_USER }}
+        run: |
+          scp -i ~/.ssh/id_ed25519 pi5-trading-system.tar.gz $SSH_USER@$SSH_HOST:/tmp/
+
+      - name: Deploy on Raspberry Pi
+        env:
+          SSH_HOST: ${{ secrets.PI5_HOST }}
+          SSH_USER: ${{ secrets.PI5_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+
+            # Deployment directory
+            DEPLOY_DIR="/home/$USER/pi5-trading-system"
+            BACKUP_DIR="/home/$USER/pi5-trading-backups"
+
+            echo "📦 Starting deployment..."
+
+            # Create backup of current deployment
+            if [ -d "$DEPLOY_DIR" ]; then
+              echo "💾 Creating backup..."
+              mkdir -p $BACKUP_DIR
+              BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S)"
+              cp -r $DEPLOY_DIR "$BACKUP_DIR/$BACKUP_NAME"
+              echo "✓ Backup created: $BACKUP_DIR/$BACKUP_NAME"
+
+              # Keep only last 5 backups
+              cd $BACKUP_DIR
+              ls -t | tail -n +6 | xargs -r rm -rf
+            fi
+
+            # Create deployment directory
+            mkdir -p $DEPLOY_DIR
+
+            # Extract new version
+            echo "📂 Extracting files..."
+            tar -xzf /tmp/pi5-trading-system.tar.gz -C $DEPLOY_DIR
+            rm /tmp/pi5-trading-system.tar.gz
+
+            # Make binaries executable
+            chmod +x $DEPLOY_DIR/api
+            chmod +x $DEPLOY_DIR/backtest
+            chmod +x $DEPLOY_DIR/optimize
+
+            # Copy .env if it doesn't exist
+            if [ ! -f "$DEPLOY_DIR/.env" ]; then
+              echo "📝 Creating .env from example..."
+              cp $DEPLOY_DIR/.env.example $DEPLOY_DIR/.env
+              echo "⚠️  Please configure $DEPLOY_DIR/.env with your credentials"
+            fi
+
+            # Restart systemd service if exists
+            if systemctl --user is-active --quiet pi5-trading.service; then
+              echo "🔄 Restarting trading service..."
+              systemctl --user restart pi5-trading.service
+              echo "✓ Service restarted"
+            else
+              echo "ℹ️  Service not running (use 'systemctl --user start pi5-trading.service' to start)"
+            fi
+
+            echo "✅ Deployment complete!"
+            echo ""
+            echo "Deployed files:"
+            ls -lh $DEPLOY_DIR
+          ENDSSH
+
+      - name: Verify deployment
+        env:
+          SSH_HOST: ${{ secrets.PI5_HOST }}
+          SSH_USER: ${{ secrets.PI5_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@$SSH_HOST << 'ENDSSH'
+            DEPLOY_DIR="/home/$USER/pi5-trading-system"
+
+            echo ""
+            echo "🔍 Verifying deployment..."
+
+            # Check binary versions
+            echo "Binary versions:"
+            $DEPLOY_DIR/api --version 2>/dev/null || echo "  api: $(stat -c %y $DEPLOY_DIR/api | cut -d' ' -f1)"
+
+            # Check if service is running
+            if systemctl --user is-active --quiet pi5-trading.service; then
+              echo "✓ Trading service is running"
+              systemctl --user status pi5-trading.service --no-pager | head -5
+            else
+              echo "ℹ️  Trading service is not running"
+            fi
+
+            echo ""
+            echo "✅ Verification complete!"
+          ENDSSH
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deployment to Raspberry Pi successful!"
+          else
+            echo "❌ Deployment to Raspberry Pi failed!"
+          fi
